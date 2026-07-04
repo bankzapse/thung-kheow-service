@@ -36,28 +36,45 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['"Noto Sans Thai"', "Prompt", '"IBM Plex Sans Thai"', "Thonburi", "system-ui", "sans-serif"],
+        sans: ['var(--font-sans)', '"IBM Plex Sans Thai"', "system-ui", "sans-serif"],
       },
       boxShadow: {
-        card: "0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06)",
-        float: "0 8px 30px rgb(0 0 0 / 0.12)",
-        gold: "0 0 0 1px rgba(212,175,55,0.35), 0 8px 30px rgba(212,175,55,0.15)",
+        card: "0 1px 2px 0 rgb(16 24 40 / 0.04), 0 4px 14px -4px rgb(16 24 40 / 0.08)",
+        float: "0 12px 34px -6px rgb(16 24 40 / 0.16)",
+        brand: "0 4px 14px -2px rgb(22 163 74 / 0.45)",
+        gold: "0 0 0 1px rgba(212,175,55,0.35), 0 8px 30px rgba(212,175,55,0.18)",
       },
       borderRadius: {
         xl: "0.9rem",
         "2xl": "1.25rem",
+        "3xl": "1.6rem",
+      },
+      backgroundImage: {
+        "brand-gradient": "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
       },
       keyframes: {
         "fade-in": {
           from: { opacity: "0", transform: "translateY(6px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        "scale-in": {
+          from: { opacity: "0", transform: "scale(0.96)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
+        "slide-up": {
+          from: { transform: "translateY(100%)" },
+          to: { transform: "translateY(0)" },
+        },
+        "backdrop-in": { from: { opacity: "0" }, to: { opacity: "1" } },
         shimmer: {
           "100%": { transform: "translateX(100%)" },
         },
       },
       animation: {
         "fade-in": "fade-in 0.35s ease-out",
+        "scale-in": "scale-in 0.2s cubic-bezier(0.16,1,0.3,1)",
+        "slide-up": "slide-up 0.3s cubic-bezier(0.16,1,0.3,1)",
+        "backdrop-in": "backdrop-in 0.2s ease-out",
       },
     },
   },

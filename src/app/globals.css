@@ -12,39 +12,48 @@ body {
 }
 
 body {
-  @apply bg-neutral-50 text-neutral-900 antialiased font-sans;
+  @apply bg-[#f4f6f8] text-neutral-900 antialiased font-sans;
   -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
 }
 
 /* Mobile-first app shell: center on desktop, full-bleed on phones */
 .app-shell {
-  @apply mx-auto min-h-dvh w-full max-w-md bg-neutral-50 shadow-float;
+  @apply mx-auto min-h-dvh w-full max-w-md bg-[#f4f6f8] shadow-float;
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100;
   }
   .btn-primary {
-    @apply btn bg-brand-600 text-white hover:bg-brand-700 shadow-card;
+    @apply btn bg-brand-600 text-white shadow-brand hover:bg-brand-700 hover:shadow-lg disabled:shadow-none;
   }
   .btn-outline {
-    @apply btn border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50;
+    @apply btn border border-neutral-200 bg-white text-neutral-700 shadow-card hover:border-neutral-300 hover:bg-neutral-50;
   }
   .btn-ghost {
     @apply btn text-neutral-600 hover:bg-neutral-100;
   }
   .card {
-    @apply rounded-2xl bg-white p-4 shadow-card;
+    @apply rounded-2xl bg-white p-4 shadow-card ring-1 ring-neutral-900/[0.04];
+  }
+  /* interactive card: lifts on hover/press */
+  .card-tap {
+    @apply card transition-all duration-150 hover:-translate-y-0.5 hover:shadow-float active:translate-y-0 active:scale-[0.99];
   }
   .input {
-    @apply w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-neutral-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
+    @apply w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-neutral-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100;
   }
   .label {
     @apply mb-1.5 block text-sm font-medium text-neutral-700;
   }
   .chip {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+  /* small uppercase section label */
+  .section-title {
+    @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-400;
   }
 }
 

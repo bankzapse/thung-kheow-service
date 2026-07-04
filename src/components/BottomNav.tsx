@@ -51,11 +51,18 @@ export function BottomNav({ role }: { role: Role }) {
               <Link
                 href={it.href}
                 className={cn(
-                  "flex w-16 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px] font-medium transition",
-                  active(it.href) ? "text-brand-600" : "text-neutral-400",
+                  "flex w-16 flex-col items-center gap-1 py-1 text-[11px] font-medium transition-colors",
+                  active(it.href) ? "text-brand-700" : "text-neutral-400",
                 )}
               >
-                <it.icon className="h-[22px] w-[22px]" strokeWidth={active(it.href) ? 2.4 : 2} />
+                <span
+                  className={cn(
+                    "flex h-8 w-[52px] items-center justify-center rounded-full transition-all duration-200",
+                    active(it.href) ? "bg-brand-100" : "bg-transparent",
+                  )}
+                >
+                  <it.icon className="h-[21px] w-[21px]" strokeWidth={active(it.href) ? 2.4 : 2} />
+                </span>
                 {it.label}
               </Link>
             </div>

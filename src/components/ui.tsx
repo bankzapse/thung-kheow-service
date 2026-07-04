@@ -69,8 +69,8 @@ export function Modal({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
-      <div className="absolute inset-0 bg-black/40 animate-fade-in" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-sm animate-fade-in rounded-2xl bg-white p-5 shadow-float">
+      <div className="absolute inset-0 bg-neutral-900/40 backdrop-blur-[2px] animate-backdrop-in" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-sm animate-scale-in rounded-3xl bg-white p-5 shadow-float ring-1 ring-neutral-900/5">
         {title && <h3 className="mb-2 text-lg font-bold text-neutral-900">{title}</h3>}
         <div className="text-sm text-neutral-600">{children}</div>
         {footer && <div className="mt-5 flex gap-3">{footer}</div>}
@@ -94,8 +94,8 @@ export function Sheet({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
-      <div className="absolute inset-0 bg-black/40 animate-fade-in" onClick={onClose} />
-      <div className="relative z-10 max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-5 pb-8 shadow-float animate-fade-in">
+      <div className="absolute inset-0 bg-neutral-900/40 backdrop-blur-[2px] animate-backdrop-in" onClick={onClose} />
+      <div className="relative z-10 max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-5 pb-8 shadow-float animate-slide-up">
         <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-neutral-200" />
         {title && (
           <div className="mb-3 flex items-center justify-between">
@@ -164,8 +164,8 @@ export function Toaster() {
           key={t.id}
           onClick={() => dismissToast(t.id)}
           className={cn(
-            "pointer-events-auto flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-white shadow-float animate-fade-in",
-            t.kind === "line" ? "bg-[#06C755]" : t.kind === "info" ? "bg-neutral-700" : "bg-brand-600",
+            "pointer-events-auto flex w-full items-center gap-2.5 rounded-2xl px-4 py-3 text-sm font-medium text-white shadow-float ring-1 ring-white/10 animate-fade-in",
+            t.kind === "line" ? "bg-[#06C755]" : t.kind === "info" ? "bg-neutral-800" : "bg-brand-600",
           )}
         >
           <span className="shrink-0">
