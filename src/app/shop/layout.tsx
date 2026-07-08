@@ -41,12 +41,12 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="min-h-dvh bg-neutral-100">
-      <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white">
+      <header className="sticky top-0 z-30 bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-sm">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
           <div className="flex items-center gap-2">
-            <Logo size={30} />
-            <span className="hidden font-bold text-neutral-800 sm:block">
-              Green<span className="text-brand-600">Drop</span> <span className="font-medium text-neutral-400">· {PICKUP_ENABLED ? "ร้านรับซื้อ" : "ศูนย์คัดแยก"}</span>
+            <Logo size={30} className="rounded-lg bg-white p-0.5" />
+            <span className="hidden font-bold text-white sm:block">
+              ถุงเขียว <span className="font-medium text-white/60">· {PICKUP_ENABLED ? "ร้านรับซื้อ" : "ศูนย์คัดแยก"}</span>
             </span>
           </div>
           <nav className="ml-3 hidden items-center gap-1 md:flex">
@@ -56,7 +56,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
                 href={n.href}
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition",
-                  isActive(n.href, n.exact) ? "bg-brand-50 text-brand-700" : "text-neutral-500 hover:bg-neutral-100",
+                  isActive(n.href, n.exact) ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/10",
                 )}
               >
                 <n.icon className="h-4 w-4" />
@@ -70,12 +70,12 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
                 <Plus className="h-4 w-4" /> สร้างบิล
               </Link>
             )}
-            <Link href="/home" className="btn-ghost !px-2 !py-2 text-sm text-neutral-500">
+            <Link href="/home" className="btn-ghost !px-2 !py-2 text-sm !text-white/85 hover:!bg-white/10">
               <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">กลับแอป</span>
             </Link>
           </div>
         </div>
-        <nav className="no-scrollbar flex gap-1 overflow-x-auto border-t border-neutral-100 px-3 py-1.5 md:hidden">
+        <nav className="no-scrollbar flex gap-1 overflow-x-auto border-t border-white/10 px-3 py-1.5 md:hidden">
           {NAV.map((n) => (
             <Link
               key={n.href}

@@ -26,18 +26,18 @@ export default function FranchiseLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-dvh bg-neutral-100">
-      <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white">
+      <header className="sticky top-0 z-30 bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
           <Link href="/franchise" className="flex items-center gap-2">
-            <Logo size={30} />
-            <span className="font-bold text-neutral-800">
-              Green<span className="text-brand-600">Drop</span>{" "}
-              <span className="font-medium text-neutral-400">· {fr ? <>แฟรนไชส์ <span className="font-mono">{fr.code}</span></> : "แฟรนไชส์"}</span>
+            <Logo size={30} className="rounded-lg bg-white p-0.5" />
+            <span className="font-bold text-white">
+              ถุงเขียว{" "}
+              <span className="font-medium text-white/60">· {fr ? <>แฟรนไชส์ <span className="font-mono">{fr.code}</span></> : "แฟรนไชส์"}</span>
             </span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
-            <Link href="/home" className="btn-ghost !px-2 !py-2 text-sm text-neutral-500"><ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">กลับแอป</span></Link>
-            <button onClick={logout} className="btn-ghost !px-2 !py-2 text-sm text-neutral-500"><LogOut className="h-4 w-4" /> ออก</button>
+            <Link href="/home" className="btn-ghost !px-2 !py-2 text-sm !text-white/85 hover:!bg-white/10"><ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">กลับแอป</span></Link>
+            <button onClick={logout} className="btn-ghost !px-2 !py-2 text-sm !text-white/85 hover:!bg-white/10"><LogOut className="h-4 w-4" /> ออก</button>
           </div>
         </div>
       </header>

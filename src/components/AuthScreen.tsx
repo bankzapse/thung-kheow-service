@@ -23,7 +23,7 @@ interface Portal {
   label: string; // badge: สำหรับผู้ขาย
   subtitle: string;
   icon: React.ReactNode;
-  theme: "green" | "teal" | "slate";
+  theme: "green" | "teal" | "greenDeep";
   methods: ("phone" | "email")[];
   line: boolean;
   register: boolean;
@@ -35,7 +35,7 @@ interface Portal {
 const THEMES = {
   green: { grad: "from-brand-500 via-brand-600 to-brand-700", badge: "bg-brand-50 text-brand-700" },
   teal: { grad: "from-emerald-500 via-emerald-600 to-teal-700", badge: "bg-emerald-50 text-emerald-700" },
-  slate: { grad: "from-slate-700 via-slate-800 to-slate-900", badge: "bg-slate-100 text-slate-700" },
+  greenDeep: { grad: "from-brand-600 via-brand-700 to-emerald-900", badge: "bg-brand-50 text-brand-700" },
 };
 
 export const PORTALS: Record<PortalKey, Portal> = {
@@ -76,7 +76,7 @@ export const PORTALS: Record<PortalKey, Portal> = {
     label: "สำหรับทีมบริษัท (Admin)",
     subtitle: "ระบบหลังบ้าน • ภาพรวม & จัดการแฟรนไชส์",
     icon: <ShieldCheck className="h-3.5 w-3.5" />,
-    theme: "slate",
+    theme: "greenDeep",
     methods: ["email"],
     line: false,
     register: false,

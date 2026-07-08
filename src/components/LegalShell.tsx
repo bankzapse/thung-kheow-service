@@ -9,7 +9,7 @@ export function LegalShell({ title, subtitle, updated, children }: { title: stri
         <div className="mx-auto flex h-14 max-w-3xl items-center gap-2 px-5">
           <Link href="/login" className="flex items-center gap-2">
             <Logo size={28} />
-            <span className="font-bold text-neutral-900">Green<span className="text-brand-600">Drop</span></span>
+            <span className="font-bold text-neutral-900">ถุง<span className="text-brand-600">เขียว</span></span>
           </Link>
           <Link href="/login" className="btn-ghost ml-auto !px-2 !py-2 text-sm text-neutral-500"><ArrowLeft className="h-4 w-4" /> กลับ</Link>
         </div>
