@@ -48,7 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
           <div className="flex items-center gap-2">
             <Logo size={30} className="rounded-lg bg-white p-0.5" />
-            <span className="hidden font-bold sm:block">GreenDrop <span className="font-medium text-white/50">· บริษัท (Admin)</span></span>
+            <span className="hidden font-bold sm:block">ถุงเขียว <span className="font-medium text-white/50">· บริษัท (Admin)</span></span>
           </div>
           <nav className="ml-3 hidden items-center gap-1 md:flex">
             {NAV.map((n) => (

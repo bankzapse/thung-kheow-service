@@ -1,4 +1,4 @@
-# GreenDrop — เตรียมขึ้น Production
+# ถุงเขียว — เตรียมขึ้น Production
 
 ระบบรีไซเคิลแบบ **Drop & Go** (หย่อนถุง สแกน QR สะสมแต้ม แลกเงิน) + จัดการแฟรนไชส์
 เฟสแรก: **เปิดเฉพาะ Drop & Go** · ระบบรับซื้อของเก่าหน้าบ้าน (pickup) ปิดไว้ก่อน (`PICKUP_ENABLED=false` ใน `src/lib/features.ts`)
@@ -6,9 +6,9 @@
 ## 3 Surface
 | Surface | ใคร | Route | หมายเหตุ |
 |---|---|---|---|
-| **แอปคนทิ้ง** (GreenDrop) | ผู้ทิ้งขยะ | `/drop`, `/points` | มือถือ/LINE LIFF · WebView เป็น native ทีหลัง |
-| **เว็บแฟรนไชส์** (GreenDrop Partner) | เจ้าของแฟรนไชส์ | `/franchise` | รหัสตู้ + สถิติ + รายได้/สัญญา + พิมพ์ QR |
-| **เว็บบริษัท** (GreenDrop Admin) | บริษัท/แอดมิน | `/admin` | จัดการแฟรนไชส์ · ตู้ใกล้เต็ม (เข้าเก็บ) · แบ่งรายได้ · แลกเงิน |
+| **แอปคนทิ้ง** (ถุงเขียว) | ผู้ทิ้งขยะ | `/drop`, `/points` | มือถือ/LINE LIFF · WebView เป็น native ทีหลัง |
+| **เว็บแฟรนไชส์** (ถุงเขียว Partner) | เจ้าของแฟรนไชส์ | `/franchise` | รหัสตู้ + สถิติ + รายได้/สัญญา + พิมพ์ QR |
+| **เว็บบริษัท** (ถุงเขียว Admin) | บริษัท/แอดมิน | `/admin` | จัดการแฟรนไชส์ · ตู้ใกล้เต็ม (เข้าเก็บ) · แบ่งรายได้ · แลกเงิน |
 | **ศูนย์คัดแยก** | ทีมคัดแยก (operator) | `/shop/cabinets` | ตีราคาถุง → ให้คะแนน · จ่ายเงินแลก |
 
 ## โมเดลรายได้ (แฟรนไชส์ ↔ บริษัท)
@@ -18,10 +18,10 @@
 - โค้ด: `src/lib/revenue.ts` (`revenueShare`) · รายงานใน `/franchise` และ `/admin/franchises`
 
 ## 1) Domain ที่ควรจด
-- `greendrop.co` (หรือ `.com` / `.app`) — โดเมนหลัก
-  - `app.greendrop.co` → แอปคนทิ้ง (production เว็บ)
-  - `partner.greendrop.co` → เว็บแฟรนไชส์ (หรือใช้ path `/franchise`)
-  - `admin.greendrop.co` → เว็บบริษัท (หรือใช้ path `/admin`)
+- `thungkhiao.co` (หรือ `.com` / `.app`) — โดเมนหลัก
+  - `app.thungkhiao.co` → แอปคนทิ้ง (production เว็บ)
+  - `partner.thungkhiao.co` → เว็บแฟรนไชส์ (หรือใช้ path `/franchise`)
+  - `admin.thungkhiao.co` → เว็บบริษัท (หรือใช้ path `/admin`)
   > MVP ใช้โดเมนเดียว + path ก็ได้ (ทุก surface อยู่ใน Next app เดียว)
 
 ## 2) Account ที่ต้องเตรียม
@@ -34,7 +34,7 @@
 | **PromptPay / ธนาคาร** | จ่ายเงินแลกแต้มให้คนทิ้ง | บัญชีบริษัทสำหรับโอนออก |
 | **Apple Developer** | ส่งแอป iOS ($99/ปี) | ตอนทำ native |
 | **Google Play Console** | ส่งแอป Android ($25) | ตอนทำ native |
-| **โดเมน + อีเมลบริษัท** | ติดต่อ/ยืนยัน store/โดเมน | เช่น hello@greendrop.co |
+| **โดเมน + อีเมลบริษัท** | ติดต่อ/ยืนยัน store/โดเมน | เช่น hello@thungkhiao.co |
 
 ## 3) Environment variables (Vercel → Settings → Environment Variables)
 คัดลอกจาก `.env.example`:
@@ -52,7 +52,7 @@ NEXT_PUBLIC_COMPANY_PROMPTPAY=  # พร้อมเพย์บริษัท 
 ## 4) ขั้นตอน Go-live
 1. Supabase: สร้างโปรเจกต์ → SQL Editor → รัน `supabase/schema.sql` (รวม Drop & Go + แฟรนไชส์แล้ว)
 2. Vercel: ใส่ env → ผูก custom domain → Redeploy
-3. LINE: สร้าง LIFF app (endpoint = `https://app.greendrop.co`) + เปิด scope `scanQRCode` + `profile` · ใส่ `NEXT_PUBLIC_LIFF_ID`
+3. LINE: สร้าง LIFF app (endpoint = `https://app.thungkhiao.co`) + เปิด scope `scanQRCode` + `profile` · ใส่ `NEXT_PUBLIC_LIFF_ID`
 4. สร้างแฟรนไชส์ + ตู้แรกใน `/admin/franchises` → พิมพ์ QR ป้ายตู้ + ถุง (`/franchise` หรือ `/shop/cabinets/[id]/qr`)
 5. ทดสอบ end-to-end: คนทิ้งสแกน `GLN-AA-0000001` → ทีมคัดแยกตีราคา → คะแนนเข้า → แลกเงิน → บริษัทโอน
 6. (ทีหลัง) ห่อ WebView เป็นแอป native → ส่ง store (ดู `native/README.md`)
@@ -60,6 +60,6 @@ NEXT_PUBLIC_COMPANY_PROMPTPAY=  # พร้อมเพย์บริษัท 
 ## 5) ปิดท้าย / กฎหมาย
 - **Privacy Policy** → `https://<โดเมน>/privacy` (หน้า `src/app/privacy/page.tsx`) — ใช้ลิงก์นี้กรอกใน App Store Connect + Play Console
 - **Terms of Service** → `https://<โดเมน>/terms` (หน้า `src/app/terms/page.tsx`)
-- ⚠️ ก่อน go-live: แก้ placeholder ในหน้าเอกสาร — `[ชื่อบริษัท]`, `[ที่อยู่บริษัท]`, อีเมล `support@greendrop.co`, LINE `@greendrop`, และวันที่มีผลบังคับใช้
+- ⚠️ ก่อน go-live: แก้ placeholder ในหน้าเอกสาร — `[ชื่อบริษัท]`, `[ที่อยู่บริษัท]`, อีเมล `support@thungkhiao.co`, LINE `@thungkhiao`, และวันที่มีผลบังคับใช้
 - PDPA: ขอความยินยอมเก็บเบอร์/ข้อมูลผู้ใช้ (มีลิงก์เอกสารในหน้า login แล้ว)
 - ปุ่มเปิด pickup ทีหลัง: แก้ `PICKUP_ENABLED = true` ใน `src/lib/features.ts` (โค้ดครบอยู่แล้ว)

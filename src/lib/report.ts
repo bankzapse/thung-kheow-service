@@ -139,7 +139,7 @@ const row = (cells: (string | number)[]) => cells.map(csvCell).join(",");
 export function reportToCsv(rep: RevenueReport): string {
   const lines: string[] = [];
   const period = rep.from || rep.to ? `${rep.from ?? "เริ่มต้น"} ถึง ${rep.to ?? "ปัจจุบัน"}` : "ทั้งหมด";
-  lines.push(row(["GreenDrop — รายงานรายได้ & ส่วนแบ่ง"]));
+  lines.push(row(["ถุงเขียว — รายงานรายได้ & ส่วนแบ่ง"]));
   lines.push(row(["ขอบเขต", rep.scope === "all" ? "ทุกแฟรนไชส์ (บริษัท)" : "เฉพาะแฟรนไชส์"]));
   lines.push(row(["ช่วงเวลา", period]));
   lines.push(row(["สร้างเมื่อ", rep.generatedAt]));
@@ -203,9 +203,9 @@ export function reportToCsv(rep: RevenueReport): string {
   return "﻿" + lines.join("\r\n");
 }
 
-/** ชื่อไฟล์รายงาน เช่น greendrop-revenue-GLN-2026-07-08.csv */
+/** ชื่อไฟล์รายงาน เช่น thungkhiao-revenue-GLN-2026-07-08.csv */
 export function revenueReportFilename(rep: RevenueReport, ext = "csv"): string {
   const scope = rep.scope === "all" ? "all" : rep.groups[0]?.franchiseCode || "franchise";
   const day = rep.generatedAt.slice(0, 10);
-  return `greendrop-revenue-${scope}-${day}.${ext}`;
+  return `thungkhiao-revenue-${scope}-${day}.${ext}`;
 }

@@ -2,15 +2,15 @@ import type { Metadata } from "next";
 import { LegalShell, Sec, UL } from "@/components/LegalShell";
 
 export const metadata: Metadata = {
-  title: "นโยบายความเป็นส่วนตัว — GreenDrop",
-  description: "นโยบายความเป็นส่วนตัวของแอป GreenDrop (กรีนดรอป)",
+  title: "นโยบายความเป็นส่วนตัว — ถุงเขียว",
+  description: "นโยบายความเป็นส่วนตัวของแอป ถุงเขียว (Thung Khiao)",
 };
 
 export default function PrivacyPage() {
   return (
-    <LegalShell title="นโยบายความเป็นส่วนตัว" subtitle="Privacy Policy — GreenDrop (กรีนดรอป)" updated="8 กรกฎาคม 2569 (2026)">
+    <LegalShell title="นโยบายความเป็นส่วนตัว" subtitle="Privacy Policy — ถุงเขียว (Thung Khiao)" updated="8 กรกฎาคม 2569 (2026)">
       <p>
-        GreenDrop (“เรา”, “แอป”) ดำเนินการโดย บริษัท [ชื่อบริษัท] จำกัด ให้ความสำคัญกับความเป็นส่วนตัวของผู้ใช้
+        ถุงเขียว (“เรา”, “แอป”) ดำเนินการโดย บริษัท [ชื่อบริษัท] จำกัด ให้ความสำคัญกับความเป็นส่วนตัวของผู้ใช้
         นโยบายนี้อธิบายว่าเราเก็บ ใช้ เปิดเผย และคุ้มครองข้อมูลส่วนบุคคลของคุณอย่างไร
         ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA)
       </p>
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
 
       <Sec n={9} title="ติดต่อเรา">
         <p>บริษัท [ชื่อบริษัท] จำกัด · [ที่อยู่บริษัท]</p>
-        <p>อีเมล: <a href="mailto:support@greendrop.co" className="text-brand-600">support@greendrop.co</a> · LINE: @greendrop</p>
+        <p>อีเมล: <a href="mailto:support@thungkhiao.co" className="text-brand-600">support@thungkhiao.co</a> · LINE: @thungkhiao</p>
       </Sec>
     </LegalShell>
   );

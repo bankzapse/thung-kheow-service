@@ -20,7 +20,7 @@ export function LegalShell({ title, subtitle, updated, children }: { title: stri
         <p className="mt-1 text-xs text-neutral-400">อัปเดตล่าสุด: {updated}</p>
         <div className="mt-6 space-y-7 text-[15px] leading-relaxed text-neutral-700">{children}</div>
         <footer className="mt-10 border-t border-neutral-200 pt-5 text-xs text-neutral-400">
-          <p>GreenDrop (กรีนดรอป) · ดำเนินการโดย บริษัท [ชื่อบริษัท] จำกัด</p>
+          <p>ถุงเขียว (Thung Khiao) · ดำเนินการโดย บริษัท [ชื่อบริษัท] จำกัด</p>
           <p className="mt-1">
             <Link href="/privacy" className="text-brand-600">นโยบายความเป็นส่วนตัว</Link> ·{" "}
             <Link href="/terms" className="text-brand-600">ข้อกำหนดการใช้งาน</Link> ·{" "}

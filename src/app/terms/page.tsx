@@ -2,20 +2,20 @@ import type { Metadata } from "next";
 import { LegalShell, Sec, UL } from "@/components/LegalShell";
 
 export const metadata: Metadata = {
-  title: "ข้อกำหนดการใช้งาน — GreenDrop",
-  description: "ข้อกำหนดและเงื่อนไขการใช้งานแอป GreenDrop (กรีนดรอป)",
+  title: "ข้อกำหนดการใช้งาน — ถุงเขียว",
+  description: "ข้อกำหนดและเงื่อนไขการใช้งานแอป ถุงเขียว (Thung Khiao)",
 };
 
 export default function TermsPage() {
   return (
-    <LegalShell title="ข้อกำหนดการใช้งาน" subtitle="Terms of Service — GreenDrop (กรีนดรอป)" updated="8 กรกฎาคม 2569 (2026)">
+    <LegalShell title="ข้อกำหนดการใช้งาน" subtitle="Terms of Service — ถุงเขียว (Thung Khiao)" updated="8 กรกฎาคม 2569 (2026)">
       <p>
-        ยินดีต้อนรับสู่ GreenDrop การเข้าใช้หรือใช้บริการถือว่าคุณยอมรับข้อกำหนดนี้
+        ยินดีต้อนรับสู่ ถุงเขียว การเข้าใช้หรือใช้บริการถือว่าคุณยอมรับข้อกำหนดนี้
         หากไม่ยอมรับ กรุณางดใช้บริการ
       </p>
 
       <Sec n={1} title="บริการของเรา">
-        <p>GreenDrop เป็นบริการรีไซเคิลแบบ Drop &amp; Go — คุณคัดแยกขยะรีไซเคิลใส่ถุง หย่อนที่ตู้ สแกน QR เพื่อสะสมคะแนน และแลกคะแนนเป็นเงินตามเงื่อนไข</p>
+        <p>ถุงเขียว เป็นบริการรีไซเคิลแบบ Drop &amp; Go — คุณคัดแยกขยะรีไซเคิลใส่ถุง หย่อนที่ตู้ สแกน QR เพื่อสะสมคะแนน และแลกคะแนนเป็นเงินตามเงื่อนไข</p>
       </Sec>
 
       <Sec n={2} title="บัญชีผู้ใช้">
@@ -83,7 +83,7 @@ export default function TermsPage() {
       </Sec>
 
       <Sec n={11} title="ติดต่อเรา">
-        <p>บริษัท [ชื่อบริษัท] จำกัด · อีเมล: <a href="mailto:support@greendrop.co" className="text-brand-600">support@greendrop.co</a> · LINE: @greendrop</p>
+        <p>บริษัท [ชื่อบริษัท] จำกัด · อีเมล: <a href="mailto:support@thungkhiao.co" className="text-brand-600">support@thungkhiao.co</a> · LINE: @thungkhiao</p>
       </Sec>
     </LegalShell>
   );

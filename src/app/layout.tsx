@@ -14,9 +14,9 @@ const fontSans = IBM_Plex_Sans_Thai({
 });
 
 export const metadata: Metadata = {
-  title: "GreenDrop — หย่อนขยะรีไซเคิล สะสมแต้ม แลกเงิน",
-  description: "GreenDrop (กรีนดรอป) — คัดแยกขยะรีไซเคิลใส่ถุง หย่อนที่ตู้ Drop & Go สแกน QR สะสมแต้ม แลกเป็นเงิน",
-  applicationName: "GreenDrop",
+  title: "ถุงเขียว — หย่อนขยะรีไซเคิล สะสมแต้ม แลกเงิน",
+  description: "ถุงเขียว (Thung Khiao) — คัดแยกขยะรีไซเคิลใส่ถุง หย่อนที่ตู้ Drop & Go สแกน QR สะสมแต้ม แลกเป็นเงิน",
+  applicationName: "ถุงเขียว",
 };
 
 export const viewport: Viewport = {

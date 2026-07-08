@@ -152,7 +152,7 @@ export default function LoginPage() {
           <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white p-1.5 shadow-card">
             <Logo size={40} />
           </div>
-          <h1 className="text-2xl font-extrabold">GreenDrop</h1>
+          <h1 className="text-2xl font-extrabold">ถุงเขียว</h1>
           <p className="mt-1 text-sm text-white/85">หย่อนขยะรีไซเคิล • สะสมแต้ม • แลกเป็นเงิน</p>
         </div>
       </div>

@@ -1,10 +1,10 @@
 {
-  "name": "greendrop-native",
+  "name": "thungkhiao-native",
   "version": "1.0.0",
   "private": true,
-  "description": "GreenDrop — native iOS/Android shell (Capacitor WebView) โหลดเว็บ production",
+  "description": "ถุงเขียว — native iOS/Android shell (Capacitor WebView) โหลดเว็บ production",
   "scripts": {
-    "init": "cap init GreenDrop co.greendrop.app --web-dir public",
+    "init": "cap init ถุงเขียว co.thungkhiao.app --web-dir public",
     "add:ios": "cap add ios",
     "add:android": "cap add android",
     "sync": "cap sync",

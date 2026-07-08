@@ -1,4 +1,4 @@
-# GreenDrop — Data Safety (Google Play) & App Privacy (Apple)
+# ถุงเขียว — Data Safety (Google Play) & App Privacy (Apple)
 
 เอกสารนี้ map ข้อมูลที่แอปเก็บจริง → ช่องที่ต้องกรอกในคอนโซลทั้ง 2 store
 อิงตาม [/privacy](src/app/privacy/page.tsx) · กรอกให้ตรงกันทั้ง 2 ที่เพื่อไม่ให้ถูกปฏิเสธ
@@ -75,7 +75,7 @@
 | **Diagnostics › Crash Data** | Yes | No | App Functionality |
 | **Diagnostics › Performance Data** | Yes | No | App Functionality |
 
-> Apple: "Used for tracking" = ใช้เชื่อมกับข้อมูลจาก app/เว็บของบริษัทอื่นเพื่อโฆษณา/ตัวกลางข้อมูล → GreenDrop = **No** ทั้งหมด
+> Apple: "Used for tracking" = ใช้เชื่อมกับข้อมูลจาก app/เว็บของบริษัทอื่นเพื่อโฆษณา/ตัวกลางข้อมูล → ถุงเขียว = **No** ทั้งหมด
 > Privacy Policy URL (บังคับ): `https://<โดเมน>/privacy`
 
 ---

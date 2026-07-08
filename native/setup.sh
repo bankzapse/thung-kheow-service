@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# GreenDrop — bootstrap แอป native (Capacitor) จากศูนย์
+# ถุงเขียว — bootstrap แอป native (Capacitor) จากศูนย์
 # รันบน Mac (มี Node ≥18, Xcode + CocoaPods สำหรับ iOS, Android Studio + JDK 17 สำหรับ Android)
 #   cd native && bash setup.sh
 set -euo pipefail

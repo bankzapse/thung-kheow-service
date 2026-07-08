@@ -2,15 +2,15 @@ import type { Metadata } from "next";
 import { LegalShell, Sec, UL } from "@/components/LegalShell";
 
 export const metadata: Metadata = {
-  title: "ขอลบบัญชีและข้อมูล — GreenDrop",
-  description: "วิธีขอลบบัญชีและข้อมูลส่วนบุคคลออกจาก GreenDrop (กรีนดรอป)",
+  title: "ขอลบบัญชีและข้อมูล — ถุงเขียว",
+  description: "วิธีขอลบบัญชีและข้อมูลส่วนบุคคลออกจาก ถุงเขียว (Thung Khiao)",
 };
 
 export default function DeleteAccountPage() {
   return (
-    <LegalShell title="ขอลบบัญชีและข้อมูล" subtitle="Account & Data Deletion — GreenDrop (กรีนดรอป)" updated="8 กรกฎาคม 2569 (2026)">
+    <LegalShell title="ขอลบบัญชีและข้อมูล" subtitle="Account & Data Deletion — ถุงเขียว (Thung Khiao)" updated="8 กรกฎาคม 2569 (2026)">
       <p>
-        คุณสามารถขอลบบัญชี GreenDrop และข้อมูลส่วนบุคคลของคุณได้ตลอดเวลา หน้านี้อธิบายวิธีขอ ข้อมูลที่จะถูกลบ และระยะเวลาดำเนินการ
+        คุณสามารถขอลบบัญชี ถุงเขียว และข้อมูลส่วนบุคคลของคุณได้ตลอดเวลา หน้านี้อธิบายวิธีขอ ข้อมูลที่จะถูกลบ และระยะเวลาดำเนินการ
         (ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562)
       </p>
 
@@ -18,8 +18,8 @@ export default function DeleteAccountPage() {
         <UL
           items={[
             <><b>ในแอป (แนะนำ):</b> แท็บ “คะแนน” → เลื่อนลงล่างสุด → “ลบบัญชีและข้อมูล” → ยืนยัน (ลบทันที)</>,
-            <><b>อีเมล:</b> ส่งคำขอมาที่ <a href="mailto:support@greendrop.co?subject=ขอลบบัญชี%20GreenDrop" className="text-brand-600">support@greendrop.co</a> พร้อมเบอร์โทร/อีเมลที่ใช้สมัคร</>,
-            <><b>LINE:</b> ทักหาเราที่ <b>@greendrop</b> แจ้ง “ขอลบบัญชี”</>,
+            <><b>อีเมล:</b> ส่งคำขอมาที่ <a href="mailto:support@thungkhiao.co?subject=ขอลบบัญชี%20ถุงเขียว" className="text-brand-600">support@thungkhiao.co</a> พร้อมเบอร์โทร/อีเมลที่ใช้สมัคร</>,
+            <><b>LINE:</b> ทักหาเราที่ <b>@thungkhiao</b> แจ้ง “ขอลบบัญชี”</>,
           ]}
         />
         <p className="text-sm text-neutral-500">เพื่อความปลอดภัย เราจะยืนยันตัวตนก่อนดำเนินการลบ</p>
@@ -48,7 +48,7 @@ export default function DeleteAccountPage() {
       </Sec>
 
       <Sec n={6} title="ติดต่อ">
-        <p>บริษัท [ชื่อบริษัท] จำกัด · อีเมล: <a href="mailto:support@greendrop.co" className="text-brand-600">support@greendrop.co</a> · LINE: @greendrop</p>
+        <p>บริษัท [ชื่อบริษัท] จำกัด · อีเมล: <a href="mailto:support@thungkhiao.co" className="text-brand-600">support@thungkhiao.co</a> · LINE: @thungkhiao</p>
       </Sec>
     </LegalShell>
   );

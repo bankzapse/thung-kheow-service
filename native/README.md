@@ -1,4 +1,4 @@
-# GreenDrop — Native App (Capacitor)
+# ถุงเขียว — Native App (Capacitor)
 
 แอป iOS/Android แบบ **WebView (Capacitor)** ที่โหลดเว็บ production (บน Vercel) มาแสดง — โค้ดเว็บชุดเดียวใช้ทั้ง เว็บ + iOS + Android ไม่ต้องเขียนแอปแยก 2 แพลตฟอร์ม
 
@@ -38,8 +38,8 @@ npm run open:ios          # หรือ npm run open:android
 | `setup.sh` | bootstrap ครบขั้นตอน |
 
 ## ตั้งค่าก่อน build จริง
-1. **โดเมน**: แก้ `server.url` ใน `capacitor.config.ts` เป็นโดเมน production (เช่น `https://app.greendrop.co`) แล้ว `npm run sync`
-2. **Bundle id / package**: `co.greendrop.app` — จองให้ตรงกันทั้ง App Store + Play (แก้ที่ `appId`)
+1. **โดเมน**: แก้ `server.url` ใน `capacitor.config.ts` เป็นโดเมน production (เช่น `https://app.thungkhiao.co`) แล้ว `npm run sync`
+2. **Bundle id / package**: `co.thungkhiao.app` — จองให้ตรงกันทั้ง App Store + Play (แก้ที่ `appId`)
 3. **Icon/Splash**: แก้ `resources/logo.svg` (หรือวาง `resources/logo.png` 1024×1024) แล้ว `npm run assets`
 
 ---
@@ -64,7 +64,7 @@ npm run open:ios          # หรือ npm run open:android
 (MLKit บน Android ดึงโมดูลสแกนจาก Google Play ครั้งแรกอัตโนมัติ — โค้ดใน `native.ts` เรียก `installGoogleBarcodeScannerModule` ให้แล้ว)
 
 ## Deep link / Universal Link (ทีหลัง)
-ให้ลิงก์ `https://app.greendrop.co/...` เปิดในแอป: ตั้ง Associated Domains (iOS) + App Links (Android) ชี้โดเมนเดียวกับ `server.url`
+ให้ลิงก์ `https://app.thungkhiao.co/...` เปิดในแอป: ตั้ง Associated Domains (iOS) + App Links (Android) ชี้โดเมนเดียวกับ `server.url`
 
 ## Push notification (ทีหลัง)
 `@capacitor/push-notifications` + FCM (Android) / APNs (iOS) แจ้งเตือนคะแนนเข้า/แลกเงินอนุมัติ
@@ -76,7 +76,7 @@ npm run open:ios          # หรือ npm run open:android
 
 ### Apple App Store
 - [ ] Apple Developer Program ($99/ปี)
-- [ ] Bundle id `co.greendrop.app` ใน App Store Connect
+- [ ] Bundle id `co.thungkhiao.app` ใน App Store Connect
 - [ ] Icon 1024×1024 (จาก `npm run assets`)
 - [ ] Screenshots 6.7" + 6.5" (iPhone)
 - [ ] `NSCameraUsageDescription` (ข้างบน) — **ถ้าขาด รีวิวปฏิเสธ**
@@ -88,7 +88,7 @@ npm run open:ios          # หรือ npm run open:android
 
 ### Google Play
 - [ ] Play Console ($25 ครั้งเดียว)
-- [ ] Package `co.greendrop.app`
+- [ ] Package `co.thungkhiao.app`
 - [ ] Icon 512×512 + Feature graphic 1024×500
 - [ ] Screenshots (โทรศัพท์)
 - [ ] Data safety form: ดู [`../STORE_PRIVACY.md`](../STORE_PRIVACY.md) ส่วน A
