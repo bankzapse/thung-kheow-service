@@ -9,6 +9,7 @@ import { cabinetFullCode } from "@/lib/types";
 import { CONTRACT_PER_CABINET } from "@/lib/revenue";
 import { formatBaht } from "@/lib/utils";
 import { RevenueExport } from "@/components/RevenueExport";
+import { PayoutCard } from "@/components/PayoutCard";
 import { Box, PackageOpen, Coins, Wallet, Users, Plus, MapPin, QrCode, Printer, Store, FileText, Building2, CheckCircle2 } from "lucide-react";
 
 export default function FranchiseDashboard() {
@@ -97,6 +98,9 @@ export default function FranchiseDashboard() {
         </div>
         <p className="mt-2 text-[11px] text-neutral-400">ช่วงผ่อน: บริษัท 80% / คุณ 20% จนกว่าจะครบค่าสัญญา · หลังครบ: คุณ 80% / บริษัท 20% (ค่าจ้างเก็บของ + ดูแลระบบ)</p>
       </div>
+
+      {/* บัญชีรับเงินโอน */}
+      <div className="max-w-md"><PayoutCard /></div>
 
       {/* cabinets + codes */}
       <div>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { AppHeader } from "@/components/AppHeader";
 import { Modal } from "@/components/ui";
+import { PayoutCard } from "@/components/PayoutCard";
 import { pointsOf } from "@/lib/selectors";
 import { REDEEM_TIERS } from "@/lib/types";
 import { formatBaht } from "@/lib/utils";
@@ -46,6 +47,9 @@ export default function ProfilePage() {
           <InfoRow icon={<Mail className="h-4 w-4" />} label="อีเมล" value={u.email || "—"} />
           <InfoRow icon={<Coins className="h-4 w-4" />} label="คะแนนสะสม" value={`${formatBaht(points)} คะแนน`} />
         </div>
+
+        {/* บัญชีรับเงินโอน */}
+        <PayoutCard />
 
         {/* points shortcut */}
         <Link href="/points" className="card flex items-center gap-3 hover:shadow-float">

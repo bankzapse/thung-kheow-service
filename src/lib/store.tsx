@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import type { Bill, BillItem, Expense, Job, JobStatus, Role, ScheduleSlot, User, WalletTxn, MeshBag, BagItem, PointTxn, Redemption, Cabinet, Franchise } from "./types";
+import type { Bill, BillItem, Expense, Job, JobStatus, Role, ScheduleSlot, User, WalletTxn, MeshBag, BagItem, PointTxn, Redemption, Cabinet, Franchise, PayoutAccount } from "./types";
 import { POINTS_PER_BAHT, bagQr } from "./types";
 import { createInitialDB, type DB } from "./seed";
 import { billCode, jobCode, ticketNumber, todayISO, uid, currentMonth } from "./utils";
@@ -107,6 +107,8 @@ interface StoreValue {
   removeExpense: (id: string) => void;
   // admin console
   setUserStatus: (userId: string, status: "active" | "suspended") => void;
+  submitPayout: (input: { bankName: string; accountNo: string; accountName: string; bookBankImage?: string }) => void;
+  reviewPayout: (userId: string, approve: boolean, note?: string) => void;
   setCentralPrice: (materialId: string, price: number) => void;
   setDrawPrize: (month: string, prizeName: string, prizeValue: number) => void;
   drawWinner: (month: string) => void;
@@ -871,6 +873,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const redeemPoints = useCallback(
     (amountBaht: number, points: number, method: "promptpay" | "bank", account: string) => {
       if (!currentUser) return;
+      if (currentUser.payout?.status !== "approved") { pushToast("ต้องยืนยันบัญชีรับเงิน (รอบริษัทอนุมัติ) ก่อนแลกเงิน", "info"); return; }
       if ((currentUser.points ?? 0) < points) { pushToast("คะแนนไม่พอสำหรับตัวเลือกนี้", "info"); return; }
       if (!account.trim()) { pushToast("กรุณากรอกพร้อมเพย์/เลขบัญชีรับเงิน", "info"); return; }
       if (supabaseConfigured) return sbWrite((sb) => repo.redeemPoints(sb, amountBaht, points, method, account.trim()), `ส่งคำขอแลกเงิน ฿${amountBaht}`, "success");
@@ -910,6 +913,40 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
     pushToast("ปฏิเสธคำขอ + คืนคะแนนแล้ว", "info");
   }, [pushToast]);
+
+  // ผู้ขาย/แฟรนไชส์ ส่งข้อมูลบัญชีรับเงิน + สำเนา book bank → รอบริษัทอนุมัติ
+  const submitPayout = useCallback(
+    (input: { bankName: string; accountNo: string; accountName: string; bookBankImage?: string }) => {
+      if (!currentUser) return;
+      const payout: PayoutAccount = {
+        bankName: input.bankName.trim(),
+        accountNo: input.accountNo.trim(),
+        accountName: input.accountName.trim(),
+        bookBankImage: input.bookBankImage ?? currentUser.payout?.bookBankImage,
+        status: "pending",
+        submittedAt: todayISO(),
+      };
+      setDb((d) => ({ ...d, users: d.users.map((u) => (u.id === currentUser.id ? { ...u, payout } : u)) }));
+      pushToast("ส่งข้อมูลบัญชีแล้ว — รอบริษัทอนุมัติ", "success");
+    },
+    [currentUser, pushToast],
+  );
+
+  // บริษัทอนุมัติ/ปฏิเสธบัญชีรับเงิน
+  const reviewPayout = useCallback(
+    (userId: string, approve: boolean, note?: string) => {
+      setDb((d) => ({
+        ...d,
+        users: d.users.map((u) =>
+          u.id === userId && u.payout
+            ? { ...u, payout: { ...u.payout, status: approve ? "approved" : "rejected", note: approve ? undefined : (note ?? "ข้อมูลไม่ถูกต้อง"), reviewedAt: todayISO() } }
+            : u,
+        ),
+      }));
+      pushToast(approve ? "อนุมัติบัญชีรับเงินแล้ว" : "ปฏิเสธบัญชีรับเงิน", approve ? "success" : "info");
+    },
+    [pushToast],
+  );
 
   const addCabinet = useCallback(
     (input: { code: string; name: string; address: string; province?: string; district?: string; subdistrict?: string; franchiseId: string; franchiseCode: string; lat?: number; lng?: number }) => {
@@ -987,6 +1024,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     redeemPoints,
     markRedemptionPaid,
     rejectRedemption,
+    submitPayout,
+    reviewPayout,
     addCabinet,
     addFranchise,
   };

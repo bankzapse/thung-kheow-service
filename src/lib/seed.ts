@@ -63,6 +63,7 @@ export function createInitialDB(): DB {
     lineConnected: true,
     lineUserId: "Uxxxxdemo1",
     points: 33,
+    payout: { bankName: "กสิกรไทย", accountNo: "123-4-56789-0", accountName: "มานี ใจดี", status: "approved", submittedAt: addDays(now, -20).toISOString(), reviewedAt: addDays(now, -19).toISOString() },
     createdAt: new Date(now.getFullYear(), now.getMonth() - 2, 3).toISOString(),
   };
   const seller2: User = {
@@ -118,6 +119,7 @@ export function createInitialDB(): DB {
     email: "franchise@demo.com",
     lineConnected: false,
     franchiseId: "fr-gln",
+    payout: { bankName: "ไทยพาณิชย์", accountNo: "456-7-89012-3", accountName: "เอกชัย รักษ์โลก", status: "pending", submittedAt: addDays(now, -1).toISOString() },
     createdAt: new Date(now.getFullYear(), now.getMonth() - 2, 15).toISOString(),
   };
 

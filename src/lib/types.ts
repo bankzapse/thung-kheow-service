@@ -86,6 +86,18 @@ export interface RewardDraw {
   status: "pending" | "announced";
 }
 
+export type PayoutStatus = "none" | "pending" | "approved" | "rejected";
+export interface PayoutAccount {
+  bankName: string; // ธนาคาร
+  accountNo: string; // เลขบัญชี
+  accountName: string; // ชื่อบัญชี
+  bookBankImage?: string; // สำเนาหน้า book bank (data URL — เดโม)
+  status: PayoutStatus;
+  note?: string; // เหตุผลเมื่อถูกปฏิเสธ
+  submittedAt?: string;
+  reviewedAt?: string;
+}
+
 export interface User {
   id: string;
   role: Role;
@@ -93,6 +105,7 @@ export interface User {
   phone: string;
   email?: string;
   password?: string; // โหมดเดโม (localStorage) เท่านั้น — Supabase ใช้ auth ของตัวเอง
+  payout?: PayoutAccount; // บัญชีรับเงินโอน (ต้องบริษัทอนุมัติก่อนทำธุรกรรม)
   lineUserId?: string;
   lineConnected: boolean;
   baseLat?: number; // ตำแหน่งฐานคนขับ (ใช้คำนวณรัศมี 30 กม.)
