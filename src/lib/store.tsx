@@ -10,6 +10,10 @@ import { supabaseConfigured } from "./supabase/config";
 import { createClient } from "./supabase/client";
 import * as repo from "./supabase/repo";
 
+/** รหัสผ่านเริ่มต้นของบัญชีเดโม (seed users) — โหมดเดโมเท่านั้น */
+export const DEMO_PASSWORD = "123456";
+const toE164 = (p: string) => "+66" + p.trim().replace(/^0/, "");
+
 /** map แถว profiles ของ Supabase → User ของแอป */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function profileToUser(p: any): User {
@@ -76,7 +80,9 @@ interface StoreValue {
   loginAs: (userId: string) => void;
   findByPhone: (phone: string) => User | undefined;
   findByEmail: (email: string) => User | undefined;
-  register: (input: RegisterInput) => User;
+  loginWithPassword: (phone: string, password: string) => Promise<{ ok: boolean; user?: User; error?: string }>;
+  registerAccount: (input: { name?: string; phone: string; email?: string; password: string }) => Promise<{ ok: boolean; error?: string }>;
+  resetPassword: (phone: string, newPassword: string) => Promise<{ ok: boolean; error?: string }>;
   loginWithLine: (profile: { userId: string; displayName: string; pictureUrl?: string }) => void;
   logout: () => void;
   deleteAccount: () => Promise<void>;
@@ -249,27 +255,65 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [db.users],
   );
 
-  const register = useCallback(
-    (input: RegisterInput) => {
-      const existing =
-        db.users.find((u) => u.phone === input.phone.trim()) ||
-        (input.email ? db.users.find((u) => u.email === input.email) : undefined);
-      if (existing) {
-        setCurrentUserId(existing.id);
-        return existing;
+  // เข้าสู่ระบบด้วยเบอร์ + รหัสผ่าน
+  // เดโม: ตรวจกับ user ในเครื่อง (ไม่ตั้ง session — คืน user ให้ AuthScreen ตรวจ role ก่อน loginAs)
+  const loginWithPassword = useCallback(
+    async (phone: string, password: string): Promise<{ ok: boolean; user?: User; error?: string }> => {
+      const p = phone.trim();
+      if (supabaseConfigured) {
+        const { error } = await createClient().auth.signInWithPassword({ phone: toE164(p), password });
+        if (error) return { ok: false, error: error.message };
+        return { ok: true }; // session → onAuthStateChange → redirect
       }
+      const u = db.users.find((x) => x.phone === p);
+      if (!u) return { ok: false, error: "ไม่พบบัญชีนี้ — ลงทะเบียนก่อน" };
+      if ((u.password ?? DEMO_PASSWORD) !== password) return { ok: false, error: "รหัสผ่านไม่ถูกต้อง" };
+      return { ok: true, user: u };
+    },
+    [db.users],
+  );
+
+  // สมัครสมาชิก (ผู้ขาย) — เรียกหลังยืนยัน OTP แล้ว
+  const registerAccount = useCallback(
+    async (input: { name?: string; phone: string; email?: string; password: string }): Promise<{ ok: boolean; error?: string }> => {
+      const phone = input.phone.trim();
+      if (supabaseConfigured) {
+        const { error } = await createClient().auth.signUp({ phone: toE164(phone), password: input.password, options: { data: { name: input.name?.trim(), role: "seller" } } });
+        if (error) return { ok: false, error: error.message };
+        return { ok: true };
+      }
+      if (db.users.some((u) => u.phone === phone)) return { ok: false, error: "เบอร์นี้มีบัญชีแล้ว" };
       const user: User = {
         id: uid("u-"),
-        role: input.role,
-        name: input.name.trim(),
-        phone: input.phone.trim(),
+        role: "seller",
+        name: input.name?.trim() || "ผู้ใช้ใหม่",
+        phone,
         email: input.email?.trim() || undefined,
+        password: input.password,
         lineConnected: false,
+        points: 0,
         createdAt: todayISO(),
       };
       setDb((d) => ({ ...d, users: [...d.users, user] }));
       setCurrentUserId(user.id);
-      return user;
+      return { ok: true };
+    },
+    [db.users],
+  );
+
+  // ตั้งรหัสผ่านใหม่ (หลังยืนยัน OTP) — เดโม: อัปเดต user ในเครื่อง
+  const resetPassword = useCallback(
+    async (phone: string, newPassword: string): Promise<{ ok: boolean; error?: string }> => {
+      const p = phone.trim();
+      if (supabaseConfigured) {
+        const { error } = await createClient().auth.updateUser({ password: newPassword });
+        if (error) return { ok: false, error: error.message };
+        return { ok: true };
+      }
+      const u = db.users.find((x) => x.phone === p);
+      if (!u) return { ok: false, error: "ไม่พบบัญชีของเบอร์นี้" };
+      setDb((d) => ({ ...d, users: d.users.map((x) => (x.id === u.id ? { ...x, password: newPassword } : x)) }));
+      return { ok: true };
     },
     [db.users],
   );
@@ -905,7 +949,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     loginAs,
     findByPhone,
     findByEmail,
-    register,
+    loginWithPassword,
+    registerAccount,
+    resetPassword,
     loginWithLine,
     logout,
     deleteAccount,

@@ -5,16 +5,17 @@ import { usePathname, useRouter } from "next/navigation";
 import type { Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { PICKUP_ENABLED } from "@/lib/features";
-import { Home, ClipboardList, Wallet, CalendarClock, Coins, Recycle } from "lucide-react";
+import { Logo } from "@/components/Logo";
+import { Home, ClipboardList, Wallet, CalendarClock, Coins, PackageCheck, User } from "lucide-react";
 
 type Item = { href: string; label: string; icon: React.ElementType };
 
 const NAV: Record<"seller" | "buyer", Item[]> = {
   seller: [
     { href: "/home", label: "หน้าแรก", icon: Home },
-    { href: "/jobs", label: "รายการ", icon: ClipboardList },
+    { href: "/status", label: "สถานะ", icon: PackageCheck },
     { href: "/points", label: "คะแนน", icon: Coins },
-    { href: "/income", label: "รายได้", icon: Wallet },
+    { href: "/profile", label: "โปรไฟล์", icon: User },
   ],
   buyer: [
     { href: "/home", label: "หน้าแรก", icon: Home },
@@ -29,7 +30,7 @@ export function BottomNav({ role }: { role: Role }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  // admin ไม่ใช้ bottom nav (มี layout แยก)
+  // admin/franchise ไม่ใช้ bottom nav (มี layout แยก)
   if (role !== "seller" && role !== "buyer") return null;
   // Hide tab bar on full-screen task pages (they have their own action bars)
   if (
@@ -52,7 +53,7 @@ export function BottomNav({ role }: { role: Role }) {
     <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md border-t border-neutral-100 bg-white/95 backdrop-blur">
       <div className="relative flex items-stretch justify-around px-2 pb-[max(env(safe-area-inset-bottom),0.4rem)] pt-1.5">
         {items.map((it, idx) => {
-          // insert center FAB for seller in the middle
+          // แทรกปุ่มกลาง (โลโก้ → Drop Bag) สำหรับผู้ขาย
           const showFab = isSeller && idx === Math.floor(items.length / 2);
           return (
             <div key={it.href} className="contents">
@@ -87,10 +88,10 @@ function FabSlot({ onClick }: { onClick: () => void }) {
     <div className="flex w-16 items-start justify-center">
       <button
         onClick={onClick}
-        aria-label="Drop & Go"
-        className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-float ring-4 ring-white transition active:scale-95"
+        aria-label="Drop Bag"
+        className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-float ring-4 ring-white transition active:scale-95"
       >
-        <Recycle className="h-7 w-7" />
+        <Logo size={34} />
       </button>
     </div>
   );

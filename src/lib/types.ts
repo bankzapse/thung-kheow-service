@@ -92,6 +92,7 @@ export interface User {
   name: string;
   phone: string;
   email?: string;
+  password?: string; // โหมดเดโม (localStorage) เท่านั้น — Supabase ใช้ auth ของตัวเอง
   lineUserId?: string;
   lineConnected: boolean;
   baseLat?: number; // ตำแหน่งฐานคนขับ (ใช้คำนวณรัศมี 30 กม.)
@@ -165,8 +166,8 @@ export interface WalletTxn {
 
 /* ================= Drop & Go (ตู้รับซื้อ + ถุงตาข่าย + คะแนน) ================= */
 
-/** คะแนน = มูลค่า(บาท) × 10 */
-export const POINTS_PER_BAHT = 10;
+/** คะแนน = มูลค่า(บาท) × 1 → 1 คะแนน = ฿1 */
+export const POINTS_PER_BAHT = 1;
 export const COUNTRY_CODE = "TH";
 export const MIN_ITEMS_PER_BAG = 20; // รับขั้นต่ำ 20 ชิ้น/ถุง
 export const MAX_BAGS_PER_DROP = 10;
@@ -198,12 +199,12 @@ export function parseBagQr(raw: string): { franchise: string; cabinet: string; b
   return { franchise: "", cabinet: "", bag: (parts[0] || "").replace(/[^0-9]/g, "") };
 }
 
-/** ตัวเลือกแลกเงิน (คะแนน → บาท) — ยิ่งเยอะยิ่งได้โบนัส */
+/** ตัวเลือกแลกเงิน (คะแนน → บาท) — 1 คะแนน = ฿1 */
 export const REDEEM_TIERS: { amountBaht: number; points: number }[] = [
-  { amountBaht: 100, points: 1000 },
-  { amountBaht: 300, points: 2900 },
-  { amountBaht: 500, points: 4800 },
-  { amountBaht: 1000, points: 9500 },
+  { amountBaht: 50, points: 50 },
+  { amountBaht: 100, points: 100 },
+  { amountBaht: 300, points: 300 },
+  { amountBaht: 500, points: 500 },
 ];
 
 export interface Franchise {

@@ -8,10 +8,10 @@ import { pointsOf, pointsLedger, redemptionsForUser } from "@/lib/selectors";
 import { REDEEM_TIERS, POINTS_PER_BAHT } from "@/lib/types";
 import type { PointTxn, Redemption } from "@/lib/types";
 import { formatBaht, thaiDateTime } from "@/lib/utils";
-import { RefreshCw, Banknote, ArrowUpCircle, ArrowDownCircle, SlidersHorizontal, Info, Clock, CheckCircle2, XCircle, LogOut, Trash2, ShieldAlert } from "lucide-react";
+import { RefreshCw, Banknote, ArrowUpCircle, ArrowDownCircle, SlidersHorizontal, Info, Clock, CheckCircle2, XCircle } from "lucide-react";
 
 export default function PointsPage() {
-  const { db, currentUser, redeemPoints, logout, deleteAccount } = useStore();
+  const { db, currentUser, redeemPoints } = useStore();
   const u = currentUser!;
   const points = pointsOf(db, u.id);
   const ledger = pointsLedger(db, u.id);
@@ -20,9 +20,6 @@ export default function PointsPage() {
   const [tier, setTier] = useState<(typeof REDEEM_TIERS)[number] | null>(null);
   const [account, setAccount] = useState(u.phone);
   const [tab, setTab] = useState<"redeem" | "history">("redeem");
-  const [delOpen, setDelOpen] = useState(false);
-  const [delAck, setDelAck] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   const doRedeem = () => {
     if (!tier) return;
@@ -30,16 +27,9 @@ export default function PointsPage() {
     setTier(null);
   };
 
-  const doDelete = async () => {
-    setDeleting(true);
-    await deleteAccount();
-    setDeleting(false);
-    setDelOpen(false);
-  };
-
   return (
-    <div className="pb-28">
-      <AppHeader title="แลกคะแนน" subtitle="Glean Points" back />
+    <div className="pb-24">
+      <AppHeader title="คะแนน" subtitle="สะสม & แลกเป็นเงิน" />
 
       <div className="space-y-4 px-5 py-4">
         {/* balance hero */}
@@ -48,7 +38,7 @@ export default function PointsPage() {
           <div className="relative">
             <p className="text-5xl font-extrabold tabular-nums">{formatBaht(points)}</p>
             <p className="mt-1 flex items-center justify-center gap-1.5 text-sm text-white/85">
-              <RefreshCw className="h-4 w-4" /> Glean Points
+              <RefreshCw className="h-4 w-4" /> คะแนนถุงเขียว
             </p>
             <p className="mt-2 text-xs text-white/70">≈ แลกเงินได้สูงสุด ฿{formatBaht(Math.floor(points / POINTS_PER_BAHT))}</p>
           </div>
@@ -85,7 +75,7 @@ export default function PointsPage() {
             </div>
             <div className="flex items-start gap-2 rounded-2xl bg-brand-50 p-3.5 text-xs text-brand-800 ring-1 ring-brand-100">
               <Info className="mt-0.5 h-4 w-4 shrink-0" />
-              <p>โอนเข้าพร้อมเพย์ภายใน 1-3 วันทำการ · อัตรา {POINTS_PER_BAHT} คะแนน = ฿1 (ยิ่งแลกเยอะยิ่งได้โบนัส)</p>
+              <p>โอนเข้าพร้อมเพย์ภายใน 1-3 วันทำการ · อัตรา 1 คะแนน = ฿1</p>
             </div>
           </>
         ) : (
@@ -110,51 +100,7 @@ export default function PointsPage() {
             </div>
           </div>
         )}
-        {/* manage account */}
-        <div className="card">
-          <div className="mb-3 flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100 font-bold text-brand-700">{u.name.charAt(0)}</span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold text-neutral-800">{u.name}</p>
-              <p className="text-xs text-neutral-400">{u.phone}</p>
-            </div>
-          </div>
-          <button onClick={logout} className="btn-outline w-full"><LogOut className="h-4 w-4" /> ออกจากระบบ</button>
-          <button onClick={() => { setDelAck(false); setDelOpen(true); }} className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50">
-            <Trash2 className="h-4 w-4" /> ลบบัญชีและข้อมูล
-          </button>
-          <p className="mt-1 text-center text-[11px] text-neutral-400">รายละเอียดที่ <a href="/delete-account" className="text-brand-600">หน้าลบบัญชี</a></p>
-        </div>
       </div>
-
-      {/* delete account modal */}
-      <Modal
-        open={delOpen}
-        onClose={() => !deleting && setDelOpen(false)}
-        title="ลบบัญชีและข้อมูล"
-        footer={
-          <>
-            <button className="btn-outline flex-1" disabled={deleting} onClick={() => setDelOpen(false)}>ยกเลิก</button>
-            <button className="btn flex-1 bg-red-500 text-white disabled:opacity-50" disabled={!delAck || deleting} onClick={doDelete}>
-              {deleting ? "กำลังลบ…" : "ลบถาวร"}
-            </button>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          <div className="flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700 ring-1 ring-red-100">
-            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>การลบบัญชีเป็นการถาวร — ข้อมูลบัญชี, ประวัติถุง, <b>คะแนนคงเหลือ ({formatBaht(points)})</b> และประวัติทั้งหมดจะถูกลบและกู้คืนไม่ได้</p>
-          </div>
-          {points >= REDEEM_TIERS[0].points && (
-            <p className="text-xs text-amber-600">คุณมีคะแนนพอแลกเงินได้ — แนะนำแลกเป็นเงินก่อนลบบัญชี</p>
-          )}
-          <label className="flex cursor-pointer items-start gap-2 text-sm text-neutral-700">
-            <input type="checkbox" checked={delAck} onChange={(e) => setDelAck(e.target.checked)} className="mt-0.5 h-4 w-4 accent-red-500" />
-            ฉันเข้าใจว่าคะแนนและข้อมูลจะถูกลบถาวร
-          </label>
-        </div>
-      </Modal>
 
       {/* redeem modal */}
       <Modal

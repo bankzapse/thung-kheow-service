@@ -3,40 +3,31 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useStore } from "@/lib/store";
-import { Segmented } from "@/components/ui";
+import { useStore, DEMO_PASSWORD } from "@/lib/store";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/client";
 import { liffConfigured, getLineProfile, getLiffAccessToken } from "@/lib/liff";
-import { Logo } from "@/components/Logo";
+import { AuthShell } from "@/components/AuthShell";
 import type { Role } from "@/lib/types";
-import { ArrowRight, Loader2, MessageCircle, User, Building2, ShieldCheck, Phone, Mail, KeyRound } from "lucide-react";
-
-const toE164 = (p: string) => "+66" + p.trim().replace(/^0/, "");
+import { Loader2, MessageCircle, User, Building2, ShieldCheck, Phone, KeyRound } from "lucide-react";
 
 export type PortalKey = "seller" | "franchise" | "company";
+const PHONE_RE = /^0\d{8,9}$/;
 
 interface Portal {
   key: PortalKey;
   path: string;
-  title: string; // ผู้ขาย
-  label: string; // badge: สำหรับผู้ขาย
+  title: string;
+  label: string;
   subtitle: string;
   icon: React.ReactNode;
-  theme: "green" | "teal" | "greenDeep";
-  methods: ("phone" | "email")[];
+  grad: string;
+  badge: string;
   line: boolean;
   register: boolean;
   allowedRoles: Role[];
-  demoUserId: string;
-  demoHint: string;
+  demoPhone: string;
 }
-
-const THEMES = {
-  green: { grad: "from-brand-500 via-brand-600 to-brand-700", badge: "bg-brand-50 text-brand-700" },
-  teal: { grad: "from-emerald-500 via-emerald-600 to-teal-700", badge: "bg-emerald-50 text-emerald-700" },
-  greenDeep: { grad: "from-brand-600 via-brand-700 to-emerald-900", badge: "bg-brand-50 text-brand-700" },
-};
 
 export const PORTALS: Record<PortalKey, Portal> = {
   seller: {
@@ -46,13 +37,12 @@ export const PORTALS: Record<PortalKey, Portal> = {
     label: "สำหรับผู้ขาย",
     subtitle: "หย่อนขยะรีไซเคิล • สะสมแต้ม • แลกเป็นเงิน",
     icon: <User className="h-3.5 w-3.5" />,
-    theme: "green",
-    methods: ["phone", "email"],
+    grad: "from-brand-500 via-brand-600 to-brand-700",
+    badge: "bg-brand-50 text-brand-700",
     line: true,
     register: true,
     allowedRoles: ["seller"],
-    demoUserId: "u-seller",
-    demoHint: "081-234-5678",
+    demoPhone: "0812345678",
   },
   franchise: {
     key: "franchise",
@@ -61,13 +51,12 @@ export const PORTALS: Record<PortalKey, Portal> = {
     label: "สำหรับเจ้าของแฟรนไชส์",
     subtitle: "จัดการตู้ • ถุง • รายได้ & ส่วนแบ่ง",
     icon: <Building2 className="h-3.5 w-3.5" />,
-    theme: "teal",
-    methods: ["phone", "email"],
+    grad: "from-emerald-500 via-emerald-600 to-teal-700",
+    badge: "bg-emerald-50 text-emerald-700",
     line: false,
     register: false,
     allowedRoles: ["franchise"],
-    demoUserId: "u-franchise",
-    demoHint: "095-555-0000",
+    demoPhone: "0955550000",
   },
   company: {
     key: "company",
@@ -76,28 +65,22 @@ export const PORTALS: Record<PortalKey, Portal> = {
     label: "สำหรับทีมบริษัท (Admin)",
     subtitle: "ระบบหลังบ้าน • ภาพรวม & จัดการแฟรนไชส์",
     icon: <ShieldCheck className="h-3.5 w-3.5" />,
-    theme: "greenDeep",
-    methods: ["email"],
+    grad: "from-brand-600 via-brand-700 to-emerald-900",
+    badge: "bg-brand-50 text-brand-700",
     line: false,
     register: false,
     allowedRoles: ["admin"],
-    demoUserId: "u-admin",
-    demoHint: "admin@demo.com",
+    demoPhone: "0900000000",
   },
 };
 
 export function AuthScreen({ portalKey }: { portalKey: PortalKey }) {
   const portal = PORTALS[portalKey];
-  const theme = THEMES[portal.theme];
   const router = useRouter();
-  const { findByPhone, findByEmail, loginAs, loginWithLine, currentUser } = useStore();
+  const { loginWithPassword, loginAs, loginWithLine, currentUser } = useStore();
 
-  const [mode, setMode] = useState<"phone" | "email">(portal.methods[0]);
-  const [lineBusy, setLineBusy] = useState(liffConfigured);
+  const [lineBusy, setLineBusy] = useState(liffConfigured && portal.line);
   const [phone, setPhone] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -119,7 +102,6 @@ export function AuthScreen({ portalKey }: { portalKey: PortalKey }) {
     router.replace(dest);
   }, [currentUser, router]);
 
-  // ตรวจว่า role ตรงกับ portal (โหมดเดโม) — ไม่ตรง = เด้ง error
   const checkRole = (role: Role) => {
     if (portal.allowedRoles.includes(role)) return true;
     const owner = PORTALS[(["seller", "franchise", "company"] as PortalKey[]).find((k) => PORTALS[k].allowedRoles.includes(role)) ?? "seller"];
@@ -172,172 +154,104 @@ export function AuthScreen({ portalKey }: { portalKey: PortalKey }) {
     );
   }
 
-  const sendOtp = async () => {
+  const doLogin = async () => {
     setErr("");
-    if (!/^0\d{8,9}$/.test(phone.trim())) return setErr("กรุณากรอกเบอร์โทรให้ถูกต้อง");
-    if (supabaseConfigured) {
-      setBusy(true);
-      const { error } = await createClient().auth.signInWithOtp({ phone: toE164(phone) });
-      setBusy(false);
-      if (error) return setErr(error.message);
+    if (!PHONE_RE.test(phone.trim())) return setErr("กรอกเบอร์โทรให้ถูกต้อง (10 หลัก ขึ้นต้น 0)");
+    if (!password) return setErr("กรอกรหัสผ่าน");
+    setBusy(true);
+    const res = await loginWithPassword(phone, password);
+    setBusy(false);
+    if (!res.ok) return setErr(res.error ?? "เข้าสู่ระบบไม่สำเร็จ");
+    if (res.user) {
+      if (!checkRole(res.user.role)) return; // เดโม: กันเข้าผิดส่วน
+      loginAs(res.user.id);
     }
-    setOtpSent(true);
-  };
-
-  const verifyOtp = async () => {
-    setErr("");
-    if (otp.trim().length !== 6) return setErr("กรอกรหัส OTP 6 หลัก");
-    if (supabaseConfigured) {
-      setBusy(true);
-      const { error } = await createClient().auth.verifyOtp({ phone: toE164(phone), token: otp.trim(), type: "sms" });
-      setBusy(false);
-      if (error) return setErr(error.message);
-    } else {
-      const u = findByPhone(phone);
-      if (!u) return portal.register ? router.push(`/register?phone=${encodeURIComponent(phone.trim())}`) : setErr("ไม่พบบัญชีนี้");
-      if (!checkRole(u.role)) return;
-      loginAs(u.id);
-    }
-  };
-
-  const emailLogin = async () => {
-    setErr("");
-    if (supabaseConfigured) {
-      setBusy(true);
-      const { error } = await createClient().auth.signInWithPassword({ email: email.trim(), password });
-      setBusy(false);
-      if (error) return setErr(error.message);
-    } else {
-      const u = findByEmail(email);
-      if (!u) return setErr("ไม่พบบัญชีนี้ — กรุณาลงทะเบียนก่อน");
-      if (!checkRole(u.role)) return;
-      loginAs(u.id);
-    }
+    // supabase: session ถูกตั้งแล้ว → redirect effect จัดการ
   };
 
   return (
-    <div className={`relative min-h-dvh overflow-hidden bg-gradient-to-br ${theme.grad}`}>
-      <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-white/10 blur-2xl" />
-      <div className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
-
-      <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-10">
-        {/* brand */}
-        <div className="mb-6 text-center text-white">
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/95 p-2 shadow-lg">
-            <Logo size={44} />
+    <AuthShell
+      subtitle={portal.subtitle}
+      grad={portal.grad}
+      footer={
+        <>
+          <div className="mt-6 text-center text-xs text-white/75">
+            เข้าสู่ระบบสำหรับส่วนอื่น:{" "}
+            {others.map((o, i) => (
+              <span key={o.key}>
+                {i > 0 && <span className="mx-1 text-white/40">·</span>}
+                <Link href={o.path} className="font-semibold text-white underline-offset-2 hover:underline">{o.title}</Link>
+              </span>
+            ))}
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight">ถุงเขียว</h1>
-          <p className="mt-1 text-sm text-white/80">{portal.subtitle}</p>
-        </div>
-
-        {/* card */}
-        <div className="rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-black/5">
-          <div className={`mb-5 inline-flex items-center gap-1.5 rounded-full ${theme.badge} px-3 py-1 text-xs font-semibold`}>
-            {portal.icon} {portal.label}
-          </div>
-
-          {portal.methods.length > 1 && (
-            <div className="mb-4">
-              <Segmented
-                value={mode}
-                onChange={(v) => {
-                  setMode(v);
-                  setErr("");
-                }}
-                options={[
-                  { value: "phone", label: "เบอร์โทรศัพท์" },
-                  { value: "email", label: "อีเมล" },
-                ]}
-              />
-            </div>
-          )}
-
-          {mode === "phone" ? (
-            <div className="space-y-3">
-              <div>
-                <label className="label">เบอร์โทรศัพท์</label>
-                <div className="relative">
-                  <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-                  <input className="input pl-9" inputMode="numeric" placeholder="08x-xxx-xxxx" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={otpSent} />
-                </div>
-              </div>
-              {otpSent && (
-                <div className="animate-fade-in">
-                  <label className="label">รหัส OTP</label>
-                  <input className="input tracking-[0.5em]" inputMode="numeric" maxLength={6} placeholder="______" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} />
-                  {!supabaseConfigured && <p className="mt-1.5 text-xs text-brand-600">🔐 โหมดทดลอง: กรอกเลขอะไรก็ได้ 6 หลัก</p>}
-                </div>
-              )}
-              {err && <p className="text-sm text-red-500">{err}</p>}
-              {!otpSent ? (
-                <button className="btn-primary w-full" onClick={sendOtp} disabled={busy}>
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>ขอรหัส OTP <ArrowRight className="h-4 w-4" /></>}
-                </button>
-              ) : (
-                <button className="btn-primary w-full" onClick={verifyOtp} disabled={busy}>
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "ยืนยันเข้าสู่ระบบ"}
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div>
-                <label className="label">อีเมล</label>
-                <div className="relative">
-                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-                  <input className="input pl-9" type="email" placeholder="you@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-                </div>
-              </div>
-              <div>
-                <label className="label">รหัสผ่าน</label>
-                <div className="relative">
-                  <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-                  <input className="input pl-9" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
-                </div>
-              </div>
-              {err && <p className="text-sm text-red-500">{err}</p>}
-              <button className="btn-primary w-full" onClick={emailLogin} disabled={busy}>
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "เข้าสู่ระบบ"}
-              </button>
-            </div>
-          )}
-
-          {portal.line && liffConfigured && (
-            <button onClick={runLineLogin} className="btn mt-3 w-full bg-[#06C755] text-white">
-              <MessageCircle className="h-4 w-4" /> เข้าสู่ระบบด้วย LINE
-            </button>
-          )}
-
-          {portal.register && (
-            <p className="mt-4 text-center text-sm text-neutral-500">
-              ยังไม่มีบัญชี? <Link href="/register" className="font-semibold text-brand-600">ลงทะเบียน</Link>
-            </p>
-          )}
-
-          {!supabaseConfigured && (
-            <p className="mt-4 rounded-xl bg-neutral-50 px-3 py-2 text-center text-xs text-neutral-500">
-              โหมดทดลอง — {mode === "phone" ? "เบอร์" : "อีเมล"}: <span className="font-semibold text-neutral-700">{portal.demoHint}</span>
-            </p>
-          )}
-        </div>
-
-        {/* switch portals */}
-        <div className="mt-6 text-center text-xs text-white/75">
-          เข้าสู่ระบบสำหรับส่วนอื่น:{" "}
-          {others.map((o, i) => (
-            <span key={o.key}>
-              {i > 0 && <span className="mx-1 text-white/40">·</span>}
-              <Link href={o.path} className="font-semibold text-white underline-offset-2 hover:underline">{o.title}</Link>
-            </span>
-          ))}
-        </div>
-
-        <p className="mt-4 text-center text-[11px] text-white/60">
-          การใช้บริการถือว่ายอมรับ{" "}
-          <Link href="/terms" className="underline">ข้อกำหนดการใช้งาน</Link> และ{" "}
-          <Link href="/privacy" className="underline">นโยบายความเป็นส่วนตัว</Link>
-        </p>
+          <p className="mt-4 text-center text-[11px] text-white/60">
+            การใช้บริการถือว่ายอมรับ{" "}
+            <Link href="/terms" className="underline">ข้อกำหนดการใช้งาน</Link> และ{" "}
+            <Link href="/privacy" className="underline">นโยบายความเป็นส่วนตัว</Link>
+          </p>
+        </>
+      }
+    >
+      <div className={`mb-5 inline-flex items-center gap-1.5 rounded-full ${portal.badge} px-3 py-1 text-xs font-semibold`}>
+        {portal.icon} {portal.label}
       </div>
-    </div>
+
+      <div className="space-y-3">
+        <div>
+          <label className="label">เบอร์โทรศัพท์</label>
+          <div className="relative">
+            <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <input
+              className="input pl-9"
+              inputMode="numeric"
+              maxLength={10}
+              placeholder="08x-xxx-xxxx"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+              onKeyDown={(e) => e.key === "Enter" && doLogin()}
+            />
+          </div>
+        </div>
+        <div>
+          <div className="flex items-center justify-between">
+            <label className="label">รหัสผ่าน</label>
+            <Link href={`/forgot-password?next=${portal.path}`} className="text-xs font-medium text-brand-600">ลืมรหัสผ่าน?</Link>
+          </div>
+          <div className="relative">
+            <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <input
+              className="input pl-9"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && doLogin()}
+            />
+          </div>
+        </div>
+        {err && <p className="text-sm text-red-500">{err}</p>}
+        <button className="btn-primary w-full" onClick={doLogin} disabled={busy}>
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "เข้าสู่ระบบ"}
+        </button>
+      </div>
+
+      {portal.line && liffConfigured && (
+        <button onClick={runLineLogin} className="btn mt-3 w-full bg-[#06C755] text-white">
+          <MessageCircle className="h-4 w-4" /> เข้าสู่ระบบด้วย LINE
+        </button>
+      )}
+
+      {portal.register && (
+        <p className="mt-4 text-center text-sm text-neutral-500">
+          ยังไม่มีบัญชี? <Link href="/register" className="font-semibold text-brand-600">ลงทะเบียน</Link>
+        </p>
+      )}
+
+      {!supabaseConfigured && (
+        <p className="mt-4 rounded-xl bg-neutral-50 px-3 py-2 text-center text-xs text-neutral-500">
+          โหมดทดลอง — เบอร์: <span className="font-semibold text-neutral-700">{portal.demoPhone}</span> · รหัส: <span className="font-semibold text-neutral-700">{DEMO_PASSWORD}</span>
+        </p>
+      )}
+    </AuthShell>
   );
 }

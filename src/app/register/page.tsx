@@ -1,120 +1,130 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
-import type { Role } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { AuthShell } from "@/components/AuthShell";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowLeft, Store, Truck, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, User, Phone, Mail, KeyRound } from "lucide-react";
+
+const PHONE_RE = /^0\d{8,9}$/;
+const toE164 = (p: string) => "+66" + p.trim().replace(/^0/, "");
 
 function RegisterForm() {
   const router = useRouter();
-  const params = useSearchParams();
-  const { register, currentUser } = useStore();
+  const { registerAccount, currentUser } = useStore();
 
-  const [role, setRole] = useState<Role>("seller");
+  const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState(params.get("phone") ?? "");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [otp, setOtp] = useState("");
   const [err, setErr] = useState("");
-  const [info, setInfo] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (currentUser) router.replace(currentUser.role === "admin" ? "/admin" : "/home");
+    if (currentUser) router.replace("/home");
   }, [currentUser, router]);
 
-  const submit = async () => {
+  const requestOtp = async () => {
     setErr("");
-    setInfo("");
-    if (name.trim().length < 2) return setErr("กรุณากรอกชื่อ-นามสกุล");
-
+    if (name.trim().length < 2) return setErr("กรอกชื่อ-นามสกุล");
+    if (!PHONE_RE.test(phone.trim())) return setErr("เบอร์โทรไม่ถูกต้อง (10 หลัก ขึ้นต้น 0)");
+    if (email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim())) return setErr("อีเมลไม่ถูกต้อง");
+    if (password.length < 6) return setErr("รหัสผ่านอย่างน้อย 6 ตัวอักษร");
+    if (password !== confirm) return setErr("รหัสผ่านยืนยันไม่ตรงกัน");
     if (supabaseConfigured) {
-      if (!email.trim()) return setErr("กรุณากรอกอีเมลสำหรับสมัครใช้งาน");
-      if (password.length < 6) return setErr("รหัสผ่านอย่างน้อย 6 ตัวอักษร");
       setBusy(true);
-      const { data, error } = await createClient().auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: { name: name.trim(), role },
-          emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
-        },
-      });
+      const { error } = await createClient().auth.signUp({ phone: toE164(phone), password, options: { data: { name: name.trim() } } });
       setBusy(false);
       if (error) return setErr(error.message);
-      if (!data.session) setInfo("สมัครสำเร็จ! ตรวจสอบอีเมลเพื่อยืนยันบัญชี แล้วเข้าสู่ระบบ");
-      // ถ้ามี session (ปิด email confirm) → store hydrate → effect redirect
-    } else {
-      if (!/^0\d{8,9}$/.test(phone.trim())) return setErr("เบอร์โทรไม่ถูกต้อง");
-      register({ name, phone, email: email || undefined, role });
     }
+    setStep(2);
+  };
+
+  const confirmOtp = async () => {
+    setErr("");
+    if (otp.trim().length !== 6) return setErr("กรอกรหัส OTP 6 หลัก");
+    if (supabaseConfigured) {
+      setBusy(true);
+      const { error } = await createClient().auth.verifyOtp({ phone: toE164(phone), token: otp.trim(), type: "sms" });
+      setBusy(false);
+      if (error) return setErr(error.message);
+      return; // session → redirect effect
+    }
+    const res = await registerAccount({ name, phone, email: email || undefined, password });
+    if (!res.ok) return setErr(res.error ?? "สมัครไม่สำเร็จ");
+    // demo: registerAccount ตั้ง currentUser แล้ว → redirect effect
   };
 
   return (
-    <div className="min-h-dvh bg-white">
-      <div className="flex items-center gap-2 px-4 pb-2 pt-5">
-        <Link href="/login" className="rounded-full p-2 text-neutral-500 hover:bg-neutral-100">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <h1 className="text-lg font-bold">ลงทะเบียน</h1>
-      </div>
-
-      <div className="px-5 pt-2">
-        <label className="label">ต้องการใช้งานเป็น</label>
-        <div className="mb-4 grid grid-cols-2 gap-3">
-          {(
-            [
-              { v: "seller", label: "ผู้ขาย", hint: "มีของเก่าจะขาย", icon: Store },
-              { v: "buyer", label: "ผู้ซื้อ / คนขับ", hint: "รับซื้อของเก่า", icon: Truck },
-            ] as const
-          ).map((o) => (
-            <button
-              key={o.v}
-              onClick={() => setRole(o.v)}
-              className={cn(
-                "flex flex-col items-start gap-1.5 rounded-2xl border-2 p-3 text-left transition",
-                role === o.v ? "border-brand-500 bg-brand-50" : "border-neutral-200 bg-white",
-              )}
-            >
-              <o.icon className={cn("h-5 w-5", role === o.v ? "text-brand-600" : "text-neutral-400")} />
-              <p className="font-semibold text-neutral-800">{o.label}</p>
-              <p className="text-xs text-neutral-400">{o.hint}</p>
+    <AuthShell subtitle="สมัครสมาชิก — เริ่มหย่อนถุงรับคะแนน">
+      {step === 1 ? (
+        <>
+          <div className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
+            <User className="h-3.5 w-3.5" /> สมัครสำหรับผู้ขาย
+          </div>
+          <div className="space-y-3">
+            <Field label="ชื่อ-นามสกุล" icon={<User className="h-4 w-4" />}>
+              <input className="input pl-9" placeholder="เช่น สมชาย ใจดี" value={name} onChange={(e) => setName(e.target.value)} />
+            </Field>
+            <Field label="เบอร์โทรศัพท์" icon={<Phone className="h-4 w-4" />}>
+              <input className="input pl-9" inputMode="numeric" maxLength={10} placeholder="08x-xxx-xxxx" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} />
+            </Field>
+            <Field label="อีเมล (ไม่บังคับ)" icon={<Mail className="h-4 w-4" />}>
+              <input className="input pl-9" type="email" placeholder="you@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </Field>
+            <Field label="รหัสผ่าน" icon={<KeyRound className="h-4 w-4" />}>
+              <input className="input pl-9" type="password" placeholder="อย่างน้อย 6 ตัวอักษร" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </Field>
+            <Field label="ยืนยันรหัสผ่าน" icon={<KeyRound className="h-4 w-4" />}>
+              <input className="input pl-9" type="password" placeholder="พิมพ์รหัสผ่านอีกครั้ง" value={confirm} onChange={(e) => setConfirm(e.target.value)} onKeyDown={(e) => e.key === "Enter" && requestOtp()} />
+            </Field>
+            {err && <p className="text-sm text-red-500">{err}</p>}
+            <button className="btn-primary w-full" onClick={requestOtp} disabled={busy}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>ขอรหัส OTP <ArrowRight className="h-4 w-4" /></>}
             </button>
-          ))}
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <label className="label">ชื่อ-นามสกุล</label>
-            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="เช่น สมชาย ใจดี" />
           </div>
-          <div>
-            <label className="label">เบอร์โทรศัพท์{supabaseConfigured && " (ไม่บังคับ)"}</label>
-            <input className="input" inputMode="numeric" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="08x-xxx-xxxx" />
-          </div>
-          <div>
-            <label className="label">อีเมล{supabaseConfigured ? "" : " (ไม่บังคับ)"}</label>
-            <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" />
-          </div>
-          <div>
-            <label className="label">รหัสผ่าน</label>
-            <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
-          </div>
-          {err && <p className="text-sm text-red-500">{err}</p>}
-          {info && <p className="rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-700">{info}</p>}
-          <button className="btn-primary mt-1 w-full" onClick={submit} disabled={busy}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "สร้างบัญชีและเข้าสู่ระบบ"}
-          </button>
-          <p className="pb-8 text-center text-sm text-neutral-500">
-            มีบัญชีแล้ว?{" "}
-            <Link href="/login" className="font-semibold text-brand-600">เข้าสู่ระบบ</Link>
+          <p className="mt-4 text-center text-sm text-neutral-500">
+            มีบัญชีแล้ว? <Link href="/login" className="font-semibold text-brand-600">เข้าสู่ระบบ</Link>
           </p>
-        </div>
+        </>
+      ) : (
+        <>
+          <div className="mb-1 text-lg font-bold text-neutral-800">ยืนยันเบอร์โทร</div>
+          <p className="mb-4 text-sm text-neutral-500">ส่งรหัส OTP 6 หลักไปที่ <span className="font-semibold text-neutral-700">{phone}</span></p>
+          <input
+            className="input tracking-[0.5em] text-center text-lg"
+            inputMode="numeric"
+            maxLength={6}
+            placeholder="______"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+            onKeyDown={(e) => e.key === "Enter" && confirmOtp()}
+          />
+          {!supabaseConfigured && <p className="mt-1.5 text-xs text-brand-600">🔐 โหมดทดลอง: กรอกเลขอะไรก็ได้ 6 หลัก</p>}
+          {err && <p className="mt-2 text-sm text-red-500">{err}</p>}
+          <button className="btn-primary mt-3 w-full" onClick={confirmOtp} disabled={busy}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "ยืนยัน & สมัครสมาชิก"}
+          </button>
+          <button className="btn-ghost mt-2 w-full text-sm text-neutral-500" onClick={() => { setStep(1); setErr(""); }}>แก้ไขข้อมูล</button>
+        </>
+      )}
+    </AuthShell>
+  );
+}
+
+function Field({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="label">{label}</label>
+      <div className="relative">
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">{icon}</span>
+        {children}
       </div>
     </div>
   );
@@ -122,7 +132,7 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-neutral-400">กำลังโหลด…</div>}>
+    <Suspense fallback={<div className="grid min-h-dvh place-items-center text-white">…</div>}>
       <RegisterForm />
     </Suspense>
   );

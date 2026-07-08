@@ -4,18 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { AppHeader } from "@/components/AppHeader";
-import { EmptyState } from "@/components/ui";
-import { bagsForUser } from "@/lib/selectors";
-import { BAG_STATUS_META, MIN_ITEMS_PER_BAG, MAX_BAGS_PER_DROP, parseBagQr, bagQr, cabinetFullCode } from "@/lib/types";
-import { formatBaht, thaiDateTime } from "@/lib/utils";
+import { MIN_ITEMS_PER_BAG, MAX_BAGS_PER_DROP, parseBagQr, bagQr, cabinetFullCode } from "@/lib/types";
 import { liffConfigured, scanQr } from "@/lib/liff";
 import { isNativeApp, nativeScanQr } from "@/lib/native";
-import { QrCode, Plus, Trash2, PackagePlus, Box, Coins, ChevronRight, Info, ScanLine } from "lucide-react";
+import { QrCode, Plus, Trash2, PackagePlus, Box, ChevronRight, Info, ScanLine, PackageCheck } from "lucide-react";
 
 export default function DropPage() {
   const { db, currentUser, dropBags } = useStore();
   const u = currentUser!;
-  const myBags = bagsForUser(db, u.id);
 
   const [franchise, setFranchise] = useState(""); // อักษรย่อแฟรนไชส์ (auto จาก QR)
   const [cabinet, setCabinet] = useState("");     // รหัสตู้ (auto จาก QR)
@@ -70,7 +66,7 @@ export default function DropPage() {
 
   return (
     <div className="pb-28">
-      <AppHeader title="Drop & Go" subtitle="สแกน QR บนถุง รับคะแนน" back />
+      <AppHeader title="Drop Bag" subtitle="สแกน QR บนถุง รับคะแนน" back />
 
       <div className="space-y-4 px-5 py-4">
         {/* scan */}
@@ -131,45 +127,19 @@ export default function DropPage() {
 
           <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-xs text-amber-700 ring-1 ring-amber-100">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>รับขั้นต่ำ {MIN_ITEMS_PER_BAG} ชิ้น/ถุง · คะแนนจะเข้าหลังทีมงานคัดแยกที่โรงงานเสร็จ · ติดตามสถานะได้ด้านล่าง</p>
+            <p>รับขั้นต่ำ {MIN_ITEMS_PER_BAG} ชิ้น/ถุง · คะแนนจะเข้าหลังทีมงานคัดแยกที่โรงงานเสร็จ · ติดตามได้ที่แท็บ “สถานะ”</p>
           </div>
         </div>
 
-        {/* my bags */}
-        <div>
-          <div className="mb-2 flex items-center justify-between px-1">
-            <p className="section-title">ถุงของฉัน</p>
-            <Link href="/points" className="flex items-center gap-1 text-sm font-semibold text-brand-600">
-              <Coins className="h-4 w-4" /> คะแนนของฉัน
-            </Link>
+        {/* ไปหน้าสถานะ */}
+        <Link href="/status" className="card flex items-center gap-3 hover:shadow-float">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><PackageCheck className="h-5 w-5" /></span>
+          <div className="flex-1">
+            <p className="font-semibold text-neutral-800">สถานะถุงของฉัน</p>
+            <p className="text-xs text-neutral-400">ติดตามถุงที่หย่อน & คะแนนที่ได้รับ</p>
           </div>
-          {myBags.length === 0 ? (
-            <div className="card">
-              <EmptyState icon="🧺" title="ยังไม่มีถุงที่หย่อน" hint="สแกน QR บนถุง แล้วกดยืนยัน" />
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {myBags.map((b) => {
-                const m = BAG_STATUS_META[b.status];
-                return (
-                  <div key={b.id} className="card flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Box className="h-5 w-5" /></span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-mono text-sm font-medium text-neutral-800">{b.qr}</p>
-                      <p className="text-xs text-neutral-400">{thaiDateTime(b.droppedAt)}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className={`chip ${m.color}`}><span className={`h-1.5 w-1.5 rounded-full ${m.dot}`} /> {m.label}</span>
-                      {b.status === "credited" && b.points != null && (
-                        <p className="mt-1 text-sm font-bold text-brand-700">+{formatBaht(b.points)} คะแนน</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+          <ChevronRight className="h-5 w-5 text-neutral-300" />
+        </Link>
       </div>
 
       {/* sticky confirm */}

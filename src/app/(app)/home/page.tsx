@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { PriceList } from "@/components/PriceList";
-import { RewardTeaser } from "@/components/RewardTeaser";
 import { Sheet } from "@/components/ui";
 import {
   announcedDraw,
@@ -35,6 +34,7 @@ import {
   TrendingUp,
   Inbox,
   Coins,
+  PackageCheck,
   CheckCircle2,
   AlertTriangle,
 } from "lucide-react";
@@ -108,7 +108,7 @@ export default function HomePage() {
               </div>
               <div className="relative flex-1">
                 <span className="mb-0.5 inline-block rounded-md bg-white/20 px-1.5 py-0.5 text-[10px] font-bold">HOT</span>
-                <p className="font-bold leading-tight">Drop & Go — หย่อนถุงรับคะแนน</p>
+                <p className="font-bold leading-tight">Drop Bag — หย่อนถุงรับคะแนน</p>
                 <p className="text-sm text-white/85">คัดแยกใส่ถุง · สแกน QR ตู้+ถุง · รอรับคะแนน</p>
               </div>
               <ChevronRight className="relative h-5 w-5 text-white/70" />
@@ -116,7 +116,7 @@ export default function HomePage() {
 
             <div className="grid grid-cols-2 gap-3">
               <ActionTile href="/points" icon={<Coins className="h-5 w-5" />} label="คะแนน & แลกเงิน" hint={`${formatBaht(points)} คะแนน`} accent />
-              <ActionTile href="/drop" icon={<Recycle className="h-5 w-5" />} label="ถุงของฉัน" hint={`${dstats.totalBags} ถุง`} />
+              <ActionTile href="/status" icon={<PackageCheck className="h-5 w-5" />} label="สถานะถุง" hint={`${dstats.totalBags} ถุง`} />
               {PICKUP_ENABLED && <ActionTile href="/create" icon={<Plus className="h-5 w-5" />} label="เรียกรถมารับถึงบ้าน" hint="ขายของเก่า" />}
               {PICKUP_ENABLED && <ActionTile href="/jobs" icon={<ClipboardList className="h-5 w-5" />} label="รายการของฉัน" hint={`${sellerJobs.length} รายการ`} />}
               {PICKUP_ENABLED && <ActionTile href="/income" icon={<Wallet className="h-5 w-5" />} label="รายได้ & รางวัล" hint={`${myTickets} สิทธิ์`} />}
@@ -156,9 +156,6 @@ export default function HomePage() {
           </div>
           <PriceList limit={5} priceOf={isSeller ? undefined : priceOf} />
         </div>
-
-        {/* reward */}
-        <RewardTeaser draw={draw} tickets={isSeller ? myTickets : undefined} />
       </div>
 
       <Sheet open={pricesOpen} onClose={() => setPricesOpen(false)} title="ราคาของเก่าวันนี้">
