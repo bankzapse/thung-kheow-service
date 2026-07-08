@@ -5,10 +5,12 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { Recycle, LayoutDashboard, ReceiptText, Wallet, Tag, ArrowLeft, Plus } from "lucide-react";
+import { Recycle, LayoutDashboard, ReceiptText, Wallet, Tag, ArrowLeft, Plus, Box, Banknote } from "lucide-react";
 
 const NAV = [
   { href: "/shop", label: "ภาพรวม", icon: LayoutDashboard, exact: true },
+  { href: "/shop/cabinets", label: "ตู้ Drop & Go", icon: Box },
+  { href: "/shop/redemptions", label: "แลกเงิน", icon: Banknote },
   { href: "/shop/bills", label: "บิลรับซื้อ", icon: ReceiptText },
   { href: "/shop/accounting", label: "บัญชี", icon: Wallet },
   { href: "/shop/prices", label: "ราคา/วัสดุ", icon: Tag },

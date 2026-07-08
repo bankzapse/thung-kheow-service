@@ -4,10 +4,9 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { AppHeader } from "@/components/AppHeader";
-import { MATERIALS, CATEGORIES } from "@/lib/materials";
 import { openSlots } from "@/lib/selectors";
-import { formatBaht, thaiDateShort, thaiWeekday } from "@/lib/utils";
-import { Minus, Plus, MapPin, Navigation, CalendarClock, Check, Store, Radio } from "lucide-react";
+import { thaiDateShort, thaiWeekday } from "@/lib/utils";
+import { MapPin, Navigation, CalendarClock, Check, Store, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function CreateJobPage() {
@@ -15,7 +14,6 @@ export default function CreateJobPage() {
   const { db, currentUser, createJob } = useStore();
   const u = currentUser!;
 
-  const [qty, setQty] = useState<Record<string, number>>({});
   const [address, setAddress] = useState("");
   const [houseNo, setHouseNo] = useState("");
   const [landmark, setLandmark] = useState("");
@@ -35,25 +33,6 @@ export default function CreateJobPage() {
     slots.forEach((s) => map.set(s.date, [...(map.get(s.date) || []), s]));
     return [...map.entries()];
   }, [slots]);
-
-  const items = useMemo(
-    () =>
-      MATERIALS.filter((m) => (qty[m.id] || 0) > 0).map((m) => ({
-        materialId: m.id,
-        name: m.name,
-        unit: m.unit,
-        pricePerUnit: m.pricePerUnit,
-        qty: qty[m.id],
-      })),
-    [qty],
-  );
-  const estimate = items.reduce((s, i) => s + i.pricePerUnit * i.qty, 0);
-
-  const setItemQty = (id: string, delta: number) =>
-    setQty((q) => {
-      const next = Math.max(0, (q[id] || 0) + delta);
-      return { ...q, [id]: next };
-    });
 
   const useCurrentLocation = () => {
     setLocating(true);
@@ -95,7 +74,7 @@ export default function CreateJobPage() {
     }
 
     const job = await createJob({
-      items,
+      items: [], // ตกลงราคาหน้างานตอนเข้ารับ (ไม่ต้องเลือกของล่วงหน้า)
       location: { lat: geo?.lat ?? 13.7563, lng: geo?.lng ?? 100.5018, address: address.trim() },
       houseNo: houseNo.trim(),
       landmark: landmark.trim(),
@@ -113,55 +92,8 @@ export default function CreateJobPage() {
       <AppHeader title="สร้างรายการขายของเก่า" back />
 
       <div className="space-y-4 px-5 py-4">
-        {/* 1. materials */}
-        <Section step={1} title="เลือกของเก่า (ไม่บังคับ)" hint="ข้ามได้ · ตกลงราคาหน้างาน">
-          <div className="space-y-4">
-            {CATEGORIES.map((cat) => (
-              <div key={cat}>
-                <p className="mb-1.5 text-xs font-semibold text-neutral-400">{cat}</p>
-                <div className="space-y-1.5">
-                  {MATERIALS.filter((m) => m.category === cat).map((m) => {
-                    const n = qty[m.id] || 0;
-                    return (
-                      <div
-                        key={m.id}
-                        className={cn(
-                          "flex items-center gap-3 rounded-xl border p-2.5 transition",
-                          n > 0 ? "border-brand-300 bg-brand-50" : "border-neutral-200",
-                        )}
-                      >
-                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-lg">{m.emoji}</span>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-neutral-800">{m.name}</p>
-                          <p className="text-xs text-neutral-400">฿{formatBaht(m.pricePerUnit)} / {m.unit}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setItemQty(m.id, -1)}
-                            disabled={n === 0}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 disabled:opacity-30"
-                          >
-                            <Minus className="h-4 w-4" />
-                          </button>
-                          <span className="w-8 text-center text-sm font-bold tabular-nums">{n}</span>
-                          <button
-                            onClick={() => setItemQty(m.id, 1)}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        {/* 2. location */}
-        <Section step={2} title="สถานที่รับของ">
+        {/* 1. location */}
+        <Section step={1} title="สถานที่รับของ">
           <button
             onClick={useCurrentLocation}
             className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl border border-brand-300 bg-brand-50 py-2.5 text-sm font-semibold text-brand-700"
@@ -186,8 +118,8 @@ export default function CreateJobPage() {
           </div>
         </Section>
 
-        {/* 3. contact + schedule */}
-        <Section step={3} title="ผู้ติดต่อ & วันเข้ารับ">
+        {/* 2. contact + schedule */}
+        <Section step={2} title="ผู้ติดต่อ & วันเข้ารับ">
           <div className="mb-3 grid grid-cols-2 gap-2.5">
             <input className="input" placeholder="ชื่อผู้ติดต่อ" value={contactName} onChange={(e) => setContactName(e.target.value)} />
             <input className="input" inputMode="numeric" placeholder="เบอร์โทร" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
@@ -255,12 +187,7 @@ export default function CreateJobPage() {
 
       {/* sticky submit */}
       <div className="sticky bottom-0 border-t border-neutral-100 bg-white/95 px-5 py-3 backdrop-blur">
-        <div className="mb-2 flex items-center justify-between text-sm">
-          <span className="text-neutral-500">
-            {items.length > 0 ? `ประเมินราคา (${items.length} รายการ)` : "ไม่ระบุของ — ตกลงหน้างาน"}
-          </span>
-          {items.length > 0 && <span className="text-lg font-extrabold text-brand-700">~฿{formatBaht(estimate)}</span>}
-        </div>
+        <p className="mb-2 text-center text-xs text-neutral-400">ไม่ต้องเลือกของล่วงหน้า — ตกลงราคากันหน้างานตอนเข้ารับ</p>
         <button className="btn-primary w-full" onClick={submit}>
           ส่งรายการรับของ
         </button>

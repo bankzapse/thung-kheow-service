@@ -111,6 +111,11 @@ export async function loadAll(sb: any): Promise<DB> {
     buyerPrices,
     centralPrices,
     wallet: (wallet.data ?? []).map(toWallet),
+    // Drop & Go — ยังไม่ผูก Supabase (เฟสถัดไป) · คืน [] กันหน้าแอปพัง
+    cabinets: [],
+    bags: [],
+    pointTxns: [],
+    redemptions: [],
     pricesUpdatedAt: todayISO(),
   };
 }

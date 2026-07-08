@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Home, ClipboardList, Wallet, CalendarClock, Plus, Coins } from "lucide-react";
+import { Home, ClipboardList, Wallet, CalendarClock, Coins, Recycle } from "lucide-react";
 
 type Item = { href: string; label: string; icon: React.ElementType };
 
@@ -12,6 +12,7 @@ const NAV: Record<"seller" | "buyer", Item[]> = {
   seller: [
     { href: "/home", label: "หน้าแรก", icon: Home },
     { href: "/jobs", label: "รายการ", icon: ClipboardList },
+    { href: "/points", label: "คะแนน", icon: Coins },
     { href: "/income", label: "รายได้", icon: Wallet },
   ],
   buyer: [
@@ -30,7 +31,12 @@ export function BottomNav({ role }: { role: Role }) {
   // admin ไม่ใช้ bottom nav (มี layout แยก)
   if (role !== "seller" && role !== "buyer") return null;
   // Hide tab bar on full-screen task pages (they have their own action bars)
-  if (pathname.startsWith("/create") || pathname.startsWith("/job/") || pathname.startsWith("/rewards")) {
+  if (
+    pathname.startsWith("/create") ||
+    pathname.startsWith("/job/") ||
+    pathname.startsWith("/rewards") ||
+    pathname.startsWith("/drop")
+  ) {
     return null;
   }
 
@@ -47,7 +53,7 @@ export function BottomNav({ role }: { role: Role }) {
           const showFab = isSeller && idx === Math.floor(items.length / 2);
           return (
             <div key={it.href} className="contents">
-              {showFab && <FabSlot onClick={() => router.push("/create")} />}
+              {showFab && <FabSlot onClick={() => router.push("/drop")} />}
               <Link
                 href={it.href}
                 className={cn(
@@ -78,10 +84,10 @@ function FabSlot({ onClick }: { onClick: () => void }) {
     <div className="flex w-16 items-start justify-center">
       <button
         onClick={onClick}
-        aria-label="สร้างรายการ"
+        aria-label="Drop & Go"
         className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-float ring-4 ring-white transition active:scale-95"
       >
-        <Plus className="h-7 w-7" />
+        <Recycle className="h-7 w-7" />
       </button>
     </div>
   );

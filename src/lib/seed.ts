@@ -1,4 +1,7 @@
-import type { Bill, BillItem, Expense, Job, RewardDraw, RewardTicket, ScheduleSlot, User, WalletTxn } from "./types";
+import type {
+  Bill, BillItem, Expense, Job, RewardDraw, RewardTicket, ScheduleSlot, User, WalletTxn,
+  Cabinet, MeshBag, BagItem, PointTxn, Redemption,
+} from "./types";
 import { MATERIALS, MATERIAL_MAP } from "./materials";
 import { currentMonth, uid } from "./utils";
 import { computeSettlement } from "./fees";
@@ -12,6 +15,10 @@ export interface DB {
   bills: Bill[];
   expenses: Expense[];
   wallet: WalletTxn[]; // ธุรกรรมเครดิตของผู้รับซื้อ
+  cabinets: Cabinet[]; // ตู้ Drop & Go
+  bags: MeshBag[]; // ถุงตาข่าย
+  pointTxns: PointTxn[]; // ธุรกรรมคะแนนของคนทิ้ง
+  redemptions: Redemption[]; // คำขอแลกเงิน
   buyerPrices: Record<string, Record<string, number>>; // buyerId → materialId → ราคารับซื้อ
   centralPrices: Record<string, number>; // ราคากลาง (แอดมินตั้ง) → override ค่า default
   pricesUpdatedAt: string;
@@ -51,7 +58,9 @@ export function createInitialDB(): DB {
     name: "คุณมานี ใจดี",
     phone: "0812345678",
     email: "seller@demo.com",
-    lineConnected: false,
+    lineConnected: true,
+    lineUserId: "Uxxxxdemo1",
+    points: 330,
     createdAt: new Date(now.getFullYear(), now.getMonth() - 2, 3).toISOString(),
   };
   const seller2: User = {
@@ -61,6 +70,7 @@ export function createInitialDB(): DB {
     phone: "0898887777",
     lineConnected: true,
     lineUserId: "Uxxxxdemo2",
+    points: 200,
     createdAt: new Date(now.getFullYear(), now.getMonth() - 1, 12).toISOString(),
   };
   const buyer: User = {
@@ -106,11 +116,11 @@ export function createInitialDB(): DB {
   });
 
   const j1items = [item("glass-bottle", 20), item("cardboard", 15)];
-  const j2items = [item("beer-crate", 4), item("pet", 8)];
-  const j3items = [item("steel", 30), item("aluminum-can", 5)];
-  const j4items = [item("cardboard", 40), item("paper-white", 10)];
-  const j5items = [item("pet", 12), item("plastic-mixed", 6)];
-  const j7items = [item("newspaper", 25), item("cardboard", 20)];
+  const j2items = [item("hdpe", 4), item("pet", 8)];
+  const j3items = [item("aluminum-can", 5), item("pp5", 30)];
+  const j4items = [item("cardboard", 40), item("pp5", 10)];
+  const j5items = [item("pet", 12), item("pp5", 6)];
+  const j7items = [item("cardboard", 25), item("glass-bottle", 20)];
 
   const jobs: Job[] = [
     {
@@ -316,11 +326,11 @@ export function createInitialDB(): DB {
     };
   };
   const bills: Bill[] = [
-    mkBill("B-2051", 0, "ป้าสมจิต (walk-in)", "0891112222", [billItem("cardboard", 45), billItem("paper-white", 12)], "cash"),
-    mkBill("B-2050", 0, "ลุงมี (walk-in)", "0893334444", [billItem("steel", 60), billItem("aluminum-can", 8)], "cash"),
-    mkBill("B-2048", -1, "ร้านข้าวแกงป้านิด", "0895556666", [billItem("pet", 20), billItem("plastic-mixed", 15)], "transfer"),
-    mkBill("B-2045", -2, "คุณนภา", "0897778888", [billItem("glass-bottle", 30), billItem("beer-crate", 6)], "cash"),
-    mkBill("B-2040", -4, "หมู่บ้านสุขใจ", "0899990000", [billItem("cardboard", 80), billItem("newspaper", 25)], "transfer"),
+    mkBill("B-2051", 0, "ป้าสมจิต (walk-in)", "0891112222", [billItem("cardboard", 45), billItem("pp5", 12)], "cash"),
+    mkBill("B-2050", 0, "ลุงมี (walk-in)", "0893334444", [billItem("aluminum-can", 8), billItem("pp5", 60)], "cash"),
+    mkBill("B-2048", -1, "ร้านข้าวแกงป้านิด", "0895556666", [billItem("pet", 20), billItem("hdpe", 15)], "transfer"),
+    mkBill("B-2045", -2, "คุณนภา", "0897778888", [billItem("glass-bottle", 30), billItem("hdpe", 6)], "cash"),
+    mkBill("B-2040", -4, "หมู่บ้านสุขใจ", "0899990000", [billItem("cardboard", 80), billItem("aluminum-can", 5)], "transfer"),
   ];
 
   const mkExpense = (cat: string, amount: number, dayOffset: number, note?: string): Expense => {
@@ -353,6 +363,67 @@ export function createInitialDB(): DB {
     { type: "commission", amount: -150, note: "ค่าคอมเคลียร์ยอด", day: -1 },
   ]);
 
+  // ---- Drop & Go: ตู้ + ถุงตาข่าย + คะแนน + แลกเงิน ----
+  const cabinets: Cabinet[] = [
+    { id: "cab-aa", code: "AA", name: "Lotus's ลาดพร้าว", location: { lat: 13.8161, lng: 100.5613, address: "โลตัส ลาดพร้าว ชั้น G" }, status: "active", createdAt: addDays(now, -60).toISOString() },
+    { id: "cab-bb", code: "BB", name: "Big C พระราม 4", location: { lat: 13.7231, lng: 100.5451, address: "บิ๊กซี พระราม 4 หน้าทางเข้า" }, status: "active", createdAt: addDays(now, -45).toISOString() },
+    { id: "cab-cc", code: "CC", name: "โลตัส บางกะปิ", location: { lat: 13.7654, lng: 100.6432, address: "โลตัส บางกะปิ ลานจอดรถ" }, status: "active", createdAt: addDays(now, -30).toISOString() },
+  ];
+
+  const bagItem = (id: string, qty: number): BagItem => {
+    const m = MATERIAL_MAP[id];
+    return { materialId: id, name: m.name, qty, pricePerUnit: m.pricePerUnit, subtotal: Math.round(m.pricePerUnit * qty) };
+  };
+  const bags: MeshBag[] = [];
+  const mkBag = (
+    code: string, cab: Cabinet, user: User, status: MeshBag["status"], dayOffset: number,
+    items?: BagItem[],
+  ): MeshBag => {
+    const valueBaht = items ? items.reduce((s, i) => s + i.subtotal, 0) : undefined;
+    const dropped = addDays(now, dayOffset).toISOString();
+    const b: MeshBag = {
+      id: uid("bag-"), code, qr: `#TH-${cab.code}-${code}`, cabinetId: cab.id, cabinetCode: cab.code,
+      userId: user.id, userName: user.name, status,
+      items, valueBaht, points: valueBaht != null ? valueBaht * 10 : undefined,
+      droppedAt: dropped, creditedAt: status === "credited" ? addDays(now, dayOffset + 1).toISOString() : undefined,
+    };
+    bags.push(b);
+    return b;
+  };
+  mkBag("0000001", cabinets[0], seller, "credited", -5, [bagItem("aluminum-can", 0.6), bagItem("pet", 1.8)]);   // 27+18 = 45 → 450 pts
+  mkBag("0000002", cabinets[0], seller, "credited", -4, [bagItem("pet", 1.4), bagItem("cardboard", 3.5)]);       // 14+14 = 28 → 280
+  mkBag("0000003", cabinets[0], seller, "credited", -2, [bagItem("aluminum-can", 1.0), bagItem("hdpe", 1.2)]);   // 45+15.6≈60 → 600
+  mkBag("0000015", cabinets[1], seller, "sorting", -1);                                                          // กำลังคัดแยก
+  mkBag("0000008", cabinets[0], seller, "dropped", 0);                                                           // รอคัดแยก (ผู้ดูแลตีราคา)
+  mkBag("0000001", cabinets[2], seller2, "credited", -3, [bagItem("aluminum-can", 2.0), bagItem("pet", 3.0)]);   // 90+30 = 120 → 1200
+  mkBag("0000003", cabinets[2], seller2, "dropped", 0);                                                          // รอคัดแยก
+
+  // ธุรกรรมคะแนน (running balance ต่อคน)
+  const pointTxns: PointTxn[] = [];
+  const mkPts = (u: User, entries: { type: PointTxn["type"]; points: number; note: string; day: number; hour?: number }[]) => {
+    let bal = 0;
+    for (const e of entries) {
+      bal += e.points;
+      const d = addDays(now, e.day); if (e.hour != null) d.setHours(e.hour);
+      pointTxns.push({ id: uid("pt-"), userId: u.id, type: e.type, points: e.points, balanceAfter: bal, note: e.note, date: d.toISOString() });
+    }
+  };
+  mkPts(seller, [
+    { type: "earn", points: 450, note: "ถุง #TH-AA-0000001", day: -4 },
+    { type: "earn", points: 280, note: "ถุง #TH-AA-0000002", day: -3 },
+    { type: "earn", points: 600, note: "ถุง #TH-AA-0000003", day: -1 },
+    { type: "redeem", points: -1000, note: "แลกเงิน ฿100", day: -1, hour: 20 },
+  ]); // → 330
+  mkPts(seller2, [
+    { type: "earn", points: 1200, note: "ถุง #TH-CC-0000001", day: -2 },
+    { type: "redeem", points: -1000, note: "แลกเงิน ฿100", day: 0 },
+  ]); // → 200
+
+  const redemptions: Redemption[] = [
+    { id: uid("r-"), code: "R-3012", userId: seller.id, userName: seller.name, amountBaht: 100, points: 1000, method: "promptpay", account: "0812345678", status: "paid", requestedAt: addDays(now, -1).toISOString(), paidAt: addDays(now, 0).toISOString() },
+    { id: uid("r-"), code: "R-3015", userId: seller2.id, userName: seller2.name, amountBaht: 100, points: 1000, method: "promptpay", account: "0898887777", status: "pending", requestedAt: addDays(now, 0).toISOString() },
+  ];
+
   return {
     users: [seller, seller2, buyer, buyer2, admin],
     jobs,
@@ -362,8 +433,12 @@ export function createInitialDB(): DB {
     bills,
     expenses,
     wallet,
+    cabinets,
+    bags,
+    pointTxns,
+    redemptions,
     buyerPrices: {
-      "u-buyer2": { cardboard: 5, pet: 12, steel: 9 },
+      "u-buyer2": { cardboard: 5, pet: 12, "aluminum-can": 40 },
     },
     centralPrices: {},
     pricesUpdatedAt: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0).toISOString(),

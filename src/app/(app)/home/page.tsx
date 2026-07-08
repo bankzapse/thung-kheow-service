@@ -17,6 +17,8 @@ import {
   activeJobs,
   incomeSummary,
   creditOf,
+  pointsOf,
+  dropStats,
 } from "@/lib/selectors";
 import { RADIUS_KM, DEFAULT_BASE } from "@/lib/geo";
 import { MIN_CREDIT } from "@/lib/fees";
@@ -48,6 +50,8 @@ export default function HomePage() {
   const sellerJobs = jobsForSeller(db, u.id);
   const buyerJobs = jobsForBuyer(db, u.id);
   const income = incomeSummary(db, u.id);
+  const points = pointsOf(db, u.id);
+  const dstats = dropStats(db, u.id);
   const base = { lat: u.baseLat ?? DEFAULT_BASE.lat, lng: u.baseLng ?? DEFAULT_BASE.lng };
   const openCount = isSeller ? 0 : availableJobsNear(db, base.lat, base.lng, RADIUS_KM).length;
   const activeCount = activeJobs(isSeller ? sellerJobs : buyerJobs).length;
@@ -78,8 +82,8 @@ export default function HomePage() {
         <div className="card grid grid-cols-2 divide-x divide-neutral-100">
           {isSeller ? (
             <>
-              <StatMini label="รายได้เดือนนี้" value={`฿${formatBaht(income.thisMonth)}`} icon={<TrendingUp className="h-4 w-4" />} />
-              <StatMini label="งานที่กำลังทำ" value={`${activeCount} งาน`} icon={<ClipboardList className="h-4 w-4" />} />
+              <StatMini label="คะแนนสะสม" value={formatBaht(points)} icon={<Coins className="h-4 w-4" />} />
+              <StatMini label="ถุงของฉัน" value={`${dstats.totalBags} ถุง`} icon={<Recycle className="h-4 w-4" />} />
             </>
           ) : (
             <>
@@ -92,19 +96,27 @@ export default function HomePage() {
         {/* primary actions */}
         {isSeller ? (
           <div className="space-y-3">
+            {/* Drop & Go — flagship */}
             <Link
-              href="/create"
-              className="flex items-center gap-3 rounded-2xl bg-brand-600 p-4 text-white shadow-card transition active:scale-[0.99]"
+              href="/drop"
+              className="relative flex items-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-4 text-white shadow-brand transition active:scale-[0.99]"
             >
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20">
-                <Plus className="h-6 w-6" />
+              <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" />
+              <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
+                <Recycle className="h-7 w-7" />
               </div>
-              <div className="flex-1">
-                <p className="font-bold">สร้างรายการขายของเก่า</p>
-                <p className="text-sm text-white/80">เลือกของ · ปักหมุด · จองรอบให้มารับ</p>
+              <div className="relative flex-1">
+                <span className="mb-0.5 inline-block rounded-md bg-white/20 px-1.5 py-0.5 text-[10px] font-bold">HOT</span>
+                <p className="font-bold leading-tight">Drop & Go — หย่อนถุงรับคะแนน</p>
+                <p className="text-sm text-white/85">คัดแยกใส่ถุง · สแกน QR ตู้+ถุง · รอรับคะแนน</p>
               </div>
-              <ChevronRight className="h-5 w-5 text-white/70" />
+              <ChevronRight className="relative h-5 w-5 text-white/70" />
             </Link>
+
+            <div className="grid grid-cols-2 gap-3">
+              <ActionTile href="/points" icon={<Coins className="h-5 w-5" />} label="คะแนน & แลกเงิน" hint={`${formatBaht(points)} คะแนน`} accent />
+              <ActionTile href="/create" icon={<Plus className="h-5 w-5" />} label="เรียกรถมารับถึงบ้าน" hint="ขายของเก่า" />
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <ActionTile href="/jobs" icon={<ClipboardList className="h-5 w-5" />} label="รายการของฉัน" hint={`${sellerJobs.length} รายการ`} />
               <ActionTile href="/income" icon={<Wallet className="h-5 w-5" />} label="รายได้ & รางวัล" hint={`${myTickets} สิทธิ์`} />

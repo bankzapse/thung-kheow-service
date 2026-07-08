@@ -1,5 +1,5 @@
 import type { DB } from "./seed";
-import type { Bill, Expense, Job, User, WalletTxn } from "./types";
+import type { Bill, Expense, Job, User, WalletTxn, MeshBag, Cabinet, PointTxn, Redemption } from "./types";
 import { currentMonth } from "./utils";
 import { distanceKm } from "./geo";
 import { MATERIAL_MAP } from "./materials";
@@ -288,4 +288,68 @@ export function commissionCollected(db: DB, month?: string): number {
   return (db.wallet ?? [])
     .filter((w) => w.type === "commission" && (!month || w.date.slice(0, 7) === month))
     .reduce((s, w) => s + Math.abs(w.amount), 0);
+}
+
+/* ---------------- Drop & Go: ตู้ / ถุง / คะแนน / แลกเงิน ---------------- */
+export function pointsOf(db: DB, userId: string): number {
+  return db.users.find((u) => u.id === userId)?.points ?? 0;
+}
+export function bagsForUser(db: DB, userId: string): MeshBag[] {
+  return (db.bags ?? [])
+    .filter((b) => b.userId === userId)
+    .sort((a, b) => +new Date(b.droppedAt) - +new Date(a.droppedAt));
+}
+/** ถุงที่รอผู้ดูแลจัดการ (หย่อนแล้ว/กำลังคัดแยก) */
+export function pendingBags(db: DB): MeshBag[] {
+  return (db.bags ?? [])
+    .filter((b) => b.status !== "credited")
+    .sort((a, b) => +new Date(a.droppedAt) - +new Date(b.droppedAt));
+}
+export function bagsForCabinet(db: DB, cabinetId: string): MeshBag[] {
+  return (db.bags ?? [])
+    .filter((b) => b.cabinetId === cabinetId)
+    .sort((a, b) => +new Date(b.droppedAt) - +new Date(a.droppedAt));
+}
+export interface CabinetWithCounts extends Cabinet {
+  pending: number; // ถุงที่ยังไม่ได้ให้คะแนน
+  total: number;
+}
+export function cabinetsWithCounts(db: DB): CabinetWithCounts[] {
+  return (db.cabinets ?? []).map((c) => {
+    const bags = (db.bags ?? []).filter((b) => b.cabinetId === c.id);
+    return { ...c, pending: bags.filter((b) => b.status !== "credited").length, total: bags.length };
+  });
+}
+export function pointsLedger(db: DB, userId: string): PointTxn[] {
+  return (db.pointTxns ?? [])
+    .filter((t) => t.userId === userId)
+    .sort((a, b) => +new Date(b.date) - +new Date(a.date));
+}
+export function redemptionsForUser(db: DB, userId: string): Redemption[] {
+  return (db.redemptions ?? [])
+    .filter((r) => r.userId === userId)
+    .sort((a, b) => +new Date(b.requestedAt) - +new Date(a.requestedAt));
+}
+export function pendingRedemptions(db: DB): Redemption[] {
+  return (db.redemptions ?? [])
+    .filter((r) => r.status === "pending")
+    .sort((a, b) => +new Date(a.requestedAt) - +new Date(b.requestedAt));
+}
+export interface DropStats {
+  totalBags: number;
+  creditedBags: number;
+  pendingBags: number;
+  pointsEarned: number; // รวมคะแนนที่เคยได้
+}
+export function dropStats(db: DB, userId: string): DropStats {
+  const bags = (db.bags ?? []).filter((b) => b.userId === userId);
+  const pointsEarned = (db.pointTxns ?? [])
+    .filter((t) => t.userId === userId && t.type === "earn")
+    .reduce((s, t) => s + t.points, 0);
+  return {
+    totalBags: bags.length,
+    creditedBags: bags.filter((b) => b.status === "credited").length,
+    pendingBags: bags.filter((b) => b.status !== "credited").length,
+    pointsEarned,
+  };
 }

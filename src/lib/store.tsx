@@ -1,7 +1,8 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import type { Bill, BillItem, Expense, Job, JobStatus, Role, ScheduleSlot, User, WalletTxn } from "./types";
+import type { Bill, BillItem, Expense, Job, JobStatus, Role, ScheduleSlot, User, WalletTxn, MeshBag, BagItem, PointTxn, Redemption, Cabinet } from "./types";
+import { POINTS_PER_BAHT, COUNTRY_CODE } from "./types";
 import { createInitialDB, type DB } from "./seed";
 import { billCode, jobCode, ticketNumber, todayISO, uid, currentMonth } from "./utils";
 import { computeSettlement, MAX_TICKETS_PER_MONTH, MIN_CREDIT } from "./fees";
@@ -27,8 +28,8 @@ function profileToUser(p: any): User {
   };
 }
 
-const DB_KEY = "rf_db_v7";
-const USER_KEY = "rf_user_v7";
+const DB_KEY = "rf_db_v8";
+const USER_KEY = "rf_user_v8";
 
 type Toast = { id: string; text: string; kind: "success" | "info" | "line" };
 
@@ -101,6 +102,14 @@ interface StoreValue {
   // credit / wallet
   topUpCredit: (amount: number) => void;
   adjustCredit: (userId: string, amount: number, note?: string) => void;
+  // Drop & Go
+  dropBags: (cabinetCode: string, bagCodes: string[]) => void;
+  startSorting: (bagId: string) => void;
+  valueBag: (bagId: string, items: BagItem[]) => void;
+  redeemPoints: (amountBaht: number, points: number, method: "promptpay" | "bank", account: string) => void;
+  markRedemptionPaid: (id: string) => void;
+  rejectRedemption: (id: string) => void;
+  addCabinet: (input: { code: string; name: string; address: string; lat?: number; lng?: number }) => void;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -733,6 +742,103 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [pushToast],
   );
 
+  // ---- Drop & Go: หย่อนถุง / คัดแยก / ให้คะแนน / แลกเงิน ----
+  const dropBags = useCallback(
+    (cabinetCode: string, bagCodes: string[]) => {
+      if (!currentUser) return;
+      const code = cabinetCode.trim().toUpperCase().replace(/^#?(TH-)?/i, "").split("-")[0];
+      const clean = [...new Set(bagCodes.map((b) => b.trim().split("-").pop()!.replace(/[^0-9]/g, "")).filter(Boolean))];
+      const cab = db.cabinets.find((c) => c.code === code);
+      if (!cab) { pushToast(`ไม่พบตู้รหัส ${code || "-"}`, "info"); return; }
+      if (clean.length === 0) { pushToast("กรุณาเพิ่มถุงอย่างน้อย 1 ใบ", "info"); return; }
+      const now = todayISO();
+      const newBags: MeshBag[] = clean.map((bc) => ({
+        id: uid("bag-"), code: bc, qr: `#${COUNTRY_CODE}-${cab.code}-${bc}`, cabinetId: cab.id, cabinetCode: cab.code,
+        userId: currentUser.id, userName: currentUser.name, status: "dropped", droppedAt: now,
+      }));
+      setDb((d) => ({ ...d, bags: [...newBags, ...d.bags] }));
+      pushToast(`หย่อน ${clean.length} ถุงที่ตู้ ${cab.name} · แจ้ง LINE เมื่อได้คะแนน`, "line");
+    },
+    [currentUser, db.cabinets, pushToast],
+  );
+
+  const startSorting = useCallback((bagId: string) => {
+    setDb((d) => ({ ...d, bags: d.bags.map((b) => (b.id === bagId && b.status === "dropped" ? { ...b, status: "sorting" } : b)) }));
+  }, []);
+
+  const valueBag = useCallback(
+    (bagId: string, items: BagItem[]) => {
+      setDb((d) => {
+        const bag = d.bags.find((b) => b.id === bagId);
+        if (!bag) return d;
+        const valueBaht = items.reduce((s, i) => s + i.subtotal, 0);
+        const points = valueBaht * POINTS_PER_BAHT;
+        const now = todayISO();
+        const bal = (d.users.find((u) => u.id === bag.userId)?.points ?? 0) + points;
+        return {
+          ...d,
+          bags: d.bags.map((b) => (b.id === bagId ? { ...b, items, valueBaht, points, status: "credited", creditedAt: now } : b)),
+          users: d.users.map((u) => (u.id === bag.userId ? { ...u, points: bal } : u)),
+          pointTxns: [{ id: uid("pt-"), userId: bag.userId, type: "earn", points, balanceAfter: bal, note: `ถุง ${bag.qr}`, bagId: bag.id, date: now }, ...d.pointTxns],
+        };
+      });
+      pushToast("ตีราคา + ให้คะแนนแล้ว · แจ้ง LINE คนทิ้ง", "line");
+    },
+    [pushToast],
+  );
+
+  const redeemPoints = useCallback(
+    (amountBaht: number, points: number, method: "promptpay" | "bank", account: string) => {
+      if (!currentUser) return;
+      if ((currentUser.points ?? 0) < points) { pushToast("คะแนนไม่พอสำหรับตัวเลือกนี้", "info"); return; }
+      if (!account.trim()) { pushToast("กรุณากรอกพร้อมเพย์/เลขบัญชีรับเงิน", "info"); return; }
+      const now = todayISO();
+      const bal = (currentUser.points ?? 0) - points;
+      const rid = uid("r-");
+      const rcode = "R-" + String(3000 + Math.floor(Math.random() * 6999));
+      setDb((d) => ({
+        ...d,
+        users: d.users.map((u) => (u.id === currentUser.id ? { ...u, points: bal } : u)),
+        pointTxns: [{ id: uid("pt-"), userId: currentUser.id, type: "redeem", points: -points, balanceAfter: bal, note: `แลกเงิน ฿${amountBaht}`, redemptionId: rid, date: now }, ...d.pointTxns],
+        redemptions: [{ id: rid, code: rcode, userId: currentUser.id, userName: currentUser.name, amountBaht, points, method, account: account.trim(), status: "pending", requestedAt: now }, ...d.redemptions],
+      }));
+      pushToast(`ส่งคำขอแลกเงิน ฿${amountBaht} · โอนภายใน 1-3 วันทำการ`, "success");
+    },
+    [currentUser, pushToast],
+  );
+
+  const markRedemptionPaid = useCallback((id: string) => {
+    setDb((d) => ({ ...d, redemptions: d.redemptions.map((r) => (r.id === id ? { ...r, status: "paid", paidAt: todayISO() } : r)) }));
+    pushToast("ทำเครื่องหมายจ่ายเงินแล้ว", "success");
+  }, [pushToast]);
+
+  const rejectRedemption = useCallback((id: string) => {
+    setDb((d) => {
+      const r = d.redemptions.find((x) => x.id === id);
+      if (!r || r.status !== "pending") return d;
+      const bal = (d.users.find((u) => u.id === r.userId)?.points ?? 0) + r.points; // คืนคะแนน
+      return {
+        ...d,
+        redemptions: d.redemptions.map((x) => (x.id === id ? { ...x, status: "rejected" } : x)),
+        users: d.users.map((u) => (u.id === r.userId ? { ...u, points: bal } : u)),
+        pointTxns: [{ id: uid("pt-"), userId: r.userId, type: "adjust", points: r.points, balanceAfter: bal, note: `คืนคะแนน (ปฏิเสธ ${r.code})`, redemptionId: r.id, date: todayISO() }, ...d.pointTxns],
+      };
+    });
+    pushToast("ปฏิเสธคำขอ + คืนคะแนนแล้ว", "info");
+  }, [pushToast]);
+
+  const addCabinet = useCallback(
+    (input: { code: string; name: string; address: string; lat?: number; lng?: number }) => {
+      const code = input.code.trim().toUpperCase();
+      if (!code) { pushToast("กรุณาระบุรหัสตู้", "info"); return; }
+      if (db.cabinets.some((c) => c.code === code)) { pushToast(`มีตู้รหัส ${code} อยู่แล้ว`, "info"); return; }
+      const cab: Cabinet = { id: uid("cab-"), code, name: input.name.trim() || code, location: { lat: input.lat ?? 13.7563, lng: input.lng ?? 100.5018, address: input.address.trim() }, status: "active", createdAt: todayISO() };
+      setDb((d) => ({ ...d, cabinets: [...d.cabinets, cab] }));
+      pushToast(`เพิ่มตู้ ${code} แล้ว`, "success");
+    },
+    [db.cabinets, pushToast],
+  );
+
   const value: StoreValue = {
     ready,
     db,
@@ -767,6 +873,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     drawWinner,
     topUpCredit,
     adjustCredit,
+    dropBags,
+    startSorting,
+    valueBag,
+    redeemPoints,
+    markRedemptionPaid,
+    rejectRedemption,
+    addCabinet,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
