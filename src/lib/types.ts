@@ -170,6 +170,21 @@ export const COUNTRY_CODE = "TH";
 export const MIN_ITEMS_PER_BAG = 20; // รับขั้นต่ำ 20 ชิ้น/ถุง
 export const MAX_BAGS_PER_DROP = 10;
 
+/**
+ * QR บนถุง = "AA1-0000001" → รหัสตู้ (AA1) - รหัสถุง (0000001)
+ * สแกนครั้งเดียวได้ทั้งตู้และถุง (ลดขั้นตอน)
+ */
+export function bagQr(cabinetCode: string, bagCode: string): string {
+  return `${cabinetCode.toUpperCase()}-${bagCode}`;
+}
+/** แยกรหัสตู้/ถุงจาก QR — รองรับ AA1-0000001 และของเดิม #TH-AA-0000001 */
+export function parseBagQr(raw: string): { cabinet: string; bag: string } {
+  const s = raw.trim().replace(/^#/, "").replace(/^TH-/i, "");
+  const i = s.lastIndexOf("-");
+  if (i < 0) return { cabinet: "", bag: s.replace(/[^0-9]/g, "") };
+  return { cabinet: s.slice(0, i).toUpperCase(), bag: s.slice(i + 1).replace(/[^0-9]/g, "") };
+}
+
 /** ตัวเลือกแลกเงิน (คะแนน → บาท) — ยิ่งเยอะยิ่งได้โบนัส */
 export const REDEEM_TIERS: { amountBaht: number; points: number }[] = [
   { amountBaht: 100, points: 1000 },

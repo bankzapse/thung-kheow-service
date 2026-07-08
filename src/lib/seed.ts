@@ -365,9 +365,9 @@ export function createInitialDB(): DB {
 
   // ---- Drop & Go: ตู้ + ถุงตาข่าย + คะแนน + แลกเงิน ----
   const cabinets: Cabinet[] = [
-    { id: "cab-aa", code: "AA", name: "Lotus's ลาดพร้าว", location: { lat: 13.8161, lng: 100.5613, address: "โลตัส ลาดพร้าว ชั้น G" }, status: "active", createdAt: addDays(now, -60).toISOString() },
-    { id: "cab-bb", code: "BB", name: "Big C พระราม 4", location: { lat: 13.7231, lng: 100.5451, address: "บิ๊กซี พระราม 4 หน้าทางเข้า" }, status: "active", createdAt: addDays(now, -45).toISOString() },
-    { id: "cab-cc", code: "CC", name: "โลตัส บางกะปิ", location: { lat: 13.7654, lng: 100.6432, address: "โลตัส บางกะปิ ลานจอดรถ" }, status: "active", createdAt: addDays(now, -30).toISOString() },
+    { id: "cab-aa", code: "AA1", name: "Lotus's ลาดพร้าว", location: { lat: 13.8161, lng: 100.5613, address: "โลตัส ลาดพร้าว ชั้น G" }, status: "active", createdAt: addDays(now, -60).toISOString() },
+    { id: "cab-bb", code: "BB1", name: "Big C พระราม 4", location: { lat: 13.7231, lng: 100.5451, address: "บิ๊กซี พระราม 4 หน้าทางเข้า" }, status: "active", createdAt: addDays(now, -45).toISOString() },
+    { id: "cab-cc", code: "CC1", name: "โลตัส บางกะปิ", location: { lat: 13.7654, lng: 100.6432, address: "โลตัส บางกะปิ ลานจอดรถ" }, status: "active", createdAt: addDays(now, -30).toISOString() },
   ];
 
   const bagItem = (id: string, qty: number): BagItem => {
@@ -382,7 +382,7 @@ export function createInitialDB(): DB {
     const valueBaht = items ? items.reduce((s, i) => s + i.subtotal, 0) : undefined;
     const dropped = addDays(now, dayOffset).toISOString();
     const b: MeshBag = {
-      id: uid("bag-"), code, qr: `#TH-${cab.code}-${code}`, cabinetId: cab.id, cabinetCode: cab.code,
+      id: uid("bag-"), code, qr: `${cab.code}-${code}`, cabinetId: cab.id, cabinetCode: cab.code,
       userId: user.id, userName: user.name, status,
       items, valueBaht, points: valueBaht != null ? valueBaht * 10 : undefined,
       droppedAt: dropped, creditedAt: status === "credited" ? addDays(now, dayOffset + 1).toISOString() : undefined,
@@ -409,13 +409,13 @@ export function createInitialDB(): DB {
     }
   };
   mkPts(seller, [
-    { type: "earn", points: 450, note: "ถุง #TH-AA-0000001", day: -4 },
-    { type: "earn", points: 280, note: "ถุง #TH-AA-0000002", day: -3 },
-    { type: "earn", points: 600, note: "ถุง #TH-AA-0000003", day: -1 },
+    { type: "earn", points: 450, note: "ถุง AA1-0000001", day: -4 },
+    { type: "earn", points: 280, note: "ถุง AA1-0000002", day: -3 },
+    { type: "earn", points: 600, note: "ถุง AA1-0000003", day: -1 },
     { type: "redeem", points: -1000, note: "แลกเงิน ฿100", day: -1, hour: 20 },
   ]); // → 330
   mkPts(seller2, [
-    { type: "earn", points: 1200, note: "ถุง #TH-CC-0000001", day: -2 },
+    { type: "earn", points: 1200, note: "ถุง CC1-0000001", day: -2 },
     { type: "redeem", points: -1000, note: "แลกเงิน ฿100", day: 0 },
   ]); // → 200
 

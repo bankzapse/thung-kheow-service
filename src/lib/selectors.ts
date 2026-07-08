@@ -353,3 +353,44 @@ export function dropStats(db: DB, userId: string): DropStats {
     pointsEarned,
   };
 }
+
+/* ---------------- Admin: ภาพรวม Drop & Go ---------------- */
+export interface DropGoSummary {
+  cabinetCount: number;
+  bagCount: number;
+  pendingBags: number;   // รอคัดแยก + กำลังคัดแยก
+  creditedBags: number;
+  pointsIssued: number;      // คะแนนที่จ่ายให้คนทิ้งรวม (จากถุง)
+  pointsOutstanding: number; // คะแนนคงเหลือในระบบ (ยังไม่แลก)
+  redeemPending: number;
+  redeemPendingBaht: number;
+  redeemPaidBaht: number;
+  redeemPaidCount: number;
+  cabinets: CabinetWithCounts[];
+}
+export function dropGoSummary(db: DB): DropGoSummary {
+  const bags = db.bags ?? [];
+  const reds = db.redemptions ?? [];
+  const pending = reds.filter((r) => r.status === "pending");
+  const paid = reds.filter((r) => r.status === "paid");
+  return {
+    cabinetCount: (db.cabinets ?? []).length,
+    bagCount: bags.length,
+    pendingBags: bags.filter((b) => b.status !== "credited").length,
+    creditedBags: bags.filter((b) => b.status === "credited").length,
+    pointsIssued: (db.pointTxns ?? []).filter((t) => t.type === "earn").reduce((s, t) => s + t.points, 0),
+    pointsOutstanding: (db.users ?? []).reduce((s, u) => s + (u.points ?? 0), 0),
+    redeemPending: pending.length,
+    redeemPendingBaht: pending.reduce((s, r) => s + r.amountBaht, 0),
+    redeemPaidBaht: paid.reduce((s, r) => s + r.amountBaht, 0),
+    redeemPaidCount: paid.length,
+    cabinets: cabinetsWithCounts(db).sort((a, b) => b.total - a.total),
+  };
+}
+/** ถุงที่เพิ่งได้คะแนน (ล่าสุด) — สำหรับ activity feed */
+export function recentCreditedBags(db: DB, limit = 8): MeshBag[] {
+  return (db.bags ?? [])
+    .filter((b) => b.status === "credited" && b.creditedAt)
+    .sort((a, b) => +new Date(b.creditedAt!) - +new Date(a.creditedAt!))
+    .slice(0, limit);
+}

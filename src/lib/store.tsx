@@ -2,7 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { Bill, BillItem, Expense, Job, JobStatus, Role, ScheduleSlot, User, WalletTxn, MeshBag, BagItem, PointTxn, Redemption, Cabinet } from "./types";
-import { POINTS_PER_BAHT, COUNTRY_CODE } from "./types";
+import { POINTS_PER_BAHT, bagQr } from "./types";
 import { createInitialDB, type DB } from "./seed";
 import { billCode, jobCode, ticketNumber, todayISO, uid, currentMonth } from "./utils";
 import { computeSettlement, MAX_TICKETS_PER_MONTH, MIN_CREDIT } from "./fees";
@@ -31,8 +31,8 @@ function profileToUser(p: any): User {
   };
 }
 
-const DB_KEY = "rf_db_v8";
-const USER_KEY = "rf_user_v8";
+const DB_KEY = "rf_db_v9";
+const USER_KEY = "rf_user_v9";
 
 type Toast = { id: string; text: string; kind: "success" | "info" | "line" };
 
@@ -757,7 +757,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (!cab) { pushToast(`ไม่พบตู้รหัส ${code || "-"}`, "info"); return; }
       const now = todayISO();
       const newBags: MeshBag[] = clean.map((bc) => ({
-        id: uid("bag-"), code: bc, qr: `#${COUNTRY_CODE}-${cab.code}-${bc}`, cabinetId: cab.id, cabinetCode: cab.code,
+        id: uid("bag-"), code: bc, qr: bagQr(cab.code, bc), cabinetId: cab.id, cabinetCode: cab.code,
         userId: currentUser.id, userName: currentUser.name, status: "dropped", droppedAt: now,
       }));
       setDb((d) => ({ ...d, bags: [...newBags, ...d.bags] }));

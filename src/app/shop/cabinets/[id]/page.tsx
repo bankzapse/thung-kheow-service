@@ -10,7 +10,7 @@ import { MATERIALS, MATERIAL_MAP } from "@/lib/materials";
 import { BAG_STATUS_META, POINTS_PER_BAHT } from "@/lib/types";
 import type { MeshBag, BagItem } from "@/lib/types";
 import { formatBaht, thaiDateTime } from "@/lib/utils";
-import { ArrowLeft, Box, Coins, Scale, PackageOpen, CheckCircle2, Trophy } from "lucide-react";
+import { ArrowLeft, Box, Coins, Scale, PackageOpen, CheckCircle2, Trophy, Printer } from "lucide-react";
 
 export default function CabinetDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -55,12 +55,15 @@ export default function CabinetDetailPage() {
     <div className="space-y-5">
       <Link href="/shop/cabinets" className="inline-flex items-center gap-1 text-sm font-medium text-neutral-500"><ArrowLeft className="h-4 w-4" /> ตู้ทั้งหมด</Link>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-100 text-brand-700"><Box className="h-7 w-7" /></span>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold text-neutral-800">{cab.name}</h1>
           <p className="text-sm text-neutral-500">รหัส {cab.code} · {cab.location.address}</p>
         </div>
+        <Link href={`/shop/cabinets/${cab.id}/qr`} className="btn-outline !px-4 !py-2.5 text-sm">
+          <Printer className="h-4 w-4" /> พิมพ์ QR ตู้+ถุง
+        </Link>
       </div>
 
       {/* pending queue */}

@@ -491,7 +491,7 @@ begin
   foreach c in array p_bag_codes loop
     if c is null or length(btrim(c)) = 0 then continue; end if;
     insert into mesh_bags(code, qr, cabinet_id, cabinet_code, user_id, status)
-    values (btrim(c), '#TH-' || v_cab.code || '-' || btrim(c), v_cab.id, v_cab.code, v_uid, 'dropped');
+    values (btrim(c), v_cab.code || '-' || btrim(c), v_cab.id, v_cab.code, v_uid, 'dropped');
     n := n + 1;
   end loop;
   return n;
