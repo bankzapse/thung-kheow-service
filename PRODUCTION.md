@@ -58,6 +58,8 @@ NEXT_PUBLIC_COMPANY_PROMPTPAY=  # พร้อมเพย์บริษัท 
 6. (ทีหลัง) ห่อ WebView เป็นแอป native → ส่ง store (ดู `native/README.md`)
 
 ## 5) ปิดท้าย / กฎหมาย
-- Privacy Policy + Terms (ต้องมีตอนส่ง store + เก็บข้อมูลผู้ใช้)
-- PDPA: ขอความยินยอมเก็บเบอร์/ข้อมูลผู้ใช้
+- **Privacy Policy** → `https://<โดเมน>/privacy` (หน้า `src/app/privacy/page.tsx`) — ใช้ลิงก์นี้กรอกใน App Store Connect + Play Console
+- **Terms of Service** → `https://<โดเมน>/terms` (หน้า `src/app/terms/page.tsx`)
+- ⚠️ ก่อน go-live: แก้ placeholder ในหน้าเอกสาร — `[ชื่อบริษัท]`, `[ที่อยู่บริษัท]`, อีเมล `support@greendrop.co`, LINE `@greendrop`, และวันที่มีผลบังคับใช้
+- PDPA: ขอความยินยอมเก็บเบอร์/ข้อมูลผู้ใช้ (มีลิงก์เอกสารในหน้า login แล้ว)
 - ปุ่มเปิด pickup ทีหลัง: แก้ `PICKUP_ENABLED = true` ใน `src/lib/features.ts` (โค้ดครบอยู่แล้ว)

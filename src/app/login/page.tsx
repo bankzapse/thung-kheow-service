@@ -241,7 +241,11 @@ export default function LoginPage() {
           </>
         )}
       </div>
-      <div className="h-10" />
+      <footer className="px-6 pb-8 pt-4 text-center text-xs text-neutral-400">
+        การใช้บริการถือว่ายอมรับ{" "}
+        <Link href="/terms" className="text-brand-600">ข้อกำหนดการใช้งาน</Link> และ{" "}
+        <Link href="/privacy" className="text-brand-600">นโยบายความเป็นส่วนตัว</Link>
+      </footer>
     </div>
   );
 }
