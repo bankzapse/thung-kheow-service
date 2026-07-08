@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { franchiseById } from "@/lib/selectors";
-import { Recycle, LogOut, ArrowLeft } from "lucide-react";
+import { LogOut, ArrowLeft } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import Link from "next/link";
 
 export default function FranchiseLayout({ children }: { children: React.ReactNode }) {
@@ -28,9 +29,10 @@ export default function FranchiseLayout({ children }: { children: React.ReactNod
       <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
           <Link href="/franchise" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white"><Recycle className="h-5 w-5" /></div>
+            <Logo size={30} />
             <span className="font-bold text-neutral-800">
-              {fr ? <>แฟรนไชส์ <span className="font-mono">{fr.code}</span> · {fr.name}</> : "แฟรนไชส์"}
+              Green<span className="text-brand-600">Drop</span>{" "}
+              <span className="font-medium text-neutral-400">· {fr ? <>แฟรนไชส์ <span className="font-mono">{fr.code}</span></> : "แฟรนไชส์"}</span>
             </span>
           </Link>
           <div className="ml-auto flex items-center gap-2">

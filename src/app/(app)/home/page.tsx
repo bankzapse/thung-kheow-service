@@ -22,6 +22,7 @@ import {
 } from "@/lib/selectors";
 import { RADIUS_KM, DEFAULT_BASE } from "@/lib/geo";
 import { MIN_CREDIT } from "@/lib/fees";
+import { PICKUP_ENABLED } from "@/lib/features";
 import { formatBaht, thaiDate } from "@/lib/utils";
 import {
   Recycle,
@@ -115,20 +116,21 @@ export default function HomePage() {
 
             <div className="grid grid-cols-2 gap-3">
               <ActionTile href="/points" icon={<Coins className="h-5 w-5" />} label="คะแนน & แลกเงิน" hint={`${formatBaht(points)} คะแนน`} accent />
-              <ActionTile href="/create" icon={<Plus className="h-5 w-5" />} label="เรียกรถมารับถึงบ้าน" hint="ขายของเก่า" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <ActionTile href="/jobs" icon={<ClipboardList className="h-5 w-5" />} label="รายการของฉัน" hint={`${sellerJobs.length} รายการ`} />
-              <ActionTile href="/income" icon={<Wallet className="h-5 w-5" />} label="รายได้ & รางวัล" hint={`${myTickets} สิทธิ์`} />
+              <ActionTile href="/drop" icon={<Recycle className="h-5 w-5" />} label="ถุงของฉัน" hint={`${dstats.totalBags} ถุง`} />
+              {PICKUP_ENABLED && <ActionTile href="/create" icon={<Plus className="h-5 w-5" />} label="เรียกรถมารับถึงบ้าน" hint="ขายของเก่า" />}
+              {PICKUP_ENABLED && <ActionTile href="/jobs" icon={<ClipboardList className="h-5 w-5" />} label="รายการของฉัน" hint={`${sellerJobs.length} รายการ`} />}
+              {PICKUP_ENABLED && <ActionTile href="/income" icon={<Wallet className="h-5 w-5" />} label="รายได้ & รางวัล" hint={`${myTickets} สิทธิ์`} />}
             </div>
           </div>
         ) : (
           <div className="space-y-3">
             <CreditCard credit={creditOf(db, u.id)} />
-            <div className="grid grid-cols-2 gap-3">
-              <ActionTile href="/jobs" icon={<Inbox className="h-5 w-5" />} label="งานใกล้ฉัน" hint={`${openCount} งานในรัศมี`} accent />
-              <ActionTile href="/schedule" icon={<CalendarClock className="h-5 w-5" />} label="จัดตารางรับของ" hint="รอบเข้ารับ" />
-            </div>
+            {PICKUP_ENABLED && (
+              <div className="grid grid-cols-2 gap-3">
+                <ActionTile href="/jobs" icon={<Inbox className="h-5 w-5" />} label="งานใกล้ฉัน" hint={`${openCount} งานในรัศมี`} accent />
+                <ActionTile href="/schedule" icon={<CalendarClock className="h-5 w-5" />} label="จัดตารางรับของ" hint="รอบเข้ารับ" />
+              </div>
+            )}
           </div>
         )}
 

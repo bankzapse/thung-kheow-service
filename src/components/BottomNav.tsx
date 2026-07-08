@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { PICKUP_ENABLED } from "@/lib/features";
 import { Home, ClipboardList, Wallet, CalendarClock, Coins, Recycle } from "lucide-react";
 
 type Item = { href: string; label: string; icon: React.ElementType };
@@ -40,7 +41,9 @@ export function BottomNav({ role }: { role: Role }) {
     return null;
   }
 
-  const items = NAV[role];
+  // โปรดักชัน Drop-only: ซ่อนแท็บที่ผูกกับระบบรับซื้อของเก่า
+  const hideForDrop = new Set(PICKUP_ENABLED ? [] : ["/jobs", "/income", "/schedule"]);
+  const items = NAV[role].filter((it) => !hideForDrop.has(it.href));
   const isSeller = role === "seller";
 
   const active = (href: string) => pathname === href || pathname.startsWith(href + "/");

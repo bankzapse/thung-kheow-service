@@ -4,10 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { Modal } from "@/components/ui";
-import { franchiseById, franchiseSummary, cabinetsForFranchise } from "@/lib/selectors";
+import { franchiseById, franchiseSummary, cabinetsForFranchise, franchiseRevenue } from "@/lib/selectors";
 import { cabinetFullCode } from "@/lib/types";
+import { CONTRACT_PER_CABINET } from "@/lib/revenue";
 import { formatBaht } from "@/lib/utils";
-import { Box, PackageOpen, Coins, Wallet, Users, Plus, MapPin, QrCode, Printer, Store } from "lucide-react";
+import { Box, PackageOpen, Coins, Wallet, Users, Plus, MapPin, QrCode, Printer, Store, FileText, Building2, CheckCircle2 } from "lucide-react";
 
 export default function FranchiseDashboard() {
   const { db, currentUser, addCabinet } = useStore();
@@ -15,6 +16,7 @@ export default function FranchiseDashboard() {
   const fr = franchiseById(db, u.franchiseId ?? "");
   const s = franchiseSummary(db, u.franchiseId ?? "");
   const cabinets = cabinetsForFranchise(db, u.franchiseId ?? "");
+  const rev = franchiseRevenue(db, u.franchiseId ?? "");
 
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState("");
@@ -48,6 +50,45 @@ export default function FranchiseDashboard() {
         <Stat icon={<Coins className="h-5 w-5" />} label="คะแนนจ่ายรวม" value={formatBaht(s.pointsIssued)} tone="gold" />
         <Stat icon={<Wallet className="h-5 w-5" />} label="มูลค่ารีไซเคิล" value={`฿${formatBaht(s.valueTotal)}`} />
         <Stat icon={<Users className="h-5 w-5" />} label="ผู้ทิ้งขยะ" value={`${s.dropperCount}`} sub="คน" />
+      </div>
+
+      {/* revenue & contract */}
+      <div className="card">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="flex items-center gap-1.5 font-bold text-neutral-800"><FileText className="h-4 w-4 text-brand-600" /> รายได้ & สัญญาตู้</h2>
+          {rev.phase === "active" ? (
+            <span className="chip bg-brand-100 text-brand-700"><CheckCircle2 className="h-3.5 w-3.5" /> ครบสัญญาแล้ว — คุณได้ 80%</span>
+          ) : (
+            <span className="chip bg-amber-100 text-amber-700">กำลังผ่อนค่าสัญญา — บริษัทหัก 80%</span>
+          )}
+        </div>
+
+        {/* contract progress */}
+        <div className="mb-1 flex items-center justify-between text-xs text-neutral-500">
+          <span>ผ่อนค่าสัญญา (฿{formatBaht(CONTRACT_PER_CABINET)} × {rev.cabinetCount} ตู้)</span>
+          <span className="font-semibold text-neutral-700">฿{formatBaht(rev.contractRecovered)} / ฿{formatBaht(rev.contractTotal)}</span>
+        </div>
+        <div className="h-3 overflow-hidden rounded-full bg-neutral-100">
+          <div className="h-full rounded-full bg-brand-500 transition-all" style={{ width: `${Math.round(rev.progressPct * 100)}%` }} />
+        </div>
+        {rev.contractRemaining > 0 && <p className="mt-1 text-xs text-neutral-400">เหลืออีก ฿{formatBaht(rev.contractRemaining)} จะครบสัญญา แล้วสัดส่วนจะกลับเป็น คุณ 80% · บริษัท 20%</p>}
+
+        {/* shares */}
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <div className="rounded-xl bg-neutral-50 p-3 ring-1 ring-neutral-100">
+            <p className="text-xs text-neutral-400">มูลค่ารีไซเคิลรวม</p>
+            <p className="text-lg font-extrabold text-neutral-800">฿{formatBaht(rev.revenueTotal)}</p>
+          </div>
+          <div className="rounded-xl bg-brand-50 p-3 ring-1 ring-brand-100">
+            <p className="flex items-center gap-1 text-xs text-brand-700"><Wallet className="h-3.5 w-3.5" /> ส่วนแบ่งของคุณ</p>
+            <p className="text-lg font-extrabold text-brand-700">฿{formatBaht(rev.franchiseShare)}</p>
+          </div>
+          <div className="rounded-xl bg-neutral-50 p-3 ring-1 ring-neutral-100">
+            <p className="flex items-center gap-1 text-xs text-neutral-400"><Building2 className="h-3.5 w-3.5" /> ส่วนแบ่งบริษัท</p>
+            <p className="text-lg font-extrabold text-neutral-700">฿{formatBaht(rev.companyShare)}</p>
+          </div>
+        </div>
+        <p className="mt-2 text-[11px] text-neutral-400">ช่วงผ่อน: บริษัท 80% / คุณ 20% จนกว่าจะครบค่าสัญญา · หลังครบ: คุณ 80% / บริษัท 20% (ค่าจ้างเก็บของ + ดูแลระบบ)</p>
       </div>
 
       {/* cabinets + codes */}

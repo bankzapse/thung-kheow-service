@@ -8,7 +8,8 @@ import { Segmented } from "@/components/ui";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/client";
 import { liffConfigured, getLineProfile, getLiffAccessToken } from "@/lib/liff";
-import { Recycle, ArrowRight, Store, Truck, ShieldCheck, Loader2, MessageCircle } from "lucide-react";
+import { ArrowRight, Store, Truck, ShieldCheck, Loader2, MessageCircle } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 const toE164 = (p: string) => "+66" + p.trim().replace(/^0/, "");
 
@@ -134,11 +135,11 @@ export default function LoginPage() {
         <div className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/10" />
         <div className="absolute -bottom-12 -left-6 h-32 w-32 rounded-full bg-white/10" />
         <div className="relative">
-          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
-            <Recycle className="h-8 w-8" />
+          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white p-1.5 shadow-card">
+            <Logo size={40} />
           </div>
-          <h1 className="text-2xl font-extrabold">Recycle Fund</h1>
-          <p className="mt-1 text-sm text-white/85">ขายของเก่าถึงบ้าน • นัดรับ • ลุ้นรางวัลทุกเดือน</p>
+          <h1 className="text-2xl font-extrabold">GreenDrop</h1>
+          <p className="mt-1 text-sm text-white/85">หย่อนขยะรีไซเคิล • สะสมแต้ม • แลกเป็นเงิน</p>
         </div>
       </div>
 

@@ -5,16 +5,18 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { Recycle, LayoutDashboard, ReceiptText, Wallet, Tag, ArrowLeft, Plus, Box, Banknote } from "lucide-react";
+import { PICKUP_ENABLED } from "@/lib/features";
+import { Logo } from "@/components/Logo";
+import { LayoutDashboard, ReceiptText, Wallet, Tag, ArrowLeft, Plus, Box, Banknote } from "lucide-react";
 
 const NAV = [
-  { href: "/shop", label: "ภาพรวม", icon: LayoutDashboard, exact: true },
-  { href: "/shop/cabinets", label: "ตู้ Drop & Go", icon: Box },
-  { href: "/shop/redemptions", label: "แลกเงิน", icon: Banknote },
-  { href: "/shop/bills", label: "บิลรับซื้อ", icon: ReceiptText },
-  { href: "/shop/accounting", label: "บัญชี", icon: Wallet },
-  { href: "/shop/prices", label: "ราคา/วัสดุ", icon: Tag },
-];
+  { href: "/shop", label: "ภาพรวม", icon: LayoutDashboard, exact: true, pickup: true },
+  { href: "/shop/cabinets", label: "ตู้ Drop & Go", icon: Box, pickup: false },
+  { href: "/shop/redemptions", label: "แลกเงิน", icon: Banknote, pickup: false },
+  { href: "/shop/bills", label: "บิลรับซื้อ", icon: ReceiptText, pickup: true },
+  { href: "/shop/accounting", label: "บัญชี", icon: Wallet, pickup: true },
+  { href: "/shop/prices", label: "ราคา/วัสดุ", icon: Tag, pickup: true },
+].filter((n) => PICKUP_ENABLED || !n.pickup);
 
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
   const { ready, currentUser } = useStore();
@@ -26,7 +28,9 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
     if (!currentUser) router.replace("/login");
     else if (currentUser.role !== "buyer") router.replace("/home");
     else if (currentUser.status === "suspended") router.replace("/home");
-  }, [ready, currentUser, router]);
+    // Drop-only: หน้าภาพรวม (บิล) ปิดอยู่ → เด้งไปหน้าตู้
+    else if (!PICKUP_ENABLED && pathname === "/shop") router.replace("/shop/cabinets");
+  }, [ready, currentUser, router, pathname]);
 
   if (!ready || !currentUser || currentUser.role !== "buyer") {
     return <div className="grid min-h-dvh place-items-center text-neutral-400">กำลังโหลด…</div>;
@@ -40,10 +44,10 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
       <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white">
-              <Recycle className="h-5 w-5" />
-            </div>
-            <span className="hidden font-bold text-neutral-800 sm:block">ร้านรับซื้อ · {currentUser.name}</span>
+            <Logo size={30} />
+            <span className="hidden font-bold text-neutral-800 sm:block">
+              Green<span className="text-brand-600">Drop</span> <span className="font-medium text-neutral-400">· {PICKUP_ENABLED ? "ร้านรับซื้อ" : "ศูนย์คัดแยก"}</span>
+            </span>
           </div>
           <nav className="ml-3 hidden items-center gap-1 md:flex">
             {NAV.map((n) => (
@@ -61,9 +65,11 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-2">
-            <Link href="/shop/bills/new" className="btn-primary !px-3 !py-2 text-sm">
-              <Plus className="h-4 w-4" /> สร้างบิล
-            </Link>
+            {PICKUP_ENABLED && (
+              <Link href="/shop/bills/new" className="btn-primary !px-3 !py-2 text-sm">
+                <Plus className="h-4 w-4" /> สร้างบิล
+              </Link>
+            )}
             <Link href="/home" className="btn-ghost !px-2 !py-2 text-sm text-neutral-500">
               <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">กลับแอป</span>
             </Link>

@@ -4,6 +4,7 @@ import { currentMonth } from "./utils";
 import { distanceKm } from "./geo";
 import { MATERIAL_MAP } from "./materials";
 import { PLATFORM_RATE } from "./fees";
+import { revenueShare, type RevenueShare } from "./revenue";
 
 const todayYMD = () => {
   const d = new Date();
@@ -436,4 +437,13 @@ export function franchisesWithStats(db: DB): FranchiseWithStats[] {
     const s = franchiseSummary(db, f.id);
     return { ...f, cabinetCount: s.cabinetCount, bagCount: s.bagCount, pointsIssued: s.pointsIssued };
   });
+}
+
+/** รายได้แบ่งของแฟรนไชส์ (รายได้ = มูลค่ารีไซเคิลถุงที่คัดแยกแล้ว) */
+export function franchiseRevenue(db: DB, franchiseId: string): RevenueShare {
+  const cabIds = new Set((db.cabinets ?? []).filter((c) => c.franchiseId === franchiseId).map((c) => c.id));
+  const revenue = (db.bags ?? [])
+    .filter((b) => cabIds.has(b.cabinetId) && b.status === "credited")
+    .reduce((s, b) => s + (b.valueBaht ?? 0), 0);
+  return revenueShare(revenue, cabIds.size);
 }

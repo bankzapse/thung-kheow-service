@@ -5,16 +5,18 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { Shield, LayoutDashboard, Users, Trophy, Tag, LogOut, Recycle, Store } from "lucide-react";
+import { PICKUP_ENABLED } from "@/lib/features";
+import { Logo } from "@/components/Logo";
+import { LayoutDashboard, Users, Trophy, Tag, LogOut, Recycle, Store } from "lucide-react";
 
 const NAV = [
-  { href: "/admin", label: "ภาพรวม", icon: LayoutDashboard, exact: true },
-  { href: "/admin/dropgo", label: "Drop & Go", icon: Recycle },
-  { href: "/admin/franchises", label: "แฟรนไชส์", icon: Store },
-  { href: "/admin/buyers", label: "ผู้ซื้อ", icon: Users },
-  { href: "/admin/rewards", label: "รางวัล", icon: Trophy },
-  { href: "/admin/prices", label: "อัตราเลทโรงงาน", icon: Tag },
-];
+  { href: "/admin", label: "ภาพรวม", icon: LayoutDashboard, exact: true, pickup: true },
+  { href: "/admin/dropgo", label: "Drop & Go", icon: Recycle, pickup: false },
+  { href: "/admin/franchises", label: "แฟรนไชส์", icon: Store, pickup: false },
+  { href: "/admin/buyers", label: "ผู้ซื้อ", icon: Users, pickup: true },
+  { href: "/admin/rewards", label: "รางวัล", icon: Trophy, pickup: true },
+  { href: "/admin/prices", label: "อัตราเลทโรงงาน", icon: Tag, pickup: true },
+].filter((n) => PICKUP_ENABLED || !n.pickup);
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { ready, currentUser, logout } = useStore();
@@ -25,7 +27,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (!ready) return;
     if (!currentUser) router.replace("/login");
     else if (currentUser.role !== "admin") router.replace("/home");
-  }, [ready, currentUser, router]);
+    else if (!PICKUP_ENABLED && pathname === "/admin") router.replace("/admin/dropgo");
+  }, [ready, currentUser, router, pathname]);
 
   if (!ready || !currentUser || currentUser.role !== "admin") {
     return <div className="grid min-h-dvh place-items-center text-neutral-400">กำลังโหลด…</div>;
@@ -44,10 +47,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <header className="sticky top-0 z-30 bg-ink text-white">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gold text-ink">
-              <Shield className="h-5 w-5" />
-            </div>
-            <span className="hidden font-bold sm:block">Admin Console</span>
+            <Logo size={30} className="rounded-lg bg-white p-0.5" />
+            <span className="hidden font-bold sm:block">GreenDrop <span className="font-medium text-white/50">· บริษัท (Admin)</span></span>
           </div>
           <nav className="ml-3 hidden items-center gap-1 md:flex">
             {NAV.map((n) => (

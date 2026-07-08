@@ -13,8 +13,9 @@ const fontSans = IBM_Plex_Sans_Thai({
 });
 
 export const metadata: Metadata = {
-  title: "Recycle Fund — รับซื้อของเก่าถึงบ้าน",
-  description: "ขายของเก่าง่าย ๆ นัดรับถึงบ้าน ติดตามสถานะ พร้อมลุ้นรางวัลทุกเดือน",
+  title: "GreenDrop — หย่อนขยะรีไซเคิล สะสมแต้ม แลกเงิน",
+  description: "GreenDrop (กรีนดรอป) — คัดแยกขยะรีไซเคิลใส่ถุง หย่อนที่ตู้ Drop & Go สแกน QR สะสมแต้ม แลกเป็นเงิน",
+  applicationName: "GreenDrop",
 };
 
 export const viewport: Viewport = {
