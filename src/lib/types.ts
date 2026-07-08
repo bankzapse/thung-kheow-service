@@ -229,6 +229,16 @@ export interface Franchise {
   createdAt: string;
 }
 
+/** บันทึกการที่บริษัทโอนส่วนแบ่งให้แฟรนไชส์ */
+export interface FranchisePayout {
+  id: string;
+  franchiseId: string;
+  franchiseName: string;
+  amount: number;
+  note?: string;
+  paidAt: string;
+}
+
 export interface Cabinet {
   id: string;
   code: string; // รหัสตู้ในแฟรนไชส์ เช่น "AA"

@@ -153,6 +153,7 @@ export async function loadAll(sb: any): Promise<DB> {
     })(),
     pointTxns: (pointTxns.data ?? []).map(toPointTxn),
     redemptions: (redemptions.data ?? []).map((r: any) => toRedemption(r, nameById)),
+    franchisePayouts: [],
     pricesUpdatedAt: todayISO(),
   };
 }

@@ -7,13 +7,15 @@ import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { PICKUP_ENABLED } from "@/lib/features";
 import { Logo } from "@/components/Logo";
-import { LayoutDashboard, Users, Trophy, Tag, LogOut, Recycle, Store, Landmark } from "lucide-react";
+import { LayoutDashboard, Users, Trophy, Tag, LogOut, Recycle, Store, Landmark, Banknote, Truck } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "ภาพรวม", icon: LayoutDashboard, exact: true, pickup: true },
   { href: "/admin/dropgo", label: "Drop Bag", icon: Recycle, pickup: false },
   { href: "/admin/franchises", label: "แฟรนไชส์", icon: Store, pickup: false },
+  { href: "/admin/collect", label: "เก็บของ", icon: Truck, pickup: false },
   { href: "/admin/payouts", label: "อนุมัติบัญชี", icon: Landmark, pickup: false },
+  { href: "/admin/payments", label: "โอนเงิน", icon: Banknote, pickup: false },
   { href: "/admin/buyers", label: "ผู้ซื้อ", icon: Users, pickup: true },
   { href: "/admin/rewards", label: "รางวัล", icon: Trophy, pickup: true },
   { href: "/admin/prices", label: "อัตราเลทโรงงาน", icon: Tag, pickup: true },

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import type { Bill, BillItem, Expense, Job, JobStatus, Role, ScheduleSlot, User, WalletTxn, MeshBag, BagItem, PointTxn, Redemption, Cabinet, Franchise, PayoutAccount } from "./types";
+import type { Bill, BillItem, Expense, Job, JobStatus, Role, ScheduleSlot, User, WalletTxn, MeshBag, BagItem, PointTxn, Redemption, Cabinet, Franchise, PayoutAccount, FranchisePayout } from "./types";
 import { POINTS_PER_BAHT, bagQr } from "./types";
 import { createInitialDB, type DB } from "./seed";
 import { billCode, jobCode, ticketNumber, todayISO, uid, currentMonth } from "./utils";
@@ -109,6 +109,7 @@ interface StoreValue {
   setUserStatus: (userId: string, status: "active" | "suspended") => void;
   submitPayout: (input: { bankName: string; accountNo: string; accountName: string; bookBankImage?: string }) => void;
   reviewPayout: (userId: string, approve: boolean, note?: string) => void;
+  payFranchise: (franchiseId: string, amount: number, note?: string) => void;
   setCentralPrice: (materialId: string, price: number) => void;
   setDrawPrize: (month: string, prizeName: string, prizeValue: number) => void;
   drawWinner: (month: string) => void;
@@ -932,6 +933,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [currentUser, pushToast],
   );
 
+  // บริษัทโอนส่วนแบ่งให้แฟรนไชส์ (ต้องบัญชีเจ้าของแฟรนไชส์อนุมัติแล้ว)
+  const payFranchise = useCallback(
+    (franchiseId: string, amount: number, note?: string) => {
+      const fr = db.franchises.find((f) => f.id === franchiseId);
+      if (!fr) return;
+      const owner = db.users.find((u) => u.role === "franchise" && u.franchiseId === franchiseId);
+      if (owner?.payout?.status !== "approved") { pushToast("แฟรนไชส์ยังไม่ได้ยืนยันบัญชีรับเงิน (รออนุมัติ)", "info"); return; }
+      if (!(amount > 0)) { pushToast("ระบุจำนวนเงินให้ถูกต้อง", "info"); return; }
+      const rec: FranchisePayout = { id: uid("fp-"), franchiseId, franchiseName: fr.name, amount, note: note?.trim() || undefined, paidAt: todayISO() };
+      setDb((d) => ({ ...d, franchisePayouts: [rec, ...(d.franchisePayouts ?? [])] }));
+      pushToast(`โอนส่วนแบ่ง ฿${amount.toLocaleString()} ให้ ${fr.name} แล้ว`, "success");
+    },
+    [db.franchises, db.users, pushToast],
+  );
+
   // บริษัทอนุมัติ/ปฏิเสธบัญชีรับเงิน
   const reviewPayout = useCallback(
     (userId: string, approve: boolean, note?: string) => {
@@ -1026,6 +1042,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     rejectRedemption,
     submitPayout,
     reviewPayout,
+    payFranchise,
     addCabinet,
     addFranchise,
   };

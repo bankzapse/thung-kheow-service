@@ -1,6 +1,6 @@
 import type {
   Bill, BillItem, Expense, Job, RewardDraw, RewardTicket, ScheduleSlot, User, WalletTxn,
-  Cabinet, MeshBag, BagItem, PointTxn, Redemption, Franchise,
+  Cabinet, MeshBag, BagItem, PointTxn, Redemption, Franchise, FranchisePayout,
 } from "./types";
 import { bagQr } from "./types";
 import { MATERIALS, MATERIAL_MAP } from "./materials";
@@ -21,6 +21,7 @@ export interface DB {
   bags: MeshBag[]; // ถุงตาข่าย
   pointTxns: PointTxn[]; // ธุรกรรมคะแนนของคนทิ้ง
   redemptions: Redemption[]; // คำขอแลกเงิน
+  franchisePayouts: FranchisePayout[]; // บริษัทโอนส่วนแบ่งให้แฟรนไชส์
   buyerPrices: Record<string, Record<string, number>>; // buyerId → materialId → ราคารับซื้อ
   centralPrices: Record<string, number>; // ราคากลาง (แอดมินตั้ง) → override ค่า default
   pricesUpdatedAt: string;
@@ -456,6 +457,7 @@ export function createInitialDB(): DB {
     bags,
     pointTxns,
     redemptions,
+    franchisePayouts: [],
     buyerPrices: {
       "u-buyer2": { cardboard: 5, pet: 12, "aluminum-can": 40 },
     },
