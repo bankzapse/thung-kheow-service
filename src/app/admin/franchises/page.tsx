@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui";
 import { franchisesWithStats, franchiseRevenue, cabinetsWithCounts } from "@/lib/selectors";
 import { cabinetFullCode } from "@/lib/types";
 import { formatBaht, thaiDate } from "@/lib/utils";
+import { RevenueExport } from "@/components/RevenueExport";
 import { Store, Plus, Box, PackageOpen, Coins, Phone, User, Truck, Building2, Wallet, AlertTriangle } from "lucide-react";
 
 const NEAR_FULL = 6; // ถุงค้าง ≥ 6 = ใกล้เต็ม (เข้าเก็บ)
@@ -36,7 +37,10 @@ export default function AdminFranchisesPage() {
           <h1 className="text-2xl font-bold text-neutral-800">จัดการแฟรนไชส์</h1>
           <p className="text-sm text-neutral-500">{franchises.length} แฟรนไชส์ · รหัสตู้ = อักษรย่อแฟรนไชส์-ตู้ (เช่น GLN-AA)</p>
         </div>
-        <button onClick={() => setOpen(true)} className="btn-primary !px-4 !py-2.5 text-sm"><Plus className="h-4 w-4" /> เพิ่มแฟรนไชส์</button>
+        <div className="flex items-center gap-2">
+          <RevenueExport size="md" />
+          <button onClick={() => setOpen(true)} className="btn-primary !px-4 !py-2.5 text-sm"><Plus className="h-4 w-4" /> เพิ่มแฟรนไชส์</button>
+        </div>
       </div>
 
       {/* ตู้ใกล้เต็ม — เข้าเก็บของ */}

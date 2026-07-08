@@ -8,6 +8,7 @@ import { franchiseById, franchiseSummary, cabinetsForFranchise, franchiseRevenue
 import { cabinetFullCode } from "@/lib/types";
 import { CONTRACT_PER_CABINET } from "@/lib/revenue";
 import { formatBaht } from "@/lib/utils";
+import { RevenueExport } from "@/components/RevenueExport";
 import { Box, PackageOpen, Coins, Wallet, Users, Plus, MapPin, QrCode, Printer, Store, FileText, Building2, CheckCircle2 } from "lucide-react";
 
 export default function FranchiseDashboard() {
@@ -40,7 +41,10 @@ export default function FranchiseDashboard() {
             <span className="font-mono font-semibold text-brand-700">{fr.code}</span> · {fr.name} · เจ้าของ {fr.ownerName} ({fr.phone})
           </p>
         </div>
-        <button onClick={() => setOpen(true)} className="btn-primary !px-4 !py-2.5 text-sm"><Plus className="h-4 w-4" /> เพิ่มตู้</button>
+        <div className="flex items-center gap-2">
+          <RevenueExport franchiseId={fr.id} size="md" />
+          <button onClick={() => setOpen(true)} className="btn-primary !px-4 !py-2.5 text-sm"><Plus className="h-4 w-4" /> เพิ่มตู้</button>
+        </div>
       </div>
 
       {/* stats */}
