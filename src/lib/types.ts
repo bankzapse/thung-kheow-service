@@ -1,4 +1,4 @@
-export type Role = "seller" | "buyer" | "admin";
+export type Role = "seller" | "buyer" | "admin" | "franchise";
 
 export type JobStatus =
   | "submitted" // ส่งงาน — ผู้ขายสร้าง รอผู้ซื้อรับ
@@ -100,6 +100,7 @@ export interface User {
   credit?: number; // เครดิตของผู้รับซื้อ (พาร์ทเนอร์) — ต้อง ≥ 300 ถึงรับงานได้
   partner?: boolean; // เป็นพาร์ทเนอร์กับโรงงานแล้ว (ได้อัตราเลท)
   points?: number; // คะแนนสะสม Drop & Go (คนทิ้ง) — แลกเป็นเงินได้
+  franchiseId?: string; // สำหรับ role 'franchise' — แฟรนไชส์ที่เป็นเจ้าของ
   createdAt: string;
 }
 
@@ -171,18 +172,30 @@ export const MIN_ITEMS_PER_BAG = 20; // รับขั้นต่ำ 20 ชิ
 export const MAX_BAGS_PER_DROP = 10;
 
 /**
- * QR บนถุง = "AA1-0000001" → รหัสตู้ (AA1) - รหัสถุง (0000001)
- * สแกนครั้งเดียวได้ทั้งตู้และถุง (ลดขั้นตอน)
+ * QR บนถุง = "GLN-AA-0000001" → อักษรย่อแฟรนไชส์ (GLN) - รหัสตู้ (AA) - รหัสถุง (0000001)
+ * สแกนครั้งเดียวได้ทั้งแฟรนไชส์ ตู้ และถุง (ลดขั้นตอน)
  */
-export function bagQr(cabinetCode: string, bagCode: string): string {
-  return `${cabinetCode.toUpperCase()}-${bagCode}`;
+export function bagQr(franchiseCode: string, cabinetCode: string, bagCode: string): string {
+  const fr = (franchiseCode || "").toUpperCase();
+  const cab = (cabinetCode || "").toUpperCase();
+  return fr ? `${fr}-${cab}-${bagCode}` : `${cab}-${bagCode}`;
 }
-/** แยกรหัสตู้/ถุงจาก QR — รองรับ AA1-0000001 และของเดิม #TH-AA-0000001 */
-export function parseBagQr(raw: string): { cabinet: string; bag: string } {
-  const s = raw.trim().replace(/^#/, "").replace(/^TH-/i, "");
-  const i = s.lastIndexOf("-");
-  if (i < 0) return { cabinet: "", bag: s.replace(/[^0-9]/g, "") };
-  return { cabinet: s.slice(0, i).toUpperCase(), bag: s.slice(i + 1).replace(/[^0-9]/g, "") };
+/** รหัสตู้แบบเต็ม = "GLN-AA" (แฟรนไชส์-ตู้) */
+export function cabinetFullCode(franchiseCode: string, cabinetCode: string): string {
+  const fr = (franchiseCode || "").toUpperCase();
+  const cab = (cabinetCode || "").toUpperCase();
+  return fr ? `${fr}-${cab}` : cab;
+}
+/** แยกแฟรนไชส์/ตู้/ถุงจาก QR — รองรับ GLN-AA-0000001, AA1-0000001, และของเดิม #TH-AA-0000001 */
+export function parseBagQr(raw: string): { franchise: string; cabinet: string; bag: string } {
+  const parts = raw.trim().replace(/^#/, "").split("-").map((p) => p.trim()).filter(Boolean);
+  if (parts.length >= 3) {
+    return { franchise: parts[0].toUpperCase(), cabinet: parts[1].toUpperCase(), bag: parts[parts.length - 1].replace(/[^0-9]/g, "") };
+  }
+  if (parts.length === 2) {
+    return { franchise: "", cabinet: parts[0].toUpperCase(), bag: parts[1].replace(/[^0-9]/g, "") };
+  }
+  return { franchise: "", cabinet: "", bag: (parts[0] || "").replace(/[^0-9]/g, "") };
 }
 
 /** ตัวเลือกแลกเงิน (คะแนน → บาท) — ยิ่งเยอะยิ่งได้โบนัส */
@@ -193,9 +206,20 @@ export const REDEEM_TIERS: { amountBaht: number; points: number }[] = [
   { amountBaht: 1000, points: 9500 },
 ];
 
+export interface Franchise {
+  id: string;
+  code: string; // อักษรย่อ เช่น "GLN"
+  name: string; // ชื่อแฟรนไชส์
+  ownerName: string;
+  phone: string;
+  createdAt: string;
+}
+
 export interface Cabinet {
   id: string;
-  code: string; // รหัสตู้ 2 ตัว เช่น "AA"
+  code: string; // รหัสตู้ในแฟรนไชส์ เช่น "AA"
+  franchiseId: string;
+  franchiseCode: string; // อักษรย่อแฟรนไชส์ เช่น "GLN"
   name: string; // ชื่อจุดตั้ง เช่น "Lotus's ลาดพร้าว"
   location: GeoLocation;
   status: "active" | "full" | "maintenance";

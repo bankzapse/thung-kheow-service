@@ -3,7 +3,7 @@
 import { useStore } from "@/lib/store";
 import { dropGoSummary, recentCreditedBags, pendingRedemptions } from "@/lib/selectors";
 import { formatBaht, thaiDateTime } from "@/lib/utils";
-import { POINTS_PER_BAHT } from "@/lib/types";
+import { POINTS_PER_BAHT, cabinetFullCode } from "@/lib/types";
 import { Box, PackageOpen, Coins, Banknote, Recycle, Trophy, Clock } from "lucide-react";
 
 export default function AdminDropGoPage() {
@@ -40,7 +40,7 @@ export default function AdminDropGoPage() {
                 <div key={c.id} className="flex items-center gap-3">
                   <div className="w-28 shrink-0">
                     <p className="truncate text-sm font-semibold text-neutral-800">{c.name}</p>
-                    <p className="font-mono text-[11px] text-neutral-400">{c.code}</p>
+                    <p className="font-mono text-[11px] text-neutral-400">{cabinetFullCode(c.franchiseCode, c.code)}</p>
                   </div>
                   <div className="h-6 flex-1 overflow-hidden rounded-full bg-neutral-100">
                     <div className="flex h-full items-center justify-end rounded-full bg-brand-500 px-2 text-[11px] font-bold text-white" style={{ width: `${Math.max(12, (c.total / maxCab) * 100)}%` }}>

@@ -9,7 +9,7 @@ import { usePathname } from "next/navigation";
  */
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const desktop = pathname.startsWith("/shop") || pathname.startsWith("/admin");
+  const desktop = pathname.startsWith("/shop") || pathname.startsWith("/admin") || pathname.startsWith("/franchise");
   if (desktop) return <div className="min-h-dvh w-full">{children}</div>;
   return <div className="app-shell">{children}</div>;
 }

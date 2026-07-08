@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import type { Bill, BillItem, Expense, Job, JobStatus, Role, ScheduleSlot, User, WalletTxn, MeshBag, BagItem, PointTxn, Redemption, Cabinet } from "./types";
+import type { Bill, BillItem, Expense, Job, JobStatus, Role, ScheduleSlot, User, WalletTxn, MeshBag, BagItem, PointTxn, Redemption, Cabinet, Franchise } from "./types";
 import { POINTS_PER_BAHT, bagQr } from "./types";
 import { createInitialDB, type DB } from "./seed";
 import { billCode, jobCode, ticketNumber, todayISO, uid, currentMonth } from "./utils";
@@ -27,12 +27,13 @@ function profileToUser(p: any): User {
     credit: p.credit != null ? Number(p.credit) : 0,
     partner: !!p.partner,
     points: p.points != null ? Number(p.points) : 0,
+    franchiseId: p.franchise_id ?? undefined,
     createdAt: p.created_at,
   };
 }
 
-const DB_KEY = "rf_db_v9";
-const USER_KEY = "rf_user_v9";
+const DB_KEY = "rf_db_v10";
+const USER_KEY = "rf_user_v10";
 
 type Toast = { id: string; text: string; kind: "success" | "info" | "line" };
 
@@ -106,13 +107,14 @@ interface StoreValue {
   topUpCredit: (amount: number) => void;
   adjustCredit: (userId: string, amount: number, note?: string) => void;
   // Drop & Go
-  dropBags: (cabinetCode: string, bagCodes: string[]) => void;
+  dropBags: (franchiseCode: string, cabinetCode: string, bagCodes: string[]) => void;
   startSorting: (bagId: string) => void;
   valueBag: (bagId: string, items: BagItem[]) => void;
   redeemPoints: (amountBaht: number, points: number, method: "promptpay" | "bank", account: string) => void;
   markRedemptionPaid: (id: string) => void;
   rejectRedemption: (id: string) => void;
-  addCabinet: (input: { code: string; name: string; address: string; lat?: number; lng?: number }) => void;
+  addCabinet: (input: { code: string; name: string; address: string; franchiseId: string; franchiseCode: string; lat?: number; lng?: number }) => void;
+  addFranchise: (input: { code: string; name: string; ownerName: string; phone: string }) => void;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -747,17 +749,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   // ---- Drop & Go: หย่อนถุง / คัดแยก / ให้คะแนน / แลกเงิน ----
   const dropBags = useCallback(
-    (cabinetCode: string, bagCodes: string[]) => {
+    (franchiseCode: string, cabinetCode: string, bagCodes: string[]) => {
       if (!currentUser) return;
-      const code = cabinetCode.trim().toUpperCase().replace(/^#?(TH-)?/i, "").split("-")[0];
-      const clean = [...new Set(bagCodes.map((b) => b.trim().split("-").pop()!.replace(/[^0-9]/g, "")).filter(Boolean))];
+      const fr = (franchiseCode || "").trim().toUpperCase();
+      const cabCode = (cabinetCode || "").trim().toUpperCase();
+      const clean = [...new Set(bagCodes.map((b) => b.trim().replace(/[^0-9]/g, "")).filter(Boolean))];
       if (clean.length === 0) { pushToast("กรุณาเพิ่มถุงอย่างน้อย 1 ใบ", "info"); return; }
-      if (supabaseConfigured) return sbWrite((sb) => repo.dropBags(sb, code, clean), `หย่อน ${clean.length} ถุง · รอคะแนน`, "line");
-      const cab = db.cabinets.find((c) => c.code === code);
-      if (!cab) { pushToast(`ไม่พบตู้รหัส ${code || "-"}`, "info"); return; }
+      if (supabaseConfigured) return sbWrite((sb) => repo.dropBags(sb, fr, cabCode, clean), `หย่อน ${clean.length} ถุง · รอคะแนน`, "line");
+      const cab = db.cabinets.find((c) => c.code === cabCode && (!fr || c.franchiseCode === fr));
+      if (!cab) { pushToast(`ไม่พบตู้ ${fr ? fr + "-" : ""}${cabCode || "-"}`, "info"); return; }
       const now = todayISO();
       const newBags: MeshBag[] = clean.map((bc) => ({
-        id: uid("bag-"), code: bc, qr: bagQr(cab.code, bc), cabinetId: cab.id, cabinetCode: cab.code,
+        id: uid("bag-"), code: bc, qr: bagQr(cab.franchiseCode, cab.code, bc), cabinetId: cab.id, cabinetCode: cab.code,
         userId: currentUser.id, userName: currentUser.name, status: "dropped", droppedAt: now,
       }));
       setDb((d) => ({ ...d, bags: [...newBags, ...d.bags] }));
@@ -836,16 +839,31 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [pushToast]);
 
   const addCabinet = useCallback(
-    (input: { code: string; name: string; address: string; lat?: number; lng?: number }) => {
+    (input: { code: string; name: string; address: string; franchiseId: string; franchiseCode: string; lat?: number; lng?: number }) => {
       const code = input.code.trim().toUpperCase();
+      const fr = (input.franchiseCode || "").trim().toUpperCase();
       if (!code) { pushToast("กรุณาระบุรหัสตู้", "info"); return; }
-      if (supabaseConfigured) return sbWrite((sb) => repo.addCabinet(sb, { ...input, code }), `เพิ่มตู้ ${code} แล้ว`, "success");
-      if (db.cabinets.some((c) => c.code === code)) { pushToast(`มีตู้รหัส ${code} อยู่แล้ว`, "info"); return; }
-      const cab: Cabinet = { id: uid("cab-"), code, name: input.name.trim() || code, location: { lat: input.lat ?? 13.7563, lng: input.lng ?? 100.5018, address: input.address.trim() }, status: "active", createdAt: todayISO() };
+      const full = fr ? `${fr}-${code}` : code;
+      if (supabaseConfigured) return sbWrite((sb) => repo.addCabinet(sb, { ...input, code, franchiseCode: fr }), `เพิ่มตู้ ${full} แล้ว`, "success");
+      if (db.cabinets.some((c) => c.code === code && c.franchiseCode === fr)) { pushToast(`มีตู้ ${full} อยู่แล้ว`, "info"); return; }
+      const cab: Cabinet = { id: uid("cab-"), code, franchiseId: input.franchiseId, franchiseCode: fr, name: input.name.trim() || full, location: { lat: input.lat ?? 13.7563, lng: input.lng ?? 100.5018, address: input.address.trim() }, status: "active", createdAt: todayISO() };
       setDb((d) => ({ ...d, cabinets: [...d.cabinets, cab] }));
-      pushToast(`เพิ่มตู้ ${code} แล้ว`, "success");
+      pushToast(`เพิ่มตู้ ${full} แล้ว`, "success");
     },
     [db.cabinets, pushToast],
+  );
+
+  const addFranchise = useCallback(
+    (input: { code: string; name: string; ownerName: string; phone: string }) => {
+      const code = input.code.trim().toUpperCase();
+      if (!code) { pushToast("กรุณาระบุอักษรย่อแฟรนไชส์", "info"); return; }
+      if (supabaseConfigured) return sbWrite((sb) => repo.addFranchise(sb, { ...input, code }), `เพิ่มแฟรนไชส์ ${code} แล้ว`, "success");
+      if (db.franchises.some((f) => f.code === code)) { pushToast(`มีแฟรนไชส์ ${code} อยู่แล้ว`, "info"); return; }
+      const f: Franchise = { id: uid("fr-"), code, name: input.name.trim() || code, ownerName: input.ownerName.trim(), phone: input.phone.trim(), createdAt: todayISO() };
+      setDb((d) => ({ ...d, franchises: [...d.franchises, f] }));
+      pushToast(`เพิ่มแฟรนไชส์ ${code} แล้ว`, "success");
+    },
+    [db.franchises, pushToast],
   );
 
   const value: StoreValue = {
@@ -889,6 +907,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     markRedemptionPaid,
     rejectRedemption,
     addCabinet,
+    addFranchise,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

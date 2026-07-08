@@ -1,5 +1,5 @@
 import type { DB } from "./seed";
-import type { Bill, Expense, Job, User, WalletTxn, MeshBag, Cabinet, PointTxn, Redemption } from "./types";
+import type { Bill, Expense, Job, User, WalletTxn, MeshBag, Cabinet, PointTxn, Redemption, Franchise } from "./types";
 import { currentMonth } from "./utils";
 import { distanceKm } from "./geo";
 import { MATERIAL_MAP } from "./materials";
@@ -393,4 +393,47 @@ export function recentCreditedBags(db: DB, limit = 8): MeshBag[] {
     .filter((b) => b.status === "credited" && b.creditedAt)
     .sort((a, b) => +new Date(b.creditedAt!) - +new Date(a.creditedAt!))
     .slice(0, limit);
+}
+
+/* ---------------- Franchise (เจ้าของแฟรนไชส์) ---------------- */
+export function franchiseById(db: DB, id: string): Franchise | undefined {
+  return (db.franchises ?? []).find((f) => f.id === id);
+}
+export function cabinetsForFranchise(db: DB, franchiseId: string): CabinetWithCounts[] {
+  return cabinetsWithCounts(db).filter((c) => c.franchiseId === franchiseId);
+}
+export interface FranchiseSummary {
+  cabinetCount: number;
+  bagCount: number;
+  pendingBags: number;
+  creditedBags: number;
+  pointsIssued: number; // คะแนนจ่ายจากถุงในตู้ของแฟรนไชส์นี้
+  valueTotal: number; // มูลค่ารวมของถุงที่คัดแยกแล้ว (บาท)
+  dropperCount: number; // จำนวนคนทิ้ง (unique)
+}
+export function franchiseSummary(db: DB, franchiseId: string): FranchiseSummary {
+  const cabIds = new Set((db.cabinets ?? []).filter((c) => c.franchiseId === franchiseId).map((c) => c.id));
+  const bags = (db.bags ?? []).filter((b) => cabIds.has(b.cabinetId));
+  const credited = bags.filter((b) => b.status === "credited");
+  return {
+    cabinetCount: cabIds.size,
+    bagCount: bags.length,
+    pendingBags: bags.filter((b) => b.status !== "credited").length,
+    creditedBags: credited.length,
+    pointsIssued: credited.reduce((s, b) => s + (b.points ?? 0), 0),
+    valueTotal: credited.reduce((s, b) => s + (b.valueBaht ?? 0), 0),
+    dropperCount: new Set(bags.map((b) => b.userId)).size,
+  };
+}
+/** สรุปแต่ละแฟรนไชส์ (สำหรับแอดมิน) */
+export interface FranchiseWithStats extends Franchise {
+  cabinetCount: number;
+  bagCount: number;
+  pointsIssued: number;
+}
+export function franchisesWithStats(db: DB): FranchiseWithStats[] {
+  return (db.franchises ?? []).map((f) => {
+    const s = franchiseSummary(db, f.id);
+    return { ...f, cabinetCount: s.cabinetCount, bagCount: s.bagCount, pointsIssued: s.pointsIssued };
+  });
 }

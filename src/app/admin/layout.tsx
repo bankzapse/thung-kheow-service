@@ -5,11 +5,12 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { Shield, LayoutDashboard, Users, Trophy, Tag, LogOut, Recycle } from "lucide-react";
+import { Shield, LayoutDashboard, Users, Trophy, Tag, LogOut, Recycle, Store } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "ภาพรวม", icon: LayoutDashboard, exact: true },
   { href: "/admin/dropgo", label: "Drop & Go", icon: Recycle },
+  { href: "/admin/franchises", label: "แฟรนไชส์", icon: Store },
   { href: "/admin/buyers", label: "ผู้ซื้อ", icon: Users },
   { href: "/admin/rewards", label: "รางวัล", icon: Trophy },
   { href: "/admin/prices", label: "อัตราเลทโรงงาน", icon: Tag },

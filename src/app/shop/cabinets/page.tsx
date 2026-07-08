@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { Modal } from "@/components/ui";
 import { cabinetsWithCounts, pendingBags } from "@/lib/selectors";
-import { thaiDate } from "@/lib/utils";
+import { cabinetFullCode } from "@/lib/types";
 import { Box, MapPin, Plus, PackageOpen, ChevronRight, Inbox } from "lucide-react";
 
 export default function CabinetsPage() {
@@ -14,12 +14,14 @@ export default function CabinetsPage() {
   const pending = pendingBags(db);
 
   const [open, setOpen] = useState(false);
+  const [franchiseId, setFranchiseId] = useState(db.franchises[0]?.id ?? "");
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
 
+  const fr = db.franchises.find((f) => f.id === franchiseId);
   const save = () => {
-    addCabinet({ code, name, address });
+    addCabinet({ code, name, address, franchiseId, franchiseCode: fr?.code ?? "" });
     setCode(""); setName(""); setAddress(""); setOpen(false);
   };
 
@@ -44,7 +46,7 @@ export default function CabinetsPage() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-bold text-neutral-800">{c.name}</p>
-                <p className="font-mono text-xs text-neutral-400">รหัส {c.code}</p>
+                <p className="font-mono text-xs font-semibold text-brand-700">{cabinetFullCode(c.franchiseCode, c.code)}</p>
               </div>
               <ChevronRight className="h-5 w-5 text-neutral-300" />
             </div>
@@ -79,8 +81,19 @@ export default function CabinetsPage() {
       >
         <div className="space-y-3">
           <div>
-            <label className="label">รหัสตู้ (2 ตัว เช่น DD)</label>
-            <input className="input uppercase" maxLength={4} value={code} onChange={(e) => setCode(e.target.value)} placeholder="DD" />
+            <label className="label">แฟรนไชส์</label>
+            <select className="input" value={franchiseId} onChange={(e) => setFranchiseId(e.target.value)}>
+              {db.franchises.map((f) => (
+                <option key={f.id} value={f.id}>{f.code} · {f.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">รหัสตู้ (เช่น AC)</label>
+            <div className="flex items-center gap-2">
+              <span className="rounded-lg bg-neutral-100 px-2.5 py-2 font-mono text-sm font-semibold text-neutral-500">{fr?.code ?? "??"}-</span>
+              <input className="input flex-1 uppercase" maxLength={4} value={code} onChange={(e) => setCode(e.target.value)} placeholder="AC" />
+            </div>
           </div>
           <div>
             <label className="label">ชื่อจุดตั้ง</label>
@@ -90,7 +103,7 @@ export default function CabinetsPage() {
             <label className="label">ที่อยู่</label>
             <input className="input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="ชั้น G ทางเข้าหลัก" />
           </div>
-          <p className="text-xs text-neutral-400">QR ถุงจะเป็นรูปแบบ #TH-{code.trim().toUpperCase() || "DD"}-0000001</p>
+          <p className="text-xs text-neutral-400">QR ถุงจะเป็น <span className="font-mono">{fr?.code ?? "??"}-{code.trim().toUpperCase() || "AC"}-0000001</span></p>
         </div>
       </Modal>
     </div>

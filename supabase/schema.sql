@@ -7,7 +7,7 @@
 
 -- ---------- enums ----------
 do $$ begin
-  create type user_role as enum ('seller','buyer','admin');
+  create type user_role as enum ('seller','buyer','admin','franchise');
 exception when duplicate_object then null; end $$;
 
 do $$ begin
@@ -421,12 +421,20 @@ on conflict (id) do nothing;
 -- Drop & Go: ตู้รับซื้อ + ถุงตาข่าย + คะแนน + แลกเงิน
 -- (ดู migration 20260705000002_drop_and_go.sql สำหรับ existing DB)
 -- ============================================================
-create table if not exists cabinets (
+create table if not exists franchises (
   id uuid primary key default gen_random_uuid(),
   code text unique not null, name text not null,
+  owner_name text, phone text, created_at timestamptz not null default now()
+);
+create table if not exists cabinets (
+  id uuid primary key default gen_random_uuid(),
+  code text not null,
+  franchise_id uuid references franchises(id) on delete set null, franchise_code text,
+  name text not null,
   lat double precision, lng double precision, address text,
   status text not null default 'active', created_at timestamptz not null default now()
 );
+create unique index if not exists cabinets_fr_code_uidx on cabinets(franchise_code, code);
 create table if not exists mesh_bags (
   id uuid primary key default gen_random_uuid(),
   code text not null, qr text not null,
@@ -458,11 +466,14 @@ create index if not exists mesh_bags_cab_idx   on mesh_bags(cabinet_id);
 create index if not exists point_tx_user_idx   on point_transactions(user_id);
 create index if not exists redemptions_user_idx on redemptions(user_id);
 
+alter table franchises         enable row level security;
 alter table cabinets           enable row level security;
 alter table mesh_bags          enable row level security;
 alter table bag_items          enable row level security;
 alter table point_transactions enable row level security;
 alter table redemptions        enable row level security;
+drop policy if exists "fr read" on franchises;
+create policy "fr read" on franchises for select using (true);
 
 create or replace function is_operator() returns boolean
 language sql stable security definer set search_path = public as $$
@@ -481,17 +492,21 @@ create policy "pts read" on point_transactions for select using (auth.uid() = us
 drop policy if exists "redeem read" on redemptions;
 create policy "redeem read" on redemptions for select using (auth.uid() = user_id or is_operator());
 
-create or replace function drop_bags(p_cabinet_code text, p_bag_codes text[])
+create or replace function drop_bags(p_franchise_code text, p_cabinet_code text, p_bag_codes text[])
 returns int language plpgsql security definer set search_path = public as $$
-declare v_uid uuid := auth.uid(); v_cab cabinets%rowtype; c text; n int := 0;
+declare v_uid uuid := auth.uid(); v_cab cabinets%rowtype; c text; n int := 0; v_full text;
 begin
   if v_uid is null then raise exception 'not authenticated'; end if;
-  select * into v_cab from cabinets where code = upper(p_cabinet_code) limit 1;
-  if v_cab.id is null then raise exception 'cabinet % not found', p_cabinet_code; end if;
+  select * into v_cab from cabinets
+    where upper(code) = upper(p_cabinet_code)
+      and (coalesce(p_franchise_code, '') = '' or upper(coalesce(franchise_code, '')) = upper(p_franchise_code))
+    limit 1;
+  if v_cab.id is null then raise exception 'cabinet % not found', coalesce(p_franchise_code || '-', '') || p_cabinet_code; end if;
+  v_full := case when coalesce(v_cab.franchise_code, '') = '' then v_cab.code else v_cab.franchise_code || '-' || v_cab.code end;
   foreach c in array p_bag_codes loop
     if c is null or length(btrim(c)) = 0 then continue; end if;
     insert into mesh_bags(code, qr, cabinet_id, cabinet_code, user_id, status)
-    values (btrim(c), v_cab.code || '-' || btrim(c), v_cab.id, v_cab.code, v_uid, 'dropped');
+    values (btrim(c), v_full || '-' || btrim(c), v_cab.id, v_cab.code, v_uid, 'dropped');
     n := n + 1;
   end loop;
   return n;
@@ -553,12 +568,24 @@ begin
   end if;
 end $$;
 
-create or replace function add_cabinet(p_code text, p_name text, p_address text, p_lat double precision, p_lng double precision)
+create or replace function add_cabinet(p_franchise_code text, p_code text, p_name text, p_address text, p_lat double precision, p_lng double precision)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare v_id uuid; v_fr uuid;
+begin
+  if not exists (select 1 from profiles where id = auth.uid() and role in ('franchise', 'buyer', 'admin')) then
+    raise exception 'not allowed'; end if;
+  select id into v_fr from franchises where upper(code) = upper(p_franchise_code) limit 1;
+  insert into cabinets(code, franchise_id, franchise_code, name, address, lat, lng)
+    values (upper(p_code), v_fr, upper(coalesce(p_franchise_code, '')), coalesce(nullif(btrim(p_name), ''), upper(p_code)), p_address, p_lat, p_lng) returning id into v_id;
+  return v_id;
+end $$;
+
+create or replace function add_franchise(p_code text, p_name text, p_owner text, p_phone text)
 returns uuid language plpgsql security definer set search_path = public as $$
 declare v_id uuid;
 begin
-  if not is_operator() then raise exception 'operator only'; end if;
-  insert into cabinets(code, name, address, lat, lng)
-    values (upper(p_code), coalesce(nullif(btrim(p_name), ''), upper(p_code)), p_address, p_lat, p_lng) returning id into v_id;
+  if not is_admin() then raise exception 'admin only'; end if;
+  insert into franchises(code, name, owner_name, phone)
+    values (upper(p_code), coalesce(nullif(btrim(p_name), ''), upper(p_code)), p_owner, p_phone) returning id into v_id;
   return v_id;
 end $$;

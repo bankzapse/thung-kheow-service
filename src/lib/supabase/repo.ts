@@ -5,7 +5,7 @@
  * ใช้เมื่อ supabaseConfigured = true เท่านั้น
  */
 import type { DB } from "../seed";
-import type { Bill, Expense, Job, RewardDraw, RewardTicket, ScheduleSlot, User, WalletTxn, Cabinet, MeshBag, BagItem, PointTxn, Redemption } from "../types";
+import type { Bill, Expense, Job, RewardDraw, RewardTicket, ScheduleSlot, User, WalletTxn, Cabinet, MeshBag, BagItem, PointTxn, Redemption, Franchise } from "../types";
 import { MATERIALS } from "../materials";
 import { jobCode, ticketNumber, todayISO } from "../utils";
 
@@ -20,8 +20,11 @@ function toUser(p: any): User {
     createdAt: p.created_at,
   };
 }
+function toFranchise(f: any): Franchise {
+  return { id: f.id, code: f.code, name: f.name, ownerName: f.owner_name ?? "", phone: f.phone ?? "", createdAt: f.created_at };
+}
 function toCabinet(c: any): Cabinet {
-  return { id: c.id, code: c.code, name: c.name, location: { lat: c.lat ?? 0, lng: c.lng ?? 0, address: c.address ?? "" }, status: c.status ?? "active", createdAt: c.created_at };
+  return { id: c.id, code: c.code, franchiseId: c.franchise_id ?? "", franchiseCode: c.franchise_code ?? "", name: c.name, location: { lat: c.lat ?? 0, lng: c.lng ?? 0, address: c.address ?? "" }, status: c.status ?? "active", createdAt: c.created_at };
 }
 function toBag(b: any, nameById: Map<string, string>, itemsByBag: Map<string, BagItem[]>): MeshBag {
   return {
@@ -60,7 +63,7 @@ function toExpense(e: any): Expense {
 
 /** โหลดข้อมูลทั้งหมดที่ user เห็น (RLS คัดกรองให้) → รูป DB */
 export async function loadAll(sb: any): Promise<DB> {
-  const [users, prices, bprices, slots, jobs, jobItems, jobHist, bills, billItems, expenses, tickets, draws, wallet, cabs, meshBags, bagItems, pointTxns, redemptions] =
+  const [users, prices, bprices, slots, jobs, jobItems, jobHist, bills, billItems, expenses, tickets, draws, wallet, cabs, meshBags, bagItems, pointTxns, redemptions, franchises] =
     await Promise.all([
       sb.from("profiles").select("*"),
       sb.from("material_prices").select("*"),
@@ -80,6 +83,7 @@ export async function loadAll(sb: any): Promise<DB> {
       sb.from("bag_items").select("*"),
       sb.from("point_transactions").select("*"),
       sb.from("redemptions").select("*"),
+      sb.from("franchises").select("*"),
     ]);
 
   const userRows: any[] = users.data ?? [];
@@ -136,6 +140,7 @@ export async function loadAll(sb: any): Promise<DB> {
     centralPrices,
     wallet: (wallet.data ?? []).map(toWallet),
     // Drop & Go
+    franchises: (franchises.data ?? []).map(toFranchise),
     cabinets: (cabs.data ?? []).map(toCabinet),
     bags: (() => {
       const itemsByBag = new Map<string, BagItem[]>();
@@ -207,16 +212,18 @@ export const drawWinner = (sb: any, month: string) => sb.rpc("draw_reward_winner
 export const adjustCredit = (sb: any, userId: string, amount: number, note?: string) => sb.rpc("adjust_credit", { p_user: userId, p_amount: amount, p_note: note ?? null });
 
 /* ---------------- Drop & Go ---------------- */
-export const dropBags = (sb: any, cabinetCode: string, bagCodes: string[]) =>
-  sb.rpc("drop_bags", { p_cabinet_code: cabinetCode, p_bag_codes: bagCodes });
+export const dropBags = (sb: any, franchiseCode: string, cabinetCode: string, bagCodes: string[]) =>
+  sb.rpc("drop_bags", { p_franchise_code: franchiseCode, p_cabinet_code: cabinetCode, p_bag_codes: bagCodes });
 export const valueBag = (sb: any, bagId: string, items: BagItem[]) =>
   sb.rpc("value_bag", { p_bag_id: bagId, p_items: items.map((i) => ({ material_id: i.materialId, name: i.name, qty: i.qty, price_per_unit: i.pricePerUnit, subtotal: i.subtotal })) });
 export const redeemPoints = (sb: any, amountBaht: number, points: number, method: string, account: string) =>
   sb.rpc("redeem_points", { p_amount: amountBaht, p_points: points, p_method: method, p_account: account });
 export const setRedemptionStatus = (sb: any, id: string, status: string) =>
   sb.rpc("set_redemption_status", { p_id: id, p_status: status });
-export const addCabinet = (sb: any, input: { code: string; name: string; address: string; lat?: number; lng?: number }) =>
-  sb.rpc("add_cabinet", { p_code: input.code, p_name: input.name, p_address: input.address, p_lat: input.lat ?? null, p_lng: input.lng ?? null });
+export const addCabinet = (sb: any, input: { code: string; name: string; address: string; franchiseCode: string; lat?: number; lng?: number }) =>
+  sb.rpc("add_cabinet", { p_franchise_code: input.franchiseCode, p_code: input.code, p_name: input.name, p_address: input.address, p_lat: input.lat ?? null, p_lng: input.lng ?? null });
+export const addFranchise = (sb: any, input: { code: string; name: string; ownerName: string; phone: string }) =>
+  sb.rpc("add_franchise", { p_code: input.code, p_name: input.name, p_owner: input.ownerName, p_phone: input.phone });
 
 // อ้างอิงเพื่อกัน unused ในบางเส้นทาง
 export const _unused = { ticketNumber };

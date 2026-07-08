@@ -1,7 +1,8 @@
 import type {
   Bill, BillItem, Expense, Job, RewardDraw, RewardTicket, ScheduleSlot, User, WalletTxn,
-  Cabinet, MeshBag, BagItem, PointTxn, Redemption,
+  Cabinet, MeshBag, BagItem, PointTxn, Redemption, Franchise,
 } from "./types";
+import { bagQr } from "./types";
 import { MATERIALS, MATERIAL_MAP } from "./materials";
 import { currentMonth, uid } from "./utils";
 import { computeSettlement } from "./fees";
@@ -15,6 +16,7 @@ export interface DB {
   bills: Bill[];
   expenses: Expense[];
   wallet: WalletTxn[]; // ธุรกรรมเครดิตของผู้รับซื้อ
+  franchises: Franchise[]; // เจ้าของแฟรนไชส์
   cabinets: Cabinet[]; // ตู้ Drop & Go
   bags: MeshBag[]; // ถุงตาข่าย
   pointTxns: PointTxn[]; // ธุรกรรมคะแนนของคนทิ้ง
@@ -107,6 +109,16 @@ export function createInitialDB(): DB {
     email: "admin@demo.com",
     lineConnected: false,
     createdAt: new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString(),
+  };
+  const franchiseOwner: User = {
+    id: "u-franchise",
+    role: "franchise",
+    name: "คุณเอกชัย (แฟรนไชส์ GLN)",
+    phone: "0955550000",
+    email: "franchise@demo.com",
+    lineConnected: false,
+    franchiseId: "fr-gln",
+    createdAt: new Date(now.getFullYear(), now.getMonth() - 2, 15).toISOString(),
   };
 
   const loc = (address: string): Job["location"] => ({
@@ -363,11 +375,15 @@ export function createInitialDB(): DB {
     { type: "commission", amount: -150, note: "ค่าคอมเคลียร์ยอด", day: -1 },
   ]);
 
-  // ---- Drop & Go: ตู้ + ถุงตาข่าย + คะแนน + แลกเงิน ----
+  // ---- Drop & Go: แฟรนไชส์ + ตู้ + ถุงตาข่าย + คะแนน + แลกเงิน ----
+  const franchises: Franchise[] = [
+    { id: "fr-gln", code: "GLN", name: "Glean กรุงเทพเหนือ", ownerName: "คุณเอกชัย", phone: "0955550000", createdAt: addDays(now, -70).toISOString() },
+    { id: "fr-bkk", code: "BKK", name: "รีไซเคิลบางกะปิ", ownerName: "คุณวิภา", phone: "0955551111", createdAt: addDays(now, -50).toISOString() },
+  ];
   const cabinets: Cabinet[] = [
-    { id: "cab-aa", code: "AA1", name: "Lotus's ลาดพร้าว", location: { lat: 13.8161, lng: 100.5613, address: "โลตัส ลาดพร้าว ชั้น G" }, status: "active", createdAt: addDays(now, -60).toISOString() },
-    { id: "cab-bb", code: "BB1", name: "Big C พระราม 4", location: { lat: 13.7231, lng: 100.5451, address: "บิ๊กซี พระราม 4 หน้าทางเข้า" }, status: "active", createdAt: addDays(now, -45).toISOString() },
-    { id: "cab-cc", code: "CC1", name: "โลตัส บางกะปิ", location: { lat: 13.7654, lng: 100.6432, address: "โลตัส บางกะปิ ลานจอดรถ" }, status: "active", createdAt: addDays(now, -30).toISOString() },
+    { id: "cab-aa", code: "AA", franchiseId: "fr-gln", franchiseCode: "GLN", name: "Lotus's ลาดพร้าว", location: { lat: 13.8161, lng: 100.5613, address: "โลตัส ลาดพร้าว ชั้น G" }, status: "active", createdAt: addDays(now, -60).toISOString() },
+    { id: "cab-bb", code: "AB", franchiseId: "fr-gln", franchiseCode: "GLN", name: "Big C พระราม 4", location: { lat: 13.7231, lng: 100.5451, address: "บิ๊กซี พระราม 4 หน้าทางเข้า" }, status: "active", createdAt: addDays(now, -45).toISOString() },
+    { id: "cab-cc", code: "AA", franchiseId: "fr-bkk", franchiseCode: "BKK", name: "โลตัส บางกะปิ", location: { lat: 13.7654, lng: 100.6432, address: "โลตัส บางกะปิ ลานจอดรถ" }, status: "active", createdAt: addDays(now, -30).toISOString() },
   ];
 
   const bagItem = (id: string, qty: number): BagItem => {
@@ -382,7 +398,7 @@ export function createInitialDB(): DB {
     const valueBaht = items ? items.reduce((s, i) => s + i.subtotal, 0) : undefined;
     const dropped = addDays(now, dayOffset).toISOString();
     const b: MeshBag = {
-      id: uid("bag-"), code, qr: `${cab.code}-${code}`, cabinetId: cab.id, cabinetCode: cab.code,
+      id: uid("bag-"), code, qr: bagQr(cab.franchiseCode, cab.code, code), cabinetId: cab.id, cabinetCode: cab.code,
       userId: user.id, userName: user.name, status,
       items, valueBaht, points: valueBaht != null ? valueBaht * 10 : undefined,
       droppedAt: dropped, creditedAt: status === "credited" ? addDays(now, dayOffset + 1).toISOString() : undefined,
@@ -409,13 +425,13 @@ export function createInitialDB(): DB {
     }
   };
   mkPts(seller, [
-    { type: "earn", points: 450, note: "ถุง AA1-0000001", day: -4 },
-    { type: "earn", points: 280, note: "ถุง AA1-0000002", day: -3 },
-    { type: "earn", points: 600, note: "ถุง AA1-0000003", day: -1 },
+    { type: "earn", points: 450, note: "ถุง GLN-AA-0000001", day: -4 },
+    { type: "earn", points: 280, note: "ถุง GLN-AA-0000002", day: -3 },
+    { type: "earn", points: 600, note: "ถุง GLN-AA-0000003", day: -1 },
     { type: "redeem", points: -1000, note: "แลกเงิน ฿100", day: -1, hour: 20 },
   ]); // → 330
   mkPts(seller2, [
-    { type: "earn", points: 1200, note: "ถุง CC1-0000001", day: -2 },
+    { type: "earn", points: 1200, note: "ถุง BKK-AA-0000001", day: -2 },
     { type: "redeem", points: -1000, note: "แลกเงิน ฿100", day: 0 },
   ]); // → 200
 
@@ -425,7 +441,7 @@ export function createInitialDB(): DB {
   ];
 
   return {
-    users: [seller, seller2, buyer, buyer2, admin],
+    users: [seller, seller2, buyer, buyer2, admin, franchiseOwner],
     jobs,
     slots,
     tickets,
@@ -433,6 +449,7 @@ export function createInitialDB(): DB {
     bills,
     expenses,
     wallet,
+    franchises,
     cabinets,
     bags,
     pointTxns,

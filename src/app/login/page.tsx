@@ -28,7 +28,9 @@ export default function LoginPage() {
 
   // เมื่อมี user (จากเดโม หรือ Supabase session) → ไปหน้าที่เหมาะกับ role
   useEffect(() => {
-    if (currentUser) router.replace(currentUser.role === "admin" ? "/admin" : "/home");
+    if (!currentUser) return;
+    const dest = currentUser.role === "admin" ? "/admin" : currentUser.role === "franchise" ? "/franchise" : "/home";
+    router.replace(dest);
   }, [currentUser, router]);
 
   // LIFF: auto-login ด้วยบัญชี LINE (Supabase → แลก token เป็น session · เดโม → user ในเครื่อง)
@@ -226,9 +228,15 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
-            <button onClick={() => loginAs("u-admin")} className="mx-auto mt-4 block text-center text-xs font-medium text-neutral-400 hover:text-brand-600">
-              เข้าระบบผู้ดูแลระบบ (Admin) →
-            </button>
+            <div className="mt-4 flex items-center justify-center gap-4">
+              <button onClick={() => loginAs("u-franchise")} className="text-xs font-medium text-neutral-400 hover:text-brand-600">
+                เจ้าของแฟรนไชส์ →
+              </button>
+              <span className="text-neutral-300">·</span>
+              <button onClick={() => loginAs("u-admin")} className="text-xs font-medium text-neutral-400 hover:text-brand-600">
+                ผู้ดูแลระบบ (Admin) →
+              </button>
+            </div>
           </>
         )}
       </div>
