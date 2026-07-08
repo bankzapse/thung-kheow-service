@@ -27,6 +27,20 @@ export default function LoginPage() {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // เดโม: ลิงก์ ?as=admin|franchise|seller|buyer → เข้าบทบาทนั้นทันที (สำหรับเทส)
+  useEffect(() => {
+    if (supabaseConfigured || currentUser) return;
+    const DEMO: Record<string, string> = {
+      admin: "u-admin",
+      company: "u-admin",
+      franchise: "u-franchise",
+      seller: "u-seller",
+      buyer: "u-buyer",
+    };
+    const as = new URLSearchParams(window.location.search).get("as");
+    if (as && DEMO[as]) loginAs(DEMO[as]);
+  }, [currentUser, loginAs]);
+
   // เมื่อมี user (จากเดโม หรือ Supabase session) → ไปหน้าที่เหมาะกับ role
   useEffect(() => {
     if (!currentUser) return;
