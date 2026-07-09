@@ -32,6 +32,12 @@ function profileToUser(p: any): User {
     partner: !!p.partner,
     points: p.points != null ? Number(p.points) : 0,
     franchiseId: p.franchise_id ?? undefined,
+    owner: !!p.owner,
+    permissions: p.permissions ?? undefined,
+    address: p.address ?? undefined,
+    province: p.province ?? undefined,
+    district: p.district ?? undefined,
+    subdistrict: p.subdistrict ?? undefined,
     createdAt: p.created_at,
   };
 }
@@ -250,6 +256,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .catch((e: any) => pushToast(e?.message ?? "เกิดข้อผิดพลาด", "info"));
+    },
+    [refresh, pushToast],
+  );
+
+  // จัดการบัญชีศูนย์คัดแยก/ผู้ดูแล ผ่าน service-role API (โหมด Supabase)
+  const adminUsersApi = useCallback(
+    async (action: string, payload: Record<string, unknown>, msg?: string) => {
+      try {
+        const r = await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...payload }) });
+        const j = await r.json().catch(() => ({ ok: false }));
+        if (!r.ok || j.ok === false) return pushToast(j.error ?? "ทำรายการไม่สำเร็จ", "info");
+        await refresh();
+        if (msg) pushToast(msg, "success");
+      } catch {
+        pushToast("เชื่อมต่อไม่สำเร็จ", "info");
+      }
     },
     [refresh, pushToast],
   );
@@ -945,26 +967,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     (input: { name: string; phone: string; password: string; permissions: string[] }) => {
       const phone = input.phone.trim();
       if (!input.name.trim() || !/^0\d{8,9}$/.test(phone) || input.password.length < 4) { pushToast("กรอกชื่อ เบอร์ (10 หลัก) และรหัสผ่าน (≥4) ให้ครบ", "info"); return; }
+      if (supabaseConfigured) { adminUsersApi("createAdmin", { name: input.name.trim(), phone, password: input.password, permissions: input.permissions }, `เพิ่มผู้ดูแล “${input.name.trim()}” แล้ว`); return; }
       if (db.users.some((u) => u.phone === phone)) { pushToast("เบอร์นี้มีบัญชีอยู่แล้ว", "info"); return; }
       const user: User = { id: uid("u-"), role: "admin", name: input.name.trim(), phone, password: input.password, lineConnected: false, permissions: input.permissions, createdAt: todayISO() };
       setDb((d) => ({ ...d, users: [...d.users, user] }));
       pushToast(`เพิ่มผู้ดูแล “${input.name.trim()}” แล้ว`, "success");
     },
-    [db.users, pushToast],
+    [db.users, pushToast, adminUsersApi],
   );
   const removeAdmin = useCallback(
     (userId: string) => {
+      if (supabaseConfigured) { adminUsersApi("removeAdmin", { userId }, "ลบผู้ดูแลแล้ว"); return; }
       setDb((d) => ({ ...d, users: d.users.filter((u) => !(u.id === userId && u.role === "admin" && !u.owner)) }));
       pushToast("ลบผู้ดูแลแล้ว", "info");
     },
-    [pushToast],
+    [pushToast, adminUsersApi],
   );
   const setAdminPermissions = useCallback(
     (userId: string, permissions: string[]) => {
+      if (supabaseConfigured) { adminUsersApi("setAdminPermissions", { userId, permissions }, "อัปเดตสิทธิ์แล้ว"); return; }
       setDb((d) => ({ ...d, users: d.users.map((u) => (u.id === userId && u.role === "admin" && !u.owner ? { ...u, permissions } : u)) }));
       pushToast("อัปเดตสิทธิ์แล้ว", "success");
     },
-    [pushToast],
+    [pushToast, adminUsersApi],
   );
 
   // บริษัทสร้างบัญชีศูนย์คัดแยก (buyer) — ตั้งชื่อ+รหัสผ่านเอง ไม่ต้องให้สมัคร
@@ -972,6 +997,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     (input: { name: string; phone: string; password: string; address?: string; province?: string; district?: string; subdistrict?: string }) => {
       const phone = input.phone.trim();
       if (!input.name.trim() || !/^0\d{8,9}$/.test(phone) || input.password.length < 4) { pushToast("กรอกชื่อ เบอร์ (10 หลัก) และรหัสผ่าน (≥4) ให้ครบ", "info"); return; }
+      if (supabaseConfigured) { adminUsersApi("createCenter", { name: input.name.trim(), phone, password: input.password, address: input.address, province: input.province, district: input.district, subdistrict: input.subdistrict }, `เพิ่มศูนย์คัดแยก “${input.name.trim()}” แล้ว`); return; }
       if (db.users.some((u) => u.phone === phone)) { pushToast("เบอร์นี้มีบัญชีอยู่แล้ว", "info"); return; }
       const user: User = {
         id: uid("u-"), role: "buyer", name: input.name.trim(), phone, password: input.password, lineConnected: false, credit: 0, partner: true, createdAt: todayISO(),
@@ -980,7 +1006,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setDb((d) => ({ ...d, users: [...d.users, user] }));
       pushToast(`เพิ่มศูนย์คัดแยก “${input.name.trim()}” แล้ว`, "success");
     },
-    [db.users, pushToast],
+    [db.users, pushToast, adminUsersApi],
   );
 
   // บริษัทแก้ไขข้อมูลศูนย์คัดแยก (ชื่อ/เบอร์/ที่อยู่)
@@ -991,6 +1017,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         if (!/^0\d{8,9}$/.test(phone)) { pushToast("เบอร์โทรไม่ถูกต้อง (10 หลัก)", "info"); return; }
         if (db.users.some((u) => u.phone === phone && u.id !== userId)) { pushToast("เบอร์นี้มีบัญชีอยู่แล้ว", "info"); return; }
       }
+      if (supabaseConfigured) { adminUsersApi("updateCenter", { userId, name: patch.name, phone: patch.phone, address: patch.address, province: patch.province, district: patch.district, subdistrict: patch.subdistrict }, "บันทึกข้อมูลศูนย์คัดแยกแล้ว"); return; }
       setDb((d) => ({
         ...d,
         users: d.users.map((u) =>
@@ -1009,16 +1036,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }));
       pushToast("บันทึกข้อมูลศูนย์คัดแยกแล้ว", "success");
     },
-    [db.users, pushToast],
+    [db.users, pushToast, adminUsersApi],
   );
 
   // บริษัทลบศูนย์คัดแยก
   const removeCenter = useCallback(
     (userId: string) => {
+      if (supabaseConfigured) { adminUsersApi("removeCenter", { userId }, "ลบศูนย์คัดแยกแล้ว"); return; }
       setDb((d) => ({ ...d, users: d.users.filter((u) => !(u.id === userId && u.role === "buyer")) }));
       pushToast("ลบศูนย์คัดแยกแล้ว", "info");
     },
-    [pushToast],
+    [pushToast, adminUsersApi],
   );
 
   // บริษัทโอนส่วนแบ่งให้แฟรนไชส์ (ต้องบัญชีเจ้าของแฟรนไชส์อนุมัติแล้ว)

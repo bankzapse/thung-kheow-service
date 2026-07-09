@@ -17,6 +17,8 @@ function toUser(p: any): User {
     lineConnected: !!p.line_connected, baseLat: p.base_lat ?? undefined, baseLng: p.base_lng ?? undefined,
     status: p.status ?? "active", credit: p.credit != null ? Number(p.credit) : 0, partner: !!p.partner,
     points: p.points != null ? Number(p.points) : 0,
+    owner: !!p.owner, permissions: p.permissions ?? undefined, franchiseId: p.franchise_id ?? undefined,
+    address: p.address ?? undefined, province: p.province ?? undefined, district: p.district ?? undefined, subdistrict: p.subdistrict ?? undefined,
     createdAt: p.created_at,
   };
 }
@@ -24,7 +26,7 @@ function toFranchise(f: any): Franchise {
   return { id: f.id, code: f.code, name: f.name, ownerName: f.owner_name ?? "", phone: f.phone ?? "", createdAt: f.created_at };
 }
 function toCabinet(c: any): Cabinet {
-  return { id: c.id, code: c.code, franchiseId: c.franchise_id ?? "", franchiseCode: c.franchise_code ?? "", name: c.name, location: { lat: c.lat ?? 0, lng: c.lng ?? 0, address: c.address ?? "" }, status: c.status ?? "active", createdAt: c.created_at };
+  return { id: c.id, code: c.code, franchiseId: c.franchise_id ?? "", franchiseCode: c.franchise_code ?? "", name: c.name, location: { lat: c.lat ?? 0, lng: c.lng ?? 0, address: c.address ?? "" }, province: c.province ?? undefined, district: c.district ?? undefined, subdistrict: c.subdistrict ?? undefined, status: c.status ?? "active", createdAt: c.created_at };
 }
 function toBag(b: any, nameById: Map<string, string>, itemsByBag: Map<string, BagItem[]>): MeshBag {
   return {
@@ -221,10 +223,23 @@ export const redeemPoints = (sb: any, amountBaht: number, points: number, method
   sb.rpc("redeem_points", { p_amount: amountBaht, p_points: points, p_method: method, p_account: account });
 export const setRedemptionStatus = (sb: any, id: string, status: string) =>
   sb.rpc("set_redemption_status", { p_id: id, p_status: status });
-export const addCabinet = (sb: any, input: { code: string; name: string; address: string; franchiseCode: string; lat?: number; lng?: number }) =>
-  sb.rpc("add_cabinet", { p_franchise_code: input.franchiseCode, p_code: input.code, p_name: input.name, p_address: input.address, p_lat: input.lat ?? null, p_lng: input.lng ?? null });
-export const editCabinet = (sb: any, id: string, patch: { name?: string; address?: string }) =>
-  sb.from("cabinets").update({ ...(patch.name != null ? { name: patch.name } : {}), ...(patch.address != null ? { address: patch.address } : {}) }).eq("id", id);
+export const addCabinet = async (sb: any, input: { code: string; name: string; address: string; franchiseCode: string; province?: string; district?: string; subdistrict?: string; lat?: number; lng?: number }) => {
+  const { data, error } = await sb.rpc("add_cabinet", { p_franchise_code: input.franchiseCode, p_code: input.code, p_name: input.name, p_address: input.address, p_lat: input.lat ?? null, p_lng: input.lng ?? null });
+  if (error) throw error;
+  const id = data as string;
+  if (input.province || input.district || input.subdistrict) {
+    await sb.from("cabinets").update({ province: input.province ?? null, district: input.district ?? null, subdistrict: input.subdistrict ?? null }).eq("id", id);
+  }
+  return id;
+};
+export const editCabinet = (sb: any, id: string, patch: { name?: string; address?: string; province?: string; district?: string; subdistrict?: string }) =>
+  sb.from("cabinets").update({
+    ...(patch.name != null ? { name: patch.name } : {}),
+    ...(patch.address != null ? { address: patch.address } : {}),
+    ...(patch.province != null ? { province: patch.province } : {}),
+    ...(patch.district != null ? { district: patch.district } : {}),
+    ...(patch.subdistrict != null ? { subdistrict: patch.subdistrict } : {}),
+  }).eq("id", id);
 export const addFranchise = (sb: any, input: { code: string; name: string; ownerName: string; phone: string }) =>
   sb.rpc("add_franchise", { p_code: input.code, p_name: input.name, p_owner: input.ownerName, p_phone: input.phone });
 
