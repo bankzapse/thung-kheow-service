@@ -10,6 +10,7 @@ import { usePathname } from "next/navigation";
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const desktop =
+    pathname === "/" ||
     pathname.startsWith("/shop") ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/franchise") ||

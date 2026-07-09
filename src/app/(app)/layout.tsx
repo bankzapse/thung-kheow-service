@@ -11,7 +11,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (ready && !currentUser) router.replace("/login");
+    if (ready && !currentUser) router.replace("/");
   }, [ready, currentUser, router]);
 
   if (!ready || !currentUser) {
@@ -31,7 +31,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <button
             onClick={() => {
               logout();
-              router.replace("/login");
+              router.replace("/");
             }}
             className="btn-outline mx-auto mt-5"
           >

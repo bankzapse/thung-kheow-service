@@ -7,7 +7,7 @@ import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { PICKUP_ENABLED } from "@/lib/features";
 import { Logo } from "@/components/Logo";
-import { LayoutDashboard, ReceiptText, Wallet, Tag, ArrowLeft, Plus, Box, Banknote } from "lucide-react";
+import { LayoutDashboard, ReceiptText, Wallet, Tag, LayoutGrid, Plus, Box, Banknote } from "lucide-react";
 
 const NAV = [
   { href: "/shop", label: "ภาพรวม", icon: LayoutDashboard, exact: true, pickup: true },
@@ -25,7 +25,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (!ready) return;
-    if (!currentUser) router.replace("/login");
+    if (!currentUser) router.replace("/");
     else if (currentUser.role !== "buyer") router.replace("/home");
     else if (currentUser.status === "suspended") router.replace("/home");
     // Drop-only: หน้าภาพรวม (บิล) ปิดอยู่ → เด้งไปหน้าตู้
@@ -70,8 +70,8 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
                 <Plus className="h-4 w-4" /> สร้างบิล
               </Link>
             )}
-            <Link href="/home" className="btn-ghost !px-2 !py-2 text-sm !text-white/85 hover:!bg-white/10">
-              <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">กลับแอป</span>
+            <Link href="/" className="btn-ghost !px-2 !py-2 text-sm !text-white/85 hover:!bg-white/10">
+              <LayoutGrid className="h-4 w-4" /> <span className="hidden sm:inline">สลับระบบ</span>
             </Link>
           </div>
         </div>

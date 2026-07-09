@@ -9,7 +9,7 @@ import { PayoutCard } from "@/components/PayoutCard";
 import { pointsOf } from "@/lib/selectors";
 import { REDEEM_TIERS } from "@/lib/types";
 import { formatBaht } from "@/lib/utils";
-import { Coins, Phone, Mail, LogOut, Trash2, ShieldAlert, ChevronRight, FileText, ShieldCheck } from "lucide-react";
+import { Coins, Phone, Mail, LogOut, Trash2, ShieldAlert, ChevronRight, FileText, ShieldCheck, LayoutGrid } from "lucide-react";
 
 export default function ProfilePage() {
   const { db, currentUser, logout, deleteAccount } = useStore();
@@ -70,6 +70,7 @@ export default function ProfilePage() {
 
         {/* actions */}
         <div className="space-y-2">
+          <Link href="/" className="btn-outline w-full"><LayoutGrid className="h-4 w-4" /> สลับระบบ (เดโม)</Link>
           <button onClick={logout} className="btn-outline w-full"><LogOut className="h-4 w-4" /> ออกจากระบบ</button>
           <button onClick={() => { setDelAck(false); setDelOpen(true); }} className="flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50">
             <Trash2 className="h-4 w-4" /> ลบบัญชีและข้อมูล

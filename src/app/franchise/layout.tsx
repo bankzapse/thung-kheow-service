@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { franchiseById } from "@/lib/selectors";
 import { cn } from "@/lib/utils";
-import { LogOut, ArrowLeft, LayoutDashboard, Box, PackageOpen, FileText, Landmark, Banknote } from "lucide-react";
+import { LogOut, LayoutDashboard, Box, PackageOpen, FileText, Landmark, Banknote, LayoutGrid } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import Link from "next/link";
 
@@ -25,7 +25,7 @@ export default function FranchiseLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!ready) return;
-    if (!currentUser) router.replace("/login");
+    if (!currentUser) router.replace("/");
     else if (currentUser.role !== "franchise") router.replace("/home");
   }, [ready, currentUser, router]);
 
@@ -60,7 +60,7 @@ export default function FranchiseLayout({ children }: { children: React.ReactNod
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-2">
-            <Link href="/home" className="btn-ghost !px-2 !py-2 text-sm !text-white/85 hover:!bg-white/10"><ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">กลับแอป</span></Link>
+            <Link href="/" className="btn-ghost !px-2 !py-2 text-sm !text-white/85 hover:!bg-white/10"><LayoutGrid className="h-4 w-4" /> <span className="hidden sm:inline">สลับระบบ</span></Link>
             <button onClick={logout} className="btn-ghost !px-2 !py-2 text-sm !text-white/85 hover:!bg-white/10"><LogOut className="h-4 w-4" /> ออก</button>
           </div>
         </div>
