@@ -23,6 +23,8 @@ function RegisterForm() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [otp, setOtp] = useState("");
+  const [otpToken, setOtpToken] = useState<string | null>(null);
+  const [smsMode, setSmsMode] = useState(false); // true = ส่ง OTP จริงผ่าน SMS OK
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -42,6 +44,21 @@ function RegisterForm() {
       const { error } = await createClient().auth.signUp({ phone: toE164(phone), password, options: { data: { name: name.trim() } } });
       setBusy(false);
       if (error) return setErr(error.message);
+      setSmsMode(true);
+      return setStep(2);
+    }
+    // ส่ง OTP จริงผ่าน SMS OK (ถ้าตั้งค่าไว้) — ไม่งั้นเข้าโหมดทดลอง
+    setBusy(true);
+    try {
+      const r = await fetch("/api/otp/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: phone.trim() }) });
+      const j = await r.json();
+      setBusy(false);
+      if (!r.ok || j.ok === false) return setErr(j.error ?? "ส่งรหัส OTP ไม่สำเร็จ");
+      setSmsMode(!!j.configured);
+      setOtpToken(j.token ?? null);
+    } catch {
+      setBusy(false);
+      return setErr("เชื่อมต่อไม่สำเร็จ ลองอีกครั้ง");
     }
     setStep(2);
   };
@@ -55,6 +72,14 @@ function RegisterForm() {
       setBusy(false);
       if (error) return setErr(error.message);
       return; // session → redirect effect
+    }
+    if (smsMode) {
+      setBusy(true);
+      const v = await fetch("/api/otp/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: phone.trim(), code: otp.trim(), token: otpToken }) })
+        .then((r) => r.json())
+        .catch(() => ({ ok: false }));
+      setBusy(false);
+      if (!v.ok) return setErr("รหัส OTP ไม่ถูกต้องหรือหมดอายุ");
     }
     const res = await registerAccount({ name, phone, email: email || undefined, password });
     if (!res.ok) return setErr(res.error ?? "สมัครไม่สำเร็จ");
@@ -106,7 +131,7 @@ function RegisterForm() {
             onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
             onKeyDown={(e) => e.key === "Enter" && confirmOtp()}
           />
-          {!supabaseConfigured && <p className="mt-1.5 text-xs text-brand-600">🔐 โหมดทดลอง: กรอกเลขอะไรก็ได้ 6 หลัก</p>}
+          {!smsMode && <p className="mt-1.5 text-xs text-brand-600">🔐 โหมดทดลอง: กรอกเลขอะไรก็ได้ 6 หลัก</p>}
           {err && <p className="mt-2 text-sm text-red-500">{err}</p>}
           <button className="btn-primary mt-3 w-full" onClick={confirmOtp} disabled={busy}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "ยืนยัน & สมัครสมาชิก"}
