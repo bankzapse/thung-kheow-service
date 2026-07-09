@@ -58,14 +58,6 @@ export default function FranchiseReportsPage() {
         <Stat icon={<Wallet className="h-5 w-5" />} label="มูลค่ารีไซเคิล" value={`฿${formatBaht(rep.valueTotal)}`} />
         <Stat icon={<Coins className="h-5 w-5" />} label="คะแนนจ่าย" value={formatBaht(rep.pointsIssued)} tone="gold" />
       </div>
-
-      <div className="card">
-        <p className="text-sm text-neutral-500">
-          สรุป{PERIODS.find((p) => p.key === period)?.label}: หย่อน <b className="text-neutral-800">{rep.bagCount}</b> ถุง ·
-          คัดแยกแล้ว <b className="text-brand-700">{rep.creditedBags}</b> ถุง · มูลค่ารวม <b className="text-neutral-800">฿{formatBaht(rep.valueTotal)}</b> ·
-          จ่ายคะแนน <b className="text-neutral-800">{formatBaht(rep.pointsIssued)}</b> (1 คะแนน = ฿1) · ผู้ทิ้ง <b className="text-neutral-800">{rep.dropperCount}</b> คน
-        </p>
-      </div>
     </div>
   );
 }

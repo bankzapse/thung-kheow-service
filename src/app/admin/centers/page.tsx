@@ -4,25 +4,50 @@ import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
 import { Modal } from "@/components/ui";
 import { AddressPicker } from "@/components/AddressPicker";
-import { Store, Plus, Phone, Ban, CheckCircle2, KeyRound, User, MapPin } from "lucide-react";
+import type { User as UserT } from "@/lib/types";
+import { Store, Plus, Phone, Ban, CheckCircle2, KeyRound, User, MapPin, Pencil, Trash2 } from "lucide-react";
 
 export default function AdminCentersPage() {
-  const { db, addCenter, setUserStatus } = useStore();
+  const { db, addCenter, updateCenter, removeCenter, setUserStatus } = useStore();
   const centers = useMemo(() => db.users.filter((u) => u.role === "buyer"), [db.users]);
 
-  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"add" | "edit" | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [address, setAddress] = useState("");
   const [addr, setAddr] = useState({ province: "", district: "", subdistrict: "" });
+  const [delTarget, setDelTarget] = useState<UserT | null>(null);
 
-  const valid = !!(name.trim() && /^0\d{8,9}$/.test(phone.trim()) && password.length >= 4 && address.trim() && addr.province && addr.district && addr.subdistrict);
+  const nameOk = !!name.trim();
+  const phoneOk = /^0\d{8,9}$/.test(phone.trim());
+  const valid = mode === "add"
+    ? nameOk && phoneOk && password.length >= 4 && !!(address.trim() && addr.province && addr.district && addr.subdistrict)
+    : nameOk && phoneOk; // แก้ไข: ชื่อ+เบอร์พอ (ที่อยู่แก้ได้ตามต้องการ)
 
   const reset = () => { setName(""); setPhone(""); setPassword(""); setAddress(""); setAddr({ province: "", district: "", subdistrict: "" }); };
+  const openAdd = () => { reset(); setEditId(null); setMode("add"); };
+  const openEdit = (c: UserT) => {
+    setName(c.name); setPhone(c.phone); setPassword(""); setAddress(c.address ?? "");
+    setAddr({ province: c.province ?? "", district: c.district ?? "", subdistrict: c.subdistrict ?? "" });
+    setEditId(c.id); setMode("edit");
+  };
+  const close = () => { setMode(null); setEditId(null); };
+
   const save = () => {
-    addCenter({ name, phone, password, address, province: addr.province, district: addr.district, subdistrict: addr.subdistrict });
-    if (valid) { reset(); setOpen(false); }
+    if (!valid) return;
+    if (mode === "add") {
+      addCenter({ name, phone, password, address, province: addr.province, district: addr.district, subdistrict: addr.subdistrict });
+    } else if (editId) {
+      updateCenter(editId, { name, phone, address, province: addr.province, district: addr.district, subdistrict: addr.subdistrict });
+    }
+    reset(); close();
+  };
+
+  const confirmDelete = () => {
+    if (delTarget) removeCenter(delTarget.id);
+    setDelTarget(null);
   };
 
   return (
@@ -32,7 +57,7 @@ export default function AdminCentersPage() {
           <h1 className="text-2xl font-bold text-neutral-800">ศูนย์คัดแยก</h1>
           <p className="text-sm text-neutral-500">{centers.length} ศูนย์ · บริษัทตั้งชื่อ + รหัสผ่านให้ (ไม่ต้องสมัครเอง)</p>
         </div>
-        <button onClick={() => { reset(); setOpen(true); }} className="btn-primary !px-4 !py-2.5 text-sm"><Plus className="h-4 w-4" /> เพิ่มศูนย์คัดแยก</button>
+        <button onClick={openAdd} className="btn-primary !px-4 !py-2.5 text-sm"><Plus className="h-4 w-4" /> เพิ่มศูนย์คัดแยก</button>
       </div>
 
       {centers.length === 0 ? (
@@ -60,26 +85,31 @@ export default function AdminCentersPage() {
                     {area && <p className={c.address ? "ml-[18px] mt-0.5 text-neutral-400" : "flex items-center gap-1"}>{area}</p>}
                   </div>
                 )}
-                <button
-                  onClick={() => setUserStatus(c.id, suspended ? "active" : "suspended")}
-                  className={`btn-outline w-full !py-2 text-sm ${suspended ? "!text-brand-700" : "!text-red-600"}`}
-                >
-                  {suspended ? <><CheckCircle2 className="h-4 w-4" /> เปิดใช้งาน</> : <><Ban className="h-4 w-4" /> ระงับการใช้งาน</>}
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={() => openEdit(c)} className="btn-outline flex-1 !py-2 text-sm"><Pencil className="h-4 w-4" /> แก้ไข</button>
+                  <button
+                    onClick={() => setUserStatus(c.id, suspended ? "active" : "suspended")}
+                    className={`btn-outline flex-1 !py-2 text-sm ${suspended ? "!text-brand-700" : "!text-amber-600"}`}
+                  >
+                    {suspended ? <><CheckCircle2 className="h-4 w-4" /> เปิดใช้</> : <><Ban className="h-4 w-4" /> ระงับ</>}
+                  </button>
+                  <button onClick={() => setDelTarget(c)} className="btn-outline !px-3 !py-2 !text-red-600" aria-label="ลบ"><Trash2 className="h-4 w-4" /></button>
+                </div>
               </div>
             );
           })}
         </div>
       )}
 
+      {/* เพิ่ม / แก้ไข ศูนย์คัดแยก */}
       <Modal
-        open={open}
-        onClose={() => setOpen(false)}
-        title="เพิ่มศูนย์คัดแยก"
+        open={mode !== null}
+        onClose={close}
+        title={mode === "edit" ? "แก้ไขศูนย์คัดแยก" : "เพิ่มศูนย์คัดแยก"}
         footer={
           <>
-            <button className="btn-outline flex-1" onClick={() => setOpen(false)}>ยกเลิก</button>
-            <button className="btn-primary flex-1 disabled:opacity-50" disabled={!valid} onClick={save}>สร้างบัญชี</button>
+            <button className="btn-outline flex-1" onClick={close}>ยกเลิก</button>
+            <button className="btn-primary flex-1 disabled:opacity-50" disabled={!valid} onClick={save}>{mode === "edit" ? "บันทึกการแก้ไข" : "สร้างบัญชี"}</button>
           </>
         }
       >
@@ -98,13 +128,15 @@ export default function AdminCentersPage() {
               <input className="input pl-9" inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} placeholder="08x-xxx-xxxx" />
             </div>
           </div>
-          <div>
-            <label className="label">รหัสผ่าน (บริษัทตั้งให้)</label>
-            <div className="relative">
-              <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-              <input className="input pl-9" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="อย่างน้อย 4 ตัวอักษร" />
+          {mode === "add" && (
+            <div>
+              <label className="label">รหัสผ่าน (บริษัทตั้งให้)</label>
+              <div className="relative">
+                <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                <input className="input pl-9" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="อย่างน้อย 4 ตัวอักษร" />
+              </div>
             </div>
-          </div>
+          )}
           <div>
             <label className="label">ที่อยู่ / จุดสังเกต</label>
             <div className="relative">
@@ -113,8 +145,23 @@ export default function AdminCentersPage() {
             </div>
           </div>
           <AddressPicker province={addr.province} district={addr.district} subdistrict={addr.subdistrict} onChange={setAddr} />
-          <p className="rounded-xl bg-neutral-50 px-3 py-2 text-xs text-neutral-500">ศูนย์คัดแยกเข้าสู่ระบบที่ <span className="font-mono text-brand-700">/login/center</span> ด้วยเบอร์ + รหัสผ่านนี้</p>
+          {mode === "add" && <p className="rounded-xl bg-neutral-50 px-3 py-2 text-xs text-neutral-500">ศูนย์คัดแยกเข้าสู่ระบบที่ <span className="font-mono text-brand-700">/login/center</span> ด้วยเบอร์ + รหัสผ่านนี้</p>}
         </div>
+      </Modal>
+
+      {/* ยืนยันการลบ */}
+      <Modal
+        open={!!delTarget}
+        onClose={() => setDelTarget(null)}
+        title="ลบศูนย์คัดแยก"
+        footer={
+          <>
+            <button className="btn-outline flex-1" onClick={() => setDelTarget(null)}>ยกเลิก</button>
+            <button className="btn-primary flex-1 !bg-red-600 hover:!bg-red-700" onClick={confirmDelete}>ลบถาวร</button>
+          </>
+        }
+      >
+        <p className="text-sm text-neutral-600">ต้องการลบศูนย์คัดแยก <b className="text-neutral-800">{delTarget?.name}</b> ใช่หรือไม่? บัญชีนี้จะเข้าสู่ระบบไม่ได้อีก</p>
       </Modal>
     </div>
   );

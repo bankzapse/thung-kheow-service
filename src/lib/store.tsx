@@ -111,6 +111,8 @@ interface StoreValue {
   reviewPayout: (userId: string, approve: boolean, note?: string) => void;
   payFranchise: (franchiseId: string, amount: number, note?: string) => void;
   addCenter: (input: { name: string; phone: string; password: string; address?: string; province?: string; district?: string; subdistrict?: string }) => void;
+  updateCenter: (userId: string, patch: { name?: string; phone?: string; address?: string; province?: string; district?: string; subdistrict?: string }) => void;
+  removeCenter: (userId: string) => void;
   addAdmin: (input: { name: string; phone: string; password: string; permissions: string[] }) => void;
   removeAdmin: (userId: string) => void;
   setAdminPermissions: (userId: string, permissions: string[]) => void;
@@ -981,6 +983,44 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [db.users, pushToast],
   );
 
+  // บริษัทแก้ไขข้อมูลศูนย์คัดแยก (ชื่อ/เบอร์/ที่อยู่)
+  const updateCenter = useCallback(
+    (userId: string, patch: { name?: string; phone?: string; address?: string; province?: string; district?: string; subdistrict?: string }) => {
+      const phone = patch.phone?.trim();
+      if (phone !== undefined) {
+        if (!/^0\d{8,9}$/.test(phone)) { pushToast("เบอร์โทรไม่ถูกต้อง (10 หลัก)", "info"); return; }
+        if (db.users.some((u) => u.phone === phone && u.id !== userId)) { pushToast("เบอร์นี้มีบัญชีอยู่แล้ว", "info"); return; }
+      }
+      setDb((d) => ({
+        ...d,
+        users: d.users.map((u) =>
+          u.id === userId && u.role === "buyer"
+            ? {
+                ...u,
+                name: patch.name?.trim() || u.name,
+                phone: phone ?? u.phone,
+                address: patch.address?.trim() || undefined,
+                province: patch.province || undefined,
+                district: patch.district?.trim() || undefined,
+                subdistrict: patch.subdistrict?.trim() || undefined,
+              }
+            : u,
+        ),
+      }));
+      pushToast("บันทึกข้อมูลศูนย์คัดแยกแล้ว", "success");
+    },
+    [db.users, pushToast],
+  );
+
+  // บริษัทลบศูนย์คัดแยก
+  const removeCenter = useCallback(
+    (userId: string) => {
+      setDb((d) => ({ ...d, users: d.users.filter((u) => !(u.id === userId && u.role === "buyer")) }));
+      pushToast("ลบศูนย์คัดแยกแล้ว", "info");
+    },
+    [pushToast],
+  );
+
   // บริษัทโอนส่วนแบ่งให้แฟรนไชส์ (ต้องบัญชีเจ้าของแฟรนไชส์อนุมัติแล้ว)
   const payFranchise = useCallback(
     (franchiseId: string, amount: number, note?: string) => {
@@ -1121,6 +1161,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     reviewPayout,
     payFranchise,
     addCenter,
+    updateCenter,
+    removeCenter,
     addAdmin,
     removeAdmin,
     setAdminPermissions,
