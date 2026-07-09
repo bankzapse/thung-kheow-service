@@ -6,9 +6,11 @@ import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { AuthShell } from "@/components/AuthShell";
 import { supabaseConfigured } from "@/lib/supabase/config";
+import { createClient } from "@/lib/supabase/client";
 import { ArrowRight, Loader2, Phone, KeyRound, CheckCircle2 } from "lucide-react";
 
 const PHONE_RE = /^0\d{8,9}$/;
+const toE164 = (p: string) => "+66" + p.trim().replace(/^0/, "");
 
 function ForgotForm() {
   const router = useRouter();
@@ -29,7 +31,16 @@ function ForgotForm() {
   const requestOtp = async () => {
     setErr("");
     if (!PHONE_RE.test(phone.trim())) return setErr("เบอร์โทรไม่ถูกต้อง (10 หลัก ขึ้นต้น 0)");
-    // ส่ง OTP ผ่าน SMS OK (ทั้งโหมดเดโมและ Supabase) — ไม่ตั้งค่า = โหมดทดลอง
+    if (supabaseConfigured) {
+      // Supabase ส่ง OTP ผ่าน Send SMS Hook (→ SMS OK)
+      setBusy(true);
+      const { error } = await createClient().auth.signInWithOtp({ phone: toE164(phone) });
+      setBusy(false);
+      if (error) return setErr(error.message);
+      setSmsMode(true);
+      return setStep(2);
+    }
+    // โหมดเดโม: ส่ง OTP ผ่าน SMS OK (ไม่ตั้งค่า = โหมดทดลอง)
     setBusy(true);
     try {
       const r = await fetch("/api/otp/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: phone.trim() }) });
@@ -48,7 +59,13 @@ function ForgotForm() {
   const verifyOtp = async () => {
     setErr("");
     if (otp.trim().length !== 6) return setErr("กรอกรหัส OTP 6 หลัก");
-    // ยืนยัน OTP ของ SMS OK (ทั้งเดโมและ Supabase) — โหมดทดลองข้าม
+    if (supabaseConfigured) {
+      setBusy(true);
+      const { error } = await createClient().auth.verifyOtp({ phone: toE164(phone), token: otp.trim(), type: "sms" });
+      setBusy(false);
+      if (error) return setErr(error.message);
+      return setStep(3); // session แล้ว → ตั้งรหัสใหม่ด้วย updateUser ได้
+    }
     if (smsMode) {
       setBusy(true);
       const v = await fetch("/api/otp/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: phone.trim(), code: otp.trim(), token: otpToken }) })
@@ -65,15 +82,6 @@ function ForgotForm() {
     if (password.length < 6) return setErr("รหัสผ่านอย่างน้อย 6 ตัวอักษร");
     if (password !== confirm) return setErr("รหัสผ่านยืนยันไม่ตรงกัน");
     setBusy(true);
-    if (supabaseConfigured) {
-      // ตั้งรหัสใหม่ผ่าน server (ตรวจ OTP + service_role)
-      const j = await fetch("/api/auth/reset-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: phone.trim(), password, code: otp.trim(), token: otpToken }) })
-        .then((r) => r.json())
-        .catch(() => ({ ok: false, error: "เชื่อมต่อไม่สำเร็จ" }));
-      setBusy(false);
-      if (!j.ok) return setErr(j.error ?? "ตั้งรหัสผ่านใหม่ไม่สำเร็จ");
-      return setStep(4);
-    }
     const res = await resetPassword(phone, password);
     setBusy(false);
     if (!res.ok) return setErr(res.error ?? "ตั้งรหัสผ่านใหม่ไม่สำเร็จ");

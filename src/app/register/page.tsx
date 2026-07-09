@@ -39,7 +39,16 @@ function RegisterForm() {
     if (email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim())) return setErr("อีเมลไม่ถูกต้อง");
     if (password.length < 6) return setErr("รหัสผ่านอย่างน้อย 6 ตัวอักษร");
     if (password !== confirm) return setErr("รหัสผ่านยืนยันไม่ตรงกัน");
-    // ส่ง OTP ผ่าน SMS OK (ทั้งโหมดเดโมและ Supabase) — ไม่ตั้งค่า = โหมดทดลอง
+    if (supabaseConfigured) {
+      // Supabase สร้าง user + ส่ง OTP ผ่าน Send SMS Hook (→ SMS OK)
+      setBusy(true);
+      const { error } = await createClient().auth.signUp({ phone: toE164(phone), password, options: { data: { name: name.trim(), role: "seller" } } });
+      setBusy(false);
+      if (error) return setErr(error.message);
+      setSmsMode(true);
+      return setStep(2);
+    }
+    // โหมดเดโม: ส่ง OTP ผ่าน SMS OK (ไม่ตั้งค่า = โหมดทดลอง)
     setBusy(true);
     try {
       const r = await fetch("/api/otp/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: phone.trim() }) });
@@ -59,13 +68,8 @@ function RegisterForm() {
     setErr("");
     if (otp.trim().length !== 6) return setErr("กรอกรหัส OTP 6 หลัก");
     if (supabaseConfigured) {
-      // สร้างบัญชีผ่าน server (ตรวจ OTP ของ SMS OK + service_role) แล้ว sign in ด้วยเบอร์+รหัส
       setBusy(true);
-      const j = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name.trim(), phone: phone.trim(), password, code: otp.trim(), token: otpToken }) })
-        .then((r) => r.json())
-        .catch(() => ({ ok: false, error: "เชื่อมต่อไม่สำเร็จ" }));
-      if (!j.ok) { setBusy(false); return setErr(j.error ?? "สมัครไม่สำเร็จ"); }
-      const { error } = await createClient().auth.signInWithPassword({ phone: toE164(phone), password });
+      const { error } = await createClient().auth.verifyOtp({ phone: toE164(phone), token: otp.trim(), type: "sms" });
       setBusy(false);
       if (error) return setErr(error.message);
       return; // session → redirect effect
