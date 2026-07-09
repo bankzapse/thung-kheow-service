@@ -24,6 +24,8 @@ const NAV = [
   { href: "/admin/prices", label: "อัตราเลทโรงงาน", icon: Tag, pickup: true, menu: null },
 ].filter((n) => PICKUP_ENABLED || !n.pickup);
 
+const OWNER_LINK = { href: "/admin/team", label: "จัดการผู้ดูแล", icon: ShieldCheck, exact: false, pickup: false, menu: null } as (typeof NAV)[number];
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { ready, currentUser, logout } = useStore();
   const router = useRouter();
@@ -52,6 +54,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   // เมนูที่ผู้ใช้ปัจจุบันเข้าถึงได้ (owner = ทุกเมนู, ผู้ดูแล = ตามสิทธิ์)
   const nav = NAV.filter((n) => n.menu == null || canAccessAdminMenu(currentUser, n.menu));
+  const items = currentUser.owner ? [...nav, OWNER_LINK] : nav;
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
@@ -69,12 +72,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ? "flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-sm"
           : "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition",
         isActive(n.href, n.exact)
-          ? mobile
-            ? "bg-brand-600 text-white"
-            : "bg-brand-600 text-white shadow-sm"
-          : mobile
-            ? "bg-neutral-100 text-neutral-500"
-            : "text-neutral-600 hover:bg-neutral-100",
+          ? mobile ? "bg-brand-600 text-white" : "bg-brand-600 text-white shadow-sm"
+          : mobile ? "bg-neutral-100 text-neutral-500" : "text-neutral-600 hover:bg-neutral-100",
       )}
     >
       <n.icon className="h-[18px] w-[18px]" />
@@ -82,63 +81,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </Link>
   );
 
-  const ownerLink = { href: "/admin/team", label: "จัดการผู้ดูแล", icon: ShieldCheck, exact: false, pickup: false, menu: null } as (typeof NAV)[number];
-
   return (
     <div className="min-h-dvh bg-neutral-100">
-      {/* Mobile top bar */}
-      <header className="sticky top-0 z-30 bg-gradient-to-r from-brand-700 via-brand-600 to-emerald-600 text-white shadow-sm md:hidden">
+      {/* Green branding header (full width) */}
+      <header className="sticky top-0 z-40 bg-gradient-to-r from-brand-700 via-brand-600 to-emerald-600 text-white shadow-sm">
         <div className="flex h-14 items-center gap-3 px-4">
-          <Logo size={28} className="rounded-lg bg-white p-0.5" />
-          <span className="font-bold">ถุงเขียว <span className="font-medium text-white/50">· บริษัท</span></span>
-          <div className="ml-auto flex items-center gap-1">
-            <Link href="/app" className="rounded-lg p-2 text-white/80 hover:bg-white/10"><LayoutGrid className="h-5 w-5" /></Link>
-            <button onClick={doLogout} className="rounded-lg p-2 text-white/80 hover:bg-white/10"><LogOut className="h-5 w-5" /></button>
+          <Logo size={30} className="rounded-lg bg-white p-0.5" />
+          <span className="font-bold">ถุงเขียว <span className="font-medium text-white/50">· บริษัท (Admin)</span></span>
+          <div className="ml-auto flex items-center gap-1.5">
+            <span className="hidden text-sm text-white/70 lg:block">{currentUser.name}{currentUser.owner && " · เจ้าของระบบ"}</span>
+            <Link href="/app" className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-white/80 hover:bg-white/10"><LayoutGrid className="h-4 w-4" /> <span className="hidden sm:inline">สลับระบบ</span></Link>
+            <button onClick={doLogout} className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-white/80 hover:bg-white/10"><LogOut className="h-4 w-4" /> <span className="hidden sm:inline">ออก</span></button>
           </div>
         </div>
-        <nav className="no-scrollbar flex gap-1 overflow-x-auto border-t border-white/10 bg-white px-3 py-2">
-          {nav.map((n) => <NavLink key={n.href} n={n} mobile />)}
-          {currentUser.owner && <NavLink n={ownerLink} mobile />}
+        {/* Mobile horizontal nav */}
+        <nav className="no-scrollbar flex gap-1 overflow-x-auto border-t border-white/10 bg-white px-3 py-2 md:hidden">
+          {items.map((n) => <NavLink key={n.href} n={n} mobile />)}
         </nav>
       </header>
 
-      <div className="mx-auto flex max-w-7xl">
+      <div className="flex">
         {/* Desktop left sidebar */}
-        <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-neutral-200 bg-white px-3 py-4 md:flex">
-          <div className="mb-5 flex items-center gap-2 px-2">
-            <Logo size={34} className="rounded-lg" />
-            <div className="leading-tight">
-              <p className="font-bold text-neutral-800">ถุงเขียว</p>
-              <p className="text-xs text-neutral-400">บริษัท (Admin)</p>
-            </div>
-          </div>
-
-          <nav className="flex flex-1 flex-col gap-1 overflow-y-auto">
-            {nav.map((n) => <NavLink key={n.href} n={n} />)}
-            {currentUser.owner && (
-              <>
-                <div className="my-2 border-t border-neutral-100" />
-                <NavLink n={ownerLink} />
-              </>
-            )}
-          </nav>
-
-          <div className="mt-3 border-t border-neutral-100 pt-3">
-            <div className="mb-2 flex items-center gap-2 px-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">{currentUser.name.charAt(0)}</span>
-              <div className="min-w-0 leading-tight">
-                <p className="truncate text-sm font-semibold text-neutral-700">{currentUser.name}</p>
-                <p className="text-xs text-neutral-400">{currentUser.owner ? "เจ้าของระบบ" : "ผู้ดูแล"}</p>
-              </div>
-            </div>
-            <div className="flex gap-1">
-              <Link href="/app" className="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm text-neutral-500 hover:bg-neutral-100"><LayoutGrid className="h-4 w-4" /> สลับระบบ</Link>
-              <button onClick={doLogout} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm text-neutral-500 hover:bg-red-50 hover:text-red-500"><LogOut className="h-4 w-4" /> ออก</button>
-            </div>
-          </div>
+        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 flex-col gap-1 overflow-y-auto border-r border-neutral-200 bg-white px-3 py-4 md:flex">
+          {nav.map((n) => <NavLink key={n.href} n={n} />)}
+          {currentUser.owner && (
+            <>
+              <div className="my-2 border-t border-neutral-100" />
+              <NavLink n={OWNER_LINK} />
+            </>
+          )}
         </aside>
 
-        <main className="min-w-0 flex-1 px-4 py-6 md:px-8">{children}</main>
+        <main className="min-w-0 flex-1 px-4 py-6 md:px-8">
+          <div className="mx-auto max-w-6xl">{children}</div>
+        </main>
       </div>
     </div>
   );
