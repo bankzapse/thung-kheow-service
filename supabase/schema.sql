@@ -541,7 +541,7 @@ begin
   if v_bag.id is null then raise exception 'bag not found'; end if;
   if v_bag.status = 'credited' then raise exception 'bag already credited'; end if;
   select coalesce(sum((it->>'subtotal')::numeric), 0) into v_value from jsonb_array_elements(p_items) it;
-  v_points := v_value * 10;
+  v_points := v_value * 1; -- POINTS_PER_BAHT = 1 (1 คะแนน = ฿1) ให้ตรงกับฝั่งแอป
   delete from bag_items where bag_id = p_bag_id;
   insert into bag_items(bag_id, material_id, name, qty, price_per_unit, subtotal)
   select p_bag_id, it->>'material_id', it->>'name', (it->>'qty')::numeric, (it->>'price_per_unit')::numeric, (it->>'subtotal')::numeric

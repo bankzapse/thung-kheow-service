@@ -10,9 +10,15 @@ import { MATERIALS } from "../materials";
 import { jobCode, ticketNumber, todayISO } from "../utils";
 
 /* ---------------- mappers (snake_case → app shape) ---------------- */
+/** แปลงเบอร์ที่เก็บใน Supabase (E164 เช่น 66xxxxxxxxx / +66xxxxxxxxx) → local 0xxxxxxxxx */
+function toLocalPhone(p?: string | null): string {
+  const d = (p ?? "").replace(/\D/g, "");
+  if (d.startsWith("66")) return "0" + d.slice(2);
+  return d.startsWith("0") || d === "" ? d : "0" + d;
+}
 function toUser(p: any): User {
   return {
-    id: p.id, role: p.role, name: p.name, phone: p.phone ?? "",
+    id: p.id, role: p.role, name: p.name, phone: toLocalPhone(p.phone),
     email: p.email ?? undefined, lineUserId: p.line_user_id ?? undefined,
     lineConnected: !!p.line_connected, baseLat: p.base_lat ?? undefined, baseLng: p.base_lng ?? undefined,
     status: p.status ?? "active", credit: p.credit != null ? Number(p.credit) : 0, partner: !!p.partner,

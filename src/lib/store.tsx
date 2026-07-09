@@ -21,7 +21,7 @@ function profileToUser(p: any): User {
     id: p.id,
     role: p.role,
     name: p.name,
-    phone: p.phone ?? "",
+    phone: (p.phone ?? "").replace(/\D/g, "").replace(/^66/, "0"),
     email: p.email ?? undefined,
     lineUserId: p.line_user_id ?? undefined,
     lineConnected: !!p.line_connected,
