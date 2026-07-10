@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { AppHeader } from "@/components/AppHeader";
-import { Modal, EmptyState } from "@/components/ui";
+import { Modal, EmptyState, Spinner } from "@/components/ui";
 import { pointsOf, pointsLedger, redemptionsForUser } from "@/lib/selectors";
 import { REDEEM_TIERS, POINTS_PER_BAHT } from "@/lib/types";
 import type { PointTxn, Redemption } from "@/lib/types";
@@ -23,10 +23,13 @@ export default function PointsPage() {
   const [account, setAccount] = useState(u.phone);
   const [tab, setTab] = useState<"redeem" | "redemptions" | "points">("redeem");
 
-  const doRedeem = () => {
-    if (!tier) return;
-    redeemPoints(tier.amountBaht, tier.points, "promptpay", account);
-    setTier(null);
+  const [redeeming, setRedeeming] = useState(false);
+  const doRedeem = async () => {
+    if (!tier || redeeming) return;
+    setRedeeming(true);
+    const ok = await redeemPoints(tier.amountBaht, tier.points, "promptpay", account);
+    setRedeeming(false);
+    if (ok) setTier(null); // ปิด modal เฉพาะเมื่อสำเร็จ (ล้มเหลว → เห็นเหตุผล + ลองใหม่ได้)
   };
 
   return (
@@ -124,8 +127,8 @@ export default function PointsPage() {
         title={`แลกเงินสด ฿${tier ? formatBaht(tier.amountBaht) : ""}`}
         footer={
           <>
-            <button className="btn-outline flex-1" onClick={() => setTier(null)}>ยกเลิก</button>
-            <button className="btn-primary flex-1" onClick={doRedeem}>ยืนยันแลก</button>
+            <button className="btn-outline flex-1" onClick={() => setTier(null)} disabled={redeeming}>ยกเลิก</button>
+            <button className="btn-primary flex-1" onClick={doRedeem} disabled={redeeming}>{redeeming ? <Spinner className="h-4 w-4" /> : "ยืนยันแลก"}</button>
           </>
         }
       >

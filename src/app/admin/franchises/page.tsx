@@ -38,15 +38,19 @@ export default function AdminFranchisesPage() {
   );
 
   const [open, setOpen] = useState(false);
-  const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
 
+  // อักษรย่อแฟรนไชส์สร้างอัตโนมัติ ขึ้นต้น TH เสมอ (TH01, TH02, …) — ไม่ต้องกรอก
+  const nextTh = "TH" + String(db.franchises.map((f) => Number(/^TH0*(\d+)$/.exec(f.code)?.[1] ?? 0)).reduce((a, b) => Math.max(a, b), 0) + 1).padStart(2, "0");
+  const canSaveFr = !!name.trim() && /^0\d{8,9}$/.test(phone) && password.length >= 4;
+
   const save = () => {
-    addFranchise({ code, name, ownerName, phone, password });
-    setCode(""); setName(""); setOwnerName(""); setPhone(""); setPassword(""); setOpen(false);
+    if (!canSaveFr) return;
+    addFranchise({ code: nextTh, name, ownerName, phone, password });
+    setName(""); setOwnerName(""); setPhone(""); setPassword(""); setOpen(false);
   };
 
   // เพิ่มตู้ (บริษัทเท่านั้น — ผูกกับสัญญาเช่าซื้อ)
@@ -194,18 +198,19 @@ export default function AdminFranchisesPage() {
         footer={
           <>
             <button className="btn-outline flex-1" onClick={() => setOpen(false)}>ยกเลิก</button>
-            <button className="btn-primary flex-1" disabled={!code.trim()} onClick={save}>บันทึก</button>
+            <button className="btn-primary flex-1" disabled={!canSaveFr} onClick={save}>บันทึก</button>
           </>
         }
       >
         <div className="space-y-3">
-          <div>
-            <label className="label">อักษรย่อแฟรนไชส์ (เช่น GLN)</label>
-            <input className="input uppercase" maxLength={6} value={code} onChange={(e) => setCode(e.target.value)} placeholder="GLN" />
+          <div className="flex items-center justify-between rounded-xl bg-brand-50 px-3.5 py-2.5">
+            <span className="text-sm text-neutral-500">อักษรย่อแฟรนไชส์ <span className="text-xs">(สร้างอัตโนมัติ)</span></span>
+            <span className="font-mono text-base font-bold text-brand-700">{nextTh}</span>
           </div>
           <div>
             <label className="label">ชื่อแฟรนไชส์</label>
-            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Glean กรุงเทพเหนือ" />
+            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="เช่น ธุรกิจในเครือครอบครัว" />
+            <p className="mt-1 text-xs text-neutral-400">เช่น ธุรกิจในเครือครอบครัว, ร้านของชำสาขา 2 เป็นต้น</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

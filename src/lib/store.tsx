@@ -117,7 +117,7 @@ interface StoreValue {
   setUserStatus: (userId: string, status: "active" | "suspended") => void;
   submitPayout: (input: { bankName: string; accountNo: string; accountName: string; bookBankImage?: string }) => void;
   reviewPayout: (userId: string, approve: boolean, note?: string) => void;
-  payFranchise: (franchiseId: string, amount: number, note?: string) => void;
+  payFranchise: (franchiseId: string, amount: number, note?: string) => Promise<boolean>;
   addCenter: (input: { name: string; phone: string; password: string; address?: string; province?: string; district?: string; subdistrict?: string }) => void;
   updateCenter: (userId: string, patch: { name?: string; phone?: string; address?: string; province?: string; district?: string; subdistrict?: string }) => void;
   removeCenter: (userId: string) => void;
@@ -131,10 +131,10 @@ interface StoreValue {
   topUpCredit: (amount: number) => void;
   adjustCredit: (userId: string, amount: number, note?: string) => void;
   // Drop & Go
-  dropBags: (franchiseCode: string, cabinetCode: string, bagCodes: string[]) => void;
+  dropBags: (franchiseCode: string, cabinetCode: string, bagCodes: string[]) => Promise<boolean>;
   startSorting: (bagId: string) => void;
   valueBag: (bagId: string, items: BagItem[]) => void;
-  redeemPoints: (amountBaht: number, points: number, method: "promptpay" | "bank", account: string) => void;
+  redeemPoints: (amountBaht: number, points: number, method: "promptpay" | "bank", account: string) => Promise<boolean>;
   markRedemptionPaid: (id: string) => void;
   rejectRedemption: (id: string) => void;
   addCabinet: (input: { code?: string; name: string; address: string; province?: string; district?: string; subdistrict?: string; franchiseId: string; franchiseCode: string; lat?: number; lng?: number }) => void;
@@ -251,16 +251,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
   const sbWrite = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (fn: (sb: any) => Promise<any>, msg?: string, kind?: Toast["kind"]) => {
+    (fn: (sb: any) => Promise<any>, msg?: string, kind?: Toast["kind"]): Promise<boolean> => {
       const sb = sbRef.current;
-      if (!sb) return pushToast("ระบบยังไม่พร้อม ลองใหม่อีกครั้ง", "info");
+      if (!sb) { pushToast("ระบบยังไม่พร้อม ลองใหม่อีกครั้ง", "info"); return Promise.resolve(false); }
       startPending();
-      fn(sb)
+      return fn(sb)
         .then(async () => {
           await refresh();
           if (msg) pushToast(msg, kind ?? "success");
+          return true;
         })
-        .catch((e: unknown) => pushToast(friendlyError(e, "ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง"), "info"))
+        .catch((e: unknown) => {
+          pushToast(friendlyError(e, "ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง"), "info");
+          return false;
+        })
         .finally(endPending);
     },
     [refresh, pushToast, startPending, endPending],
@@ -875,15 +879,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   // ---- Drop & Go: หย่อนถุง / คัดแยก / ให้คะแนน / แลกเงิน ----
   const dropBags = useCallback(
-    (franchiseCode: string, cabinetCode: string, bagCodes: string[]) => {
-      if (!currentUser) return;
+    async (franchiseCode: string, cabinetCode: string, bagCodes: string[]): Promise<boolean> => {
+      if (!currentUser) return false;
       const fr = (franchiseCode || "").trim().toUpperCase();
       const cabCode = (cabinetCode || "").trim().toUpperCase();
       const clean = [...new Set(bagCodes.map((b) => b.trim().replace(/[^0-9]/g, "")).filter(Boolean))];
-      if (clean.length === 0) { pushToast("กรุณาเพิ่มถุงอย่างน้อย 1 ใบ", "info"); return; }
+      if (clean.length === 0) { pushToast("กรุณาเพิ่มถุงอย่างน้อย 1 ใบ", "info"); return false; }
       if (supabaseConfigured) return sbWrite((sb) => repo.dropBags(sb, fr, cabCode, clean), `หย่อน ${clean.length} ถุง · รอคะแนน`, "line");
       const cab = db.cabinets.find((c) => c.code === cabCode && (!fr || c.franchiseCode === fr));
-      if (!cab) { pushToast(`ไม่พบตู้ ${fr ? fr + "-" : ""}${cabCode || "-"}`, "info"); return; }
+      if (!cab) { pushToast(`ไม่พบตู้ ${fr ? fr + "-" : ""}${cabCode || "-"}`, "info"); return false; }
       const now = todayISO();
       const newBags: MeshBag[] = clean.map((bc) => ({
         id: uid("bag-"), code: bc, qr: bagQr(cab.franchiseCode, cab.code, bc), cabinetId: cab.id, cabinetCode: cab.code,
@@ -891,8 +895,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }));
       setDb((d) => ({ ...d, bags: [...newBags, ...d.bags] }));
       pushToast(`หย่อน ${clean.length} ถุงที่ตู้ ${cab.name} · แจ้ง LINE เมื่อได้คะแนน`, "line");
+      return true;
     },
-    [currentUser, db.cabinets, pushToast],
+    [currentUser, db.cabinets, pushToast, sbWrite],
   );
 
   const startSorting = useCallback((bagId: string) => {
@@ -922,11 +927,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const redeemPoints = useCallback(
-    (amountBaht: number, points: number, method: "promptpay" | "bank", account: string) => {
-      if (!currentUser) return;
-      if (currentUser.payout?.status !== "approved") { pushToast("ต้องยืนยันบัญชีรับเงิน (รอบริษัทอนุมัติ) ก่อนแลกเงิน", "info"); return; }
-      if ((currentUser.points ?? 0) < points) { pushToast("คะแนนไม่พอสำหรับตัวเลือกนี้", "info"); return; }
-      if (!account.trim()) { pushToast("กรุณากรอกพร้อมเพย์/เลขบัญชีรับเงิน", "info"); return; }
+    async (amountBaht: number, points: number, method: "promptpay" | "bank", account: string): Promise<boolean> => {
+      if (!currentUser) return false;
+      if (currentUser.payout?.status !== "approved") { pushToast("ต้องยืนยันบัญชีรับเงิน (รอบริษัทอนุมัติ) ก่อนแลกเงิน", "info"); return false; }
+      if ((currentUser.points ?? 0) < points) { pushToast("คะแนนไม่พอสำหรับตัวเลือกนี้", "info"); return false; }
+      if (!account.trim()) { pushToast("กรุณากรอกพร้อมเพย์/เลขบัญชีรับเงิน", "info"); return false; }
       if (supabaseConfigured) return sbWrite((sb) => repo.redeemPoints(sb, amountBaht, points, method, account.trim()), `ส่งคำขอแลกเงิน ฿${amountBaht}`, "success");
       const now = todayISO();
       const bal = (currentUser.points ?? 0) - points;
@@ -939,8 +944,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         redemptions: [{ id: rid, code: rcode, userId: currentUser.id, userName: currentUser.name, amountBaht, points, method, account: account.trim(), status: "pending", requestedAt: now }, ...d.redemptions],
       }));
       pushToast(`ส่งคำขอแลกเงิน ฿${amountBaht} · โอนภายใน 1-3 วันทำการ`, "success");
+      return true;
     },
-    [currentUser, pushToast],
+    [currentUser, pushToast, sbWrite],
   );
 
   const markRedemptionPaid = useCallback((id: string) => {
@@ -1078,16 +1084,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   // บริษัทโอนส่วนแบ่งให้แฟรนไชส์ (ต้องบัญชีเจ้าของแฟรนไชส์อนุมัติแล้ว)
   const payFranchise = useCallback(
-    (franchiseId: string, amount: number, note?: string) => {
+    async (franchiseId: string, amount: number, note?: string): Promise<boolean> => {
       const fr = db.franchises.find((f) => f.id === franchiseId);
-      if (!fr) return;
-      if (!(amount > 0)) { pushToast("ระบุจำนวนเงินให้ถูกต้อง", "info"); return; }
+      if (!fr) return false;
+      if (!(amount > 0)) { pushToast("ระบุจำนวนเงินให้ถูกต้อง", "info"); return false; }
       if (supabaseConfigured) return sbWrite((sb) => repo.payFranchise(sb, franchiseId, amount, note), `โอนส่วนแบ่ง ฿${amount.toLocaleString()} ให้ ${fr.name} แล้ว`, "success");
       const owner = db.users.find((u) => u.role === "franchise" && u.franchiseId === franchiseId);
-      if (owner?.payout?.status !== "approved") { pushToast("แฟรนไชส์ยังไม่ได้ยืนยันบัญชีรับเงิน (รออนุมัติ)", "info"); return; }
+      if (owner?.payout?.status !== "approved") { pushToast("แฟรนไชส์ยังไม่ได้ยืนยันบัญชีรับเงิน (รออนุมัติ)", "info"); return false; }
       const rec: FranchisePayout = { id: uid("fp-"), franchiseId, franchiseName: fr.name, amount, note: note?.trim() || undefined, paidAt: todayISO() };
       setDb((d) => ({ ...d, franchisePayouts: [rec, ...(d.franchisePayouts ?? [])] }));
       pushToast(`โอนส่วนแบ่ง ฿${amount.toLocaleString()} ให้ ${fr.name} แล้ว`, "success");
+      return true;
     },
     [db.franchises, db.users, pushToast, sbWrite],
   );

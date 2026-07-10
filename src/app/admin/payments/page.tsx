@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
-import { Modal } from "@/components/ui";
+import { Modal, Spinner } from "@/components/ui";
 import { franchiseRevenue } from "@/lib/selectors";
 import { formatBaht, thaiDateTime } from "@/lib/utils";
 import type { Franchise } from "@/lib/types";
@@ -28,10 +28,13 @@ export default function AdminPaymentsPage() {
     setAmount(String(remain || ""));
     setNote("");
   };
-  const confirmPay = () => {
-    if (!pay) return;
-    payFranchise(pay.fr.id, Number(amount), note);
-    setPay(null);
+  const [paying, setPaying] = useState(false);
+  const confirmPay = async () => {
+    if (!pay || paying) return;
+    setPaying(true);
+    const ok = await payFranchise(pay.fr.id, Number(amount), note);
+    setPaying(false);
+    if (ok) setPay(null); // ปิดเฉพาะเมื่อโอนสำเร็จ
   };
 
   return (
@@ -117,8 +120,8 @@ export default function AdminPaymentsPage() {
         title={`โอนส่วนแบ่ง — ${pay?.fr.name ?? ""}`}
         footer={
           <>
-            <button className="btn-outline flex-1" onClick={() => setPay(null)}>ยกเลิก</button>
-            <button className="btn-primary flex-1" onClick={confirmPay}>ยืนยันโอน</button>
+            <button className="btn-outline flex-1" onClick={() => setPay(null)} disabled={paying}>ยกเลิก</button>
+            <button className="btn-primary flex-1" onClick={confirmPay} disabled={paying}>{paying ? <Spinner className="h-4 w-4" /> : "ยืนยันโอน"}</button>
           </>
         }
       >

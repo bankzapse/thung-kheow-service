@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { AppHeader } from "@/components/AppHeader";
+import { Spinner } from "@/components/ui";
 import { MIN_ITEMS_PER_BAG, MAX_BAGS_PER_DROP, parseBagQr, bagQr, cabinetFullCode } from "@/lib/types";
 import { liffConfigured, scanQr } from "@/lib/liff";
 import { isNativeApp, nativeScanQr } from "@/lib/native";
@@ -54,15 +55,17 @@ export default function DropPage() {
   };
   const removeBag = (c: string) => setBags((b) => b.filter((x) => x !== c));
 
-  const confirm = () => {
-    dropBags(franchise, cabinet, bags);
-    setFranchise("");
-    setCabinet("");
-    setBags([]);
+  const [submitting, setSubmitting] = useState(false);
+  const confirm = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    const ok = await dropBags(franchise, cabinet, bags);
+    setSubmitting(false);
+    if (ok) { setFranchise(""); setCabinet(""); setBags([]); } // ล้างเฉพาะเมื่อสำเร็จ
   };
 
   const cab = db.cabinets.find((c) => c.code === cabinet.toUpperCase() && (!franchise || c.franchiseCode === franchise.toUpperCase()));
-  const canConfirm = !!cab && bags.length > 0;
+  const canConfirm = !!cab && bags.length > 0 && !submitting;
 
   return (
     <div className="pb-28">
@@ -145,7 +148,7 @@ export default function DropPage() {
       {/* sticky confirm */}
       <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md border-t border-neutral-100 bg-white/95 px-5 py-3 backdrop-blur">
         <button className="btn-primary w-full" disabled={!canConfirm} onClick={confirm}>
-          <ChevronRight className="h-4 w-4" /> ยืนยันหย่อนถุง {bags.length > 0 ? `(${bags.length})` : ""}
+          {submitting ? <Spinner className="h-4 w-4" /> : <><ChevronRight className="h-4 w-4" /> ยืนยันหย่อนถุง {bags.length > 0 ? `(${bags.length})` : ""}</>}
         </button>
       </div>
     </div>
