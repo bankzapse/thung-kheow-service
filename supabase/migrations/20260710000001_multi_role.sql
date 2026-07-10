@@ -17,7 +17,8 @@ declare
   allowed jsonb;
   cur_role text;
 begin
-  select roles, role into allowed, cur_role from public.profiles where id = auth.uid();
+  -- role เป็น enum user_role → cast เป็น text เพื่อเทียบกับ roles (jsonb) และ cast กลับตอน update
+  select roles, role::text into allowed, cur_role from public.profiles where id = auth.uid();
   if allowed is null then allowed := to_jsonb(array[cur_role]); end if;
   if p_role not in ('seller','buyer','admin','franchise') then
     raise exception 'invalid role %', p_role;
@@ -25,7 +26,7 @@ begin
   if not (allowed ? p_role) then
     raise exception 'role % not allowed for this account', p_role;
   end if;
-  update public.profiles set role = p_role where id = auth.uid();
+  update public.profiles set role = p_role::user_role where id = auth.uid();
 end;
 $$;
 
