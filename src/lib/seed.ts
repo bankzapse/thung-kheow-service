@@ -106,6 +106,8 @@ export function createInitialDB(): DB {
   const admin: User = {
     id: "u-admin",
     role: "admin",
+    roles: ["admin", "franchise", "buyer", "seller"], // multi-role: owner สลับบทบาทได้ครบ
+    franchiseId: "fr-gln", // ผูกแฟรนไชส์ตอนสลับเป็นบทบาทแฟรนไชส์
     name: "เจ้าของระบบ (Owner)",
     phone: "0900000000",
     email: "admin@demo.com",

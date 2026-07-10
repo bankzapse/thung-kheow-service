@@ -70,7 +70,7 @@ export default function ProfilePage() {
 
         {/* actions */}
         <div className="space-y-2">
-          <Link href="/app" className="btn-outline w-full"><LayoutGrid className="h-4 w-4" /> สลับระบบ (เดโม)</Link>
+          <Link href="/app" className="btn-outline w-full"><LayoutGrid className="h-4 w-4" /> สลับบทบาท / ระบบ</Link>
           <button onClick={logout} className="btn-outline w-full"><LogOut className="h-4 w-4" /> ออกจากระบบ</button>
           <button onClick={() => { setDelAck(false); setDelOpen(true); }} className="flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50">
             <Trash2 className="h-4 w-4" /> ลบบัญชีและข้อมูล

@@ -100,7 +100,8 @@ export interface PayoutAccount {
 
 export interface User {
   id: string;
-  role: Role;
+  role: Role; // บทบาทที่ใช้งานอยู่ตอนนี้ (active role)
+  roles?: Role[]; // บทบาททั้งหมดที่บัญชีนี้ถือได้ (multi-role) — ไม่ระบุ = [role]
   name: string;
   phone: string;
   email?: string;

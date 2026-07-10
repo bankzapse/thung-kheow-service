@@ -21,6 +21,7 @@ function profileToUser(p: any): User {
   return {
     id: p.id,
     role: p.role,
+    roles: Array.isArray(p.roles) ? p.roles : undefined,
     name: p.name,
     phone: (p.phone ?? "").replace(/\D/g, "").replace(/^66/, "0"),
     email: p.email ?? undefined,
@@ -86,6 +87,7 @@ interface StoreValue {
   pending: number; // จำนวนงานที่กำลังประมวลผล (ใช้โชว์ loading bar ทั่วระบบ)
   // auth
   loginAs: (userId: string) => void;
+  switchRole: (target: Role, forUserId?: string) => Promise<boolean>;
   findByPhone: (phone: string) => User | undefined;
   findByEmail: (email: string) => User | undefined;
   loginWithPassword: (phone: string, password: string) => Promise<{ ok: boolean; user?: User; error?: string }>;
@@ -291,6 +293,37 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   // ---- auth ----
   const loginAs = useCallback((userId: string) => setCurrentUserId(userId), []);
+
+  // สลับบทบาทที่ใช้งาน (multi-role) — เปลี่ยน active role ถ้าบัญชีถือบทบาทนั้น
+  const switchRole = useCallback(
+    async (target: Role, forUserId?: string): Promise<boolean> => {
+      const u = supabaseConfigured ? sbUser : db.users.find((x) => x.id === (forUserId ?? currentUserId));
+      if (!u) return false;
+      const allowed = u.roles ?? [u.role];
+      if (!allowed.includes(target)) { pushToast("บัญชีนี้ไม่มีบทบาทดังกล่าว", "info"); return false; }
+      if (u.role === target) return true;
+      if (supabaseConfigured) {
+        startPending();
+        try {
+          const { error } = await sbRef.current.rpc("set_active_role", { p_role: target });
+          if (error) { pushToast(friendlyError(error, "สลับบทบาทไม่สำเร็จ"), "info"); return false; }
+          await refresh();
+          const { data: prof } = await sbRef.current.from("profiles").select("*").eq("id", u.id).single();
+          if (prof) setSbUser(profileToUser(prof));
+          return true;
+        } catch (e) {
+          pushToast(friendlyError(e, "สลับบทบาทไม่สำเร็จ"), "info");
+          return false;
+        } finally {
+          endPending();
+        }
+      }
+      // เดโม: อัปเดต active role ในเครื่อง
+      setDb((d) => ({ ...d, users: d.users.map((x) => (x.id === u.id ? { ...x, role: target } : x)) }));
+      return true;
+    },
+    [sbUser, db.users, currentUserId, pushToast, refresh, startPending, endPending],
+  );
   const findByPhone = useCallback(
     (phone: string) => db.users.find((u) => u.phone === phone.trim()),
     [db.users],
@@ -1205,6 +1238,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     loginAs,
     findByPhone,
     findByEmail,
+    switchRole,
     loginWithPassword,
     registerAccount,
     resetPassword,

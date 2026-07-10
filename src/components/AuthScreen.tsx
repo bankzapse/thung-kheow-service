@@ -91,7 +91,7 @@ export const PORTALS: Record<PortalKey, Portal> = {
 export function AuthScreen({ portalKey }: { portalKey: PortalKey }) {
   const portal = PORTALS[portalKey];
   const router = useRouter();
-  const { loginWithPassword, loginAs, loginWithLine, currentUser } = useStore();
+  const { loginWithPassword, loginAs, switchRole, loginWithLine, currentUser } = useStore();
 
   const [lineBusy, setLineBusy] = useState(liffConfigured && portal.line);
   const [phone, setPhone] = useState("");
@@ -116,11 +116,10 @@ export function AuthScreen({ portalKey }: { portalKey: PortalKey }) {
     router.replace(dest);
   }, [currentUser, router]);
 
-  const checkRole = (role: Role) => {
-    if (portal.allowedRoles.includes(role)) return true;
-    const owner = PORTALS[(["seller", "franchise", "company", "center"] as PortalKey[]).find((k) => PORTALS[k].allowedRoles.includes(role)) ?? "seller"];
-    setErr(`บัญชีนี้เป็นของ “${owner.title}” — โปรดเข้าที่หน้าเข้าสู่ระบบของ ${owner.title}`);
-    return false;
+  // เลือก role เป้าหมายของ portal นี้ที่บัญชีถือได้ (รองรับ multi-role) — คืน null ถ้าไม่มีสิทธิ์
+  const targetRoleFor = (u: { role: Role; roles?: Role[] }): Role | null => {
+    const has = u.roles ?? [u.role];
+    return portal.allowedRoles.find((r) => has.includes(r)) ?? null;
   };
 
   const runLineLogin = useCallback(async () => {
@@ -178,10 +177,14 @@ export function AuthScreen({ portalKey }: { portalKey: PortalKey }) {
       const res = await loginWithPassword(phone, password);
       if (!res.ok) return setErr(res.error ?? "เข้าสู่ระบบไม่สำเร็จ");
       if (res.user) {
-        if (!checkRole(res.user.role)) return; // เดโม: กันเข้าผิดส่วน
+        // เดโม: กันเข้าผิดส่วน + ตั้ง active role ให้ตรง portal (รองรับ multi-role)
+        const target = targetRoleFor(res.user);
+        if (!target) return setErr(`บัญชีนี้ไม่มีสิทธิ์เข้าส่วน “${portal.title}”`);
+        // ตั้ง active role ให้ตรง portal ก่อน loginAs (กัน redirect ไป role เดิม)
+        if (res.user.role !== target) await switchRole(target, res.user.id);
         loginAs(res.user.id);
       }
-      // supabase: session ถูกตั้งแล้ว → redirect effect จัดการ
+      // supabase: session ถูกตั้งแล้ว → redirect effect จัดการ (สลับบทบาทได้ที่หน้า “สลับระบบ”)
     } catch {
       setErr("เชื่อมต่อไม่สำเร็จ — ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่");
     } finally {
