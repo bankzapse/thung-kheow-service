@@ -186,24 +186,30 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     sbRef.current = supabase;
     let active = true;
     const load = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!active) return;
-      if (!user) {
-        setSbUser(null);
-      } else {
-        const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+      try {
+        const { data } = await supabase.auth.getUser();
+        const user = data?.user ?? null;
         if (!active) return;
-        setSbUser(profile ? profileToUser(profile) : null);
-        try {
-          const fresh = await repo.loadAll(supabase);
-          if (active) setDb(fresh);
-        } catch {
-          /* ignore */
+        if (!user) {
+          setSbUser(null);
+        } else {
+          const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+          if (!active) return;
+          setSbUser(profile ? profileToUser(profile) : null);
+          try {
+            const fresh = await repo.loadAll(supabase);
+            if (active) setDb(fresh);
+          } catch {
+            /* โหลดข้อมูลล้มเหลว — ยังให้ผ่านด้วย db ที่มี */
+          }
         }
+      } catch {
+        // getUser/โปรไฟล์ error (เช่น token หมดอายุ/เครือข่าย) → ถือว่ายังไม่ล็อกอิน แทนที่จะค้าง
+        if (active) setSbUser(null);
+      } finally {
+        // การันตี ready เสมอ ไม่งั้นจะค้างที่หน้าโหลด (skeleton) ตลอด
+        if (active) setSessionReady(true);
       }
-      setSessionReady(true);
     };
     load();
     const { data: authSub } = supabase.auth.onAuthStateChange(() => load());
