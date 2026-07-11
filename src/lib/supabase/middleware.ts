@@ -8,6 +8,10 @@ const isPublic = (path: string) =>
   path === "/" ||
   path.startsWith("/login") ||
   path.startsWith("/register") ||
+  path.startsWith("/forgot-password") ||
+  path.startsWith("/terms") ||
+  path.startsWith("/privacy") ||
+  path.startsWith("/delete-account") ||
   path.startsWith("/auth") ||
   path.startsWith("/api");
 

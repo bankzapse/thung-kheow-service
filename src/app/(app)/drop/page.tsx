@@ -8,6 +8,7 @@ import { Spinner } from "@/components/ui";
 import { MIN_ITEMS_PER_BAG, MAX_BAGS_PER_DROP, parseBagQr, bagQr, cabinetFullCode } from "@/lib/types";
 import { liffConfigured, scanQr } from "@/lib/liff";
 import { isNativeApp, nativeScanQr } from "@/lib/native";
+import { QrScanner } from "@/components/QrScanner";
 import { QrCode, Plus, Trash2, PackagePlus, Box, ChevronRight, Info, ScanLine, PackageCheck } from "lucide-react";
 
 export default function DropPage() {
@@ -18,8 +19,6 @@ export default function DropPage() {
   const [cabinet, setCabinet] = useState("");     // รหัสตู้ (auto จาก QR)
   const [bags, setBags] = useState<string[]>([]); // รหัสถุง
   const [manual, setManual] = useState("");
-
-  const genBag = () => String(Math.floor(Math.random() * 9_000_000) + 1_000_000);
 
   const addBagCode = (bag: string) =>
     setBags((b) => (!bag || b.includes(bag) || b.length >= MAX_BAGS_PER_DROP ? b : [...b, bag]));
@@ -33,20 +32,21 @@ export default function DropPage() {
     setManual("");
   };
 
+  const [scanOpen, setScanOpen] = useState(false);
   const scan = async () => {
     // แอป native → กล้อง MLKit; ในไลน์ → liff.scanCodeV2
     if (isNativeApp()) {
       const v = await nativeScanQr();
-      if (v) { handleCode(v); return; }
-    } else if (liffConfigured) {
-      const v = await scanQr();
-      if (v) { handleCode(v); return; }
+      if (v) handleCode(v);
+      return;
     }
-    // เดโม/เว็บ: เติมตัวอย่าง (ตู้แรก + เลขสุ่ม)
-    const first = db.cabinets[0];
-    setFranchise(franchise || first?.franchiseCode || "");
-    setCabinet(cabinet || first?.code || "AA");
-    addBagCode(genBag());
+    if (liffConfigured) {
+      const v = await scanQr();
+      if (v) handleCode(v);
+      return;
+    }
+    // เว็บ/มือถือ: เปิดกล้องจริงด้วย QrScanner (getUserMedia)
+    setScanOpen(true);
   };
 
   const addManual = () => {
@@ -151,6 +151,8 @@ export default function DropPage() {
           {submitting ? <Spinner className="h-4 w-4" /> : <><ChevronRight className="h-4 w-4" /> ยืนยันหย่อนถุง {bags.length > 0 ? `(${bags.length})` : ""}</>}
         </button>
       </div>
+
+      <QrScanner open={scanOpen} onClose={() => setScanOpen(false)} onResult={handleCode} />
     </div>
   );
 }
