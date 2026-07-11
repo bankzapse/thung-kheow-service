@@ -18,7 +18,8 @@ export function PayoutCard() {
   const { currentUser, submitPayout } = useStore();
   const real = currentUser?.payout;
 
-  const [editing, setEditing] = useState((real?.status ?? "none") === "none");
+  // ไม่ init จาก payout (โหลด async มาทีหลัง init ไม่อัปเดต) — ถ้าไม่มีบัญชี p จะ undefined → เรนเดอร์ฟอร์มเองจากเงื่อนไขข้างล่าง
+  const [editing, setEditing] = useState(false);
   const [bankName, setBankName] = useState(real?.bankName ?? "");
   const [accountNo, setAccountNo] = useState(real?.accountNo ?? "");
   const [accountName, setAccountName] = useState(real?.accountName ?? currentUser?.name ?? "");
@@ -60,6 +61,16 @@ export function PayoutCard() {
     setEditing(false);
   };
 
+  // เปิดฟอร์มแก้ไข/ส่งใหม่ — เติมข้อมูลเดิมจาก payout จริง (field init เป็นค่าว่างตอน payout ยังโหลดไม่เสร็จ)
+  const openEdit = () => {
+    setBankName(real?.bankName ?? "");
+    setAccountNo(real?.accountNo ?? "");
+    setAccountName(real?.accountName ?? currentUser?.name ?? "");
+    setImage(real?.bookBankImage);
+    setErr("");
+    setEditing(true);
+  };
+
   return (
     <div className="card">
       <div className="mb-3 flex items-center gap-2">
@@ -90,9 +101,9 @@ export function PayoutCard() {
           </div>
           {p.bookBankImage && <img src={p.bookBankImage} alt="book bank" className="mt-2 max-h-40 w-full rounded-xl object-cover ring-1 ring-neutral-100" />}
           {status === "rejected" ? (
-            <button onClick={() => setEditing(true)} className="btn-primary mt-3 w-full"><RefreshCw className="h-4 w-4" /> ส่งคำขอใหม่</button>
+            <button onClick={openEdit} className="btn-primary mt-3 w-full"><RefreshCw className="h-4 w-4" /> ส่งคำขอใหม่</button>
           ) : (
-            <button onClick={() => setEditing(true)} className="btn-outline mt-3 w-full"><Pencil className="h-4 w-4" /> แก้ไขบัญชี</button>
+            <button onClick={openEdit} className="btn-outline mt-3 w-full"><Pencil className="h-4 w-4" /> แก้ไขบัญชี</button>
           )}
         </>
       ) : (
