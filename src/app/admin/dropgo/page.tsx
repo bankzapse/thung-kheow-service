@@ -4,7 +4,7 @@ import { useStore } from "@/lib/store";
 import { dropGoSummary, recentCreditedBags, pendingRedemptions } from "@/lib/selectors";
 import { formatBaht, thaiDateTime } from "@/lib/utils";
 import { POINTS_PER_BAHT, cabinetFullCode } from "@/lib/types";
-import { Box, PackageOpen, Coins, Banknote, Recycle, Trophy, Clock } from "lucide-react";
+import { Box, PackageOpen, Coins, Banknote, Recycle, Trophy, Clock, PackageCheck } from "lucide-react";
 
 export default function AdminDropGoPage() {
   const { db } = useStore();
@@ -21,9 +21,10 @@ export default function AdminDropGoPage() {
       </div>
 
       {/* stat cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <Stat icon={<Box className="h-5 w-5" />} label="ตู้ทั้งหมด" value={`${s.cabinetCount}`} sub={`${s.bagCount} ถุงสะสม`} tone="brand" />
-        <Stat icon={<PackageOpen className="h-5 w-5" />} label="ถุงรอคัดแยก" value={`${s.pendingBags}`} sub={`ให้คะแนนแล้ว ${s.creditedBags}`} tone={s.pendingBags > 0 ? "amber" : undefined} />
+        <Stat icon={<PackageOpen className="h-5 w-5" />} label="ถุงรอคัดแยก" value={`${s.pendingBags}`} tone={s.pendingBags > 0 ? "amber" : undefined} />
+        <Stat icon={<PackageCheck className="h-5 w-5" />} label="ถุงคัดแยกแล้ว" value={`${s.creditedBags}`} sub="ให้คะแนนแล้ว" tone="brand" />
         <Stat icon={<Coins className="h-5 w-5" />} label="คะแนนจ่ายรวม" value={formatBaht(s.pointsIssued)} sub={`คงเหลือในระบบ ${formatBaht(s.pointsOutstanding)}`} tone="gold" />
         <Stat icon={<Banknote className="h-5 w-5" />} label="จ่ายเงินแลกแล้ว" value={`฿${formatBaht(s.redeemPaidBaht)}`} sub={`รอโอน ${s.redeemPending} · ฿${formatBaht(s.redeemPendingBaht)}`} tone={s.redeemPending > 0 ? "amber" : "brand"} />
       </div>

@@ -5,7 +5,7 @@ import { franchiseById, franchiseSummary, franchiseRevenue } from "@/lib/selecto
 import { CONTRACT_PER_CABINET } from "@/lib/revenue";
 import { formatBaht } from "@/lib/utils";
 import { RevenueExport } from "@/components/RevenueExport";
-import { Box, PackageOpen, Coins, Wallet, Users, FileText, Building2, CheckCircle2 } from "lucide-react";
+import { Box, PackageOpen, Coins, Wallet, Users, FileText, Building2, CheckCircle2, PackageCheck } from "lucide-react";
 
 export default function FranchiseDashboard() {
   const { db, currentUser } = useStore();
@@ -30,9 +30,10 @@ export default function FranchiseDashboard() {
       </div>
 
       {/* stats */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
         <Stat icon={<Box className="h-5 w-5" />} label="ตู้ในแฟรนไชส์" value={`${s.cabinetCount}`} tone="brand" />
-        <Stat icon={<PackageOpen className="h-5 w-5" />} label="ถุงรอคัดแยก" value={`${s.pendingBags}`} sub={`ให้คะแนนแล้ว ${s.creditedBags}`} tone={s.pendingBags > 0 ? "amber" : undefined} />
+        <Stat icon={<PackageOpen className="h-5 w-5" />} label="ถุงรอคัดแยก" value={`${s.pendingBags}`} tone={s.pendingBags > 0 ? "amber" : undefined} />
+        <Stat icon={<PackageCheck className="h-5 w-5" />} label="ถุงคัดแยกแล้ว" value={`${s.creditedBags}`} sub="ให้คะแนนแล้ว" tone="brand" />
         <Stat icon={<Coins className="h-5 w-5" />} label="คะแนนจ่ายรวม" value={formatBaht(s.pointsIssued)} tone="gold" />
         <Stat icon={<Wallet className="h-5 w-5" />} label="มูลค่ารีไซเคิล" value={`฿${formatBaht(s.valueTotal)}`} />
         <Stat icon={<Users className="h-5 w-5" />} label="ผู้ทิ้งขยะ" value={`${s.dropperCount}`} sub="คน" />
