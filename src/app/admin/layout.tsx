@@ -17,6 +17,7 @@ const NAV = [
   { href: "/admin/dropgo", label: "Drop Bag", icon: Recycle, pickup: false, menu: "dropgo" },
   { href: "/admin/franchises", label: "แฟรนไชส์", icon: Store, pickup: false, menu: "franchises" },
   { href: "/admin/centers", label: "ศูนย์คัดแยก", icon: PackageSearch, pickup: false, menu: "centers" },
+  { href: "/admin/sellers", label: "จัดการผู้ขาย", icon: Users, pickup: false, menu: "sellers" },
   { href: "/admin/scrap-prices", label: "ราคาของเก่า", icon: Tag, pickup: false, menu: "scrap" },
   { href: "/admin/factory", label: "กำไรโรงงาน", icon: Factory, pickup: false, menu: "factory" },
   { href: "/admin/collect", label: "เก็บของ", icon: Truck, pickup: false, menu: "collect" },

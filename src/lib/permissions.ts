@@ -6,6 +6,7 @@ export const ADMIN_MENUS: { key: string; label: string }[] = [
   { key: "dropgo", label: "Drop Bag (ภาพรวม)" },
   { key: "franchises", label: "แฟรนไชส์" },
   { key: "centers", label: "ศูนย์คัดแยก" },
+  { key: "sellers", label: "จัดการผู้ขาย" },
   { key: "scrap", label: "ราคาของเก่า" },
   { key: "factory", label: "กำไรโรงงาน" },
   { key: "collect", label: "เก็บของ" },

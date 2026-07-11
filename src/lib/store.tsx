@@ -133,6 +133,8 @@ interface StoreValue {
   addCenter: (input: { name: string; phone: string; password: string; address?: string; province?: string; district?: string; subdistrict?: string }) => void;
   updateCenter: (userId: string, patch: { name?: string; phone?: string; password?: string; address?: string; province?: string; district?: string; subdistrict?: string }) => void;
   removeCenter: (userId: string) => void;
+  removeSeller: (userId: string) => void;
+  resetSellerPassword: (userId: string, password: string) => void;
   addAdmin: (input: { name: string; phone: string; password: string; permissions: string[] }) => void;
   removeAdmin: (userId: string) => void;
   setAdminPermissions: (userId: string, permissions: string[]) => void;
@@ -1203,6 +1205,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [pushToast, adminUsersApi],
   );
 
+  // บริษัทลบบัญชีผู้ขาย
+  const removeSeller = useCallback(
+    (userId: string) => {
+      if (supabaseConfigured) { adminUsersApi("removeSeller", { userId }, "ลบผู้ขายแล้ว"); return; }
+      setDb((d) => ({ ...d, users: d.users.filter((u) => !(u.id === userId && u.role === "seller")) }));
+      pushToast("ลบผู้ขายแล้ว", "info");
+    },
+    [pushToast, adminUsersApi],
+  );
+
+  // บริษัทตั้งรหัสผ่านใหม่ให้ผู้ขาย (กรณีผู้ขายลืมรหัส/รีเซ็ตไม่ได้)
+  const resetSellerPassword = useCallback(
+    (userId: string, password: string) => {
+      if (password.trim().length < 4) { pushToast("รหัสผ่านอย่างน้อย 4 ตัวอักษร", "info"); return; }
+      if (supabaseConfigured) { adminUsersApi("resetSellerPassword", { userId, password: password.trim() }, "ตั้งรหัสผ่านใหม่ให้ผู้ขายแล้ว"); return; }
+      pushToast("ตั้งรหัสผ่านใหม่ให้ผู้ขายแล้ว", "success");
+    },
+    [pushToast, adminUsersApi],
+  );
+
   // บริษัทโอนส่วนแบ่งให้แฟรนไชส์ (ต้องบัญชีเจ้าของแฟรนไชส์อนุมัติแล้ว)
   const payFranchise = useCallback(
     async (franchiseId: string, amount: number, note?: string): Promise<boolean> => {
@@ -1391,6 +1413,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     addCenter,
     updateCenter,
     removeCenter,
+    removeSeller,
+    resetSellerPassword,
     addAdmin,
     removeAdmin,
     setAdminPermissions,

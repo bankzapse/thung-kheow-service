@@ -138,6 +138,24 @@ export async function POST(req: Request) {
         if (error) return bad(error.message, 500);
         return NextResponse.json({ ok: true });
       }
+      case "removeSeller": {
+        if (!body.userId) return bad("missing userId");
+        const { data: t } = await table("profiles").select("role").eq("id", body.userId).single();
+        if ((t as { role?: string } | null)?.role !== "seller") return bad("ลบได้เฉพาะบัญชีผู้ขาย");
+        const { error } = await admin.auth.admin.deleteUser(body.userId);
+        if (error) return bad(error.message, 500);
+        return NextResponse.json({ ok: true });
+      }
+      case "resetSellerPassword": {
+        const { userId, password } = body;
+        if (!userId) return bad("missing userId");
+        if (String(password || "").length < 4) return bad("รหัสผ่านอย่างน้อย 4 ตัวอักษร");
+        const { data: t } = await table("profiles").select("role").eq("id", userId).single();
+        if ((t as { role?: string } | null)?.role !== "seller") return bad("ตั้งรหัสได้เฉพาะบัญชีผู้ขาย");
+        const { error } = await admin.auth.admin.updateUserById(userId, { password: String(password) });
+        if (error) return bad(error.message, 500);
+        return NextResponse.json({ ok: true });
+      }
       case "createAdmin": {
         if (!isOwner) return bad("owner only", 403);
         const { name, phone, password, permissions } = body;
