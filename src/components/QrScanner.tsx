@@ -6,7 +6,7 @@ import { X, Loader2, CameraOff, CheckCircle2 } from "lucide-react";
 /**
  * สแกน QR ด้วยกล้องจริงบนเว็บ/มือถือ (getUserMedia + jsQR — pure JS ไม่มี native dep)
  * - เปิดกล้องหลัง (environment) เต็มจอ, ถอดรหัสจากเฟรมวิดีโอผ่าน canvas
- * - ยิง onResult ทุกครั้งที่เจอรหัสใหม่ (กันรหัสเดิมซ้ำภายใน 2 วินาที) → หย่อนหลายถุงรวดเดียว
+ * - สแกน "ทีละถุง": เจอ QR แรก → ยิง onResult ครั้งเดียว แล้วหยุดกล้อง (parent ปิด modal)
  * - ไม่มีกล้อง/ไม่ได้สิทธิ์ → โชว์ข้อความให้พิมพ์รหัสเอง
  * ต้องรันบน HTTPS (หรือ localhost) — โปรดักชัน Vercel เป็น HTTPS อยู่แล้ว
  */
@@ -14,7 +14,7 @@ export function QrScanner({ open, onClose, onResult }: { open: boolean; onClose:
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
-  const lastRef = useRef<{ text: string; t: number }>({ text: "", t: 0 });
+  const firedRef = useRef(false); // สแกนได้แล้ว 1 ถุง → ไม่ยิงซ้ำ
   const lastScanRef = useRef(0); // throttle การถอดรหัส
   const onResultRef = useRef(onResult);
   onResultRef.current = onResult;
@@ -22,15 +22,14 @@ export function QrScanner({ open, onClose, onResult }: { open: boolean; onClose:
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(true);
   const [flash, setFlash] = useState(false);
-  const [count, setCount] = useState(0);
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     setError(null);
     setStarting(true);
-    setCount(0);
-    lastRef.current = { text: "", t: 0 };
+    setFlash(false);
+    firedRef.current = false;
 
     const stopCamera = () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -54,7 +53,7 @@ export function QrScanner({ open, onClose, onResult }: { open: boolean; onClose:
         const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
 
         const tick = () => {
-          if (cancelled) return;
+          if (cancelled || firedRef.current) return;
           const now = Date.now();
           if (video.readyState >= 2 && video.videoWidth && now - lastScanRef.current >= 120) {
             lastScanRef.current = now;
@@ -64,15 +63,14 @@ export function QrScanner({ open, onClose, onResult }: { open: boolean; onClose:
             const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const code = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
             if (code && code.data) {
+              // เจอถุงแล้ว → ยิงครั้งเดียว หยุดกล้อง แล้วปิด (สแกนทีละถุง)
+              firedRef.current = true;
+              setFlash(true);
+              stopCamera();
               const text = code.data.trim();
-              // กันรหัสเดิมยิงรัวๆ ระหว่างที่ QR ยังอยู่ในกล้อง
-              if (!(text === lastRef.current.text && now - lastRef.current.t < 2000)) {
-                lastRef.current = { text, t: now };
-                setCount((c) => c + 1);
-                setFlash(true);
-                setTimeout(() => setFlash(false), 350);
-                onResultRef.current(text);
-              }
+              onResultRef.current(text);
+              setTimeout(() => { if (!cancelled) onClose(); }, 400);
+              return;
             }
           }
           rafRef.current = requestAnimationFrame(tick);
@@ -93,7 +91,7 @@ export function QrScanner({ open, onClose, onResult }: { open: boolean; onClose:
     })();
 
     return () => { cancelled = true; stopCamera(); };
-  }, [open]);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -122,7 +120,7 @@ export function QrScanner({ open, onClose, onResult }: { open: boolean; onClose:
       {/* top bar */}
       <div className="relative z-10 flex items-center justify-between p-4">
         <span className="rounded-full bg-black/50 px-3 py-1.5 text-sm font-semibold text-white backdrop-blur">
-          {starting ? "กำลังเปิดกล้อง…" : error ? "สแกน QR" : `สแกนแล้ว ${count} ถุง`}
+          {starting ? "กำลังเปิดกล้อง…" : flash ? "สแกนสำเร็จ ✓" : "สแกน QR ถุง"}
         </span>
         <button onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur">
           <X className="h-5 w-5" />
@@ -148,12 +146,12 @@ export function QrScanner({ open, onClose, onResult }: { open: boolean; onClose:
       )}
 
       {/* bottom actions */}
-      <div className="absolute inset-x-0 bottom-0 z-10 p-5">
-        <p className="mb-3 text-center text-sm text-white/80">เล็งกล้องไปที่ QR บนถุง — สแกนได้หลายถุงต่อเนื่อง</p>
-        <button onClick={onClose} className="btn-primary w-full !py-3.5 text-base">
-          {count > 0 ? `เสร็จ · เพิ่ม ${count} ถุง` : "เสร็จ / ปิดกล้อง"}
-        </button>
-      </div>
+      {!error && (
+        <div className="absolute inset-x-0 bottom-0 z-10 p-5">
+          <p className="mb-3 text-center text-sm text-white/80">เล็งกล้องไปที่ QR บนถุง 1 ถุง</p>
+          <button onClick={onClose} className="btn-primary w-full !py-3.5 text-base">ยกเลิก</button>
+        </div>
+      )}
     </div>
   );
 }
