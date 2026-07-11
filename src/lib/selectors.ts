@@ -457,7 +457,7 @@ export function dropGoSummary(db: DB): DropGoSummary {
     redeemPendingBaht: pending.reduce((s, r) => s + r.amountBaht, 0),
     redeemPaidBaht: paid.reduce((s, r) => s + r.amountBaht, 0),
     redeemPaidCount: paid.length,
-    cabinets: cabinetsWithCounts(db).sort((a, b) => b.total - a.total),
+    cabinets: cabinetsWithCounts(db).sort((a, b) => b.pending - a.pending),
   };
 }
 /** ถุงที่เพิ่งได้คะแนน (ล่าสุด) — สำหรับ activity feed */

@@ -11,7 +11,8 @@ export default function AdminDropGoPage() {
   const s = dropGoSummary(db);
   const recent = recentCreditedBags(db, 8);
   const pendingRedeem = pendingRedemptions(db);
-  const maxCab = Math.max(1, ...s.cabinets.map((c) => c.total));
+  const pendingCabs = s.cabinets.filter((c) => c.pending > 0); // เฉพาะตู้ที่มีถุงรอคัดแยก
+  const maxCab = Math.max(1, ...pendingCabs.map((c) => c.pending));
 
   return (
     <div className="space-y-6">
@@ -32,12 +33,12 @@ export default function AdminDropGoPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* cabinets */}
         <div className="card">
-          <h2 className="mb-4 flex items-center gap-1.5 font-bold text-neutral-800"><Box className="h-4 w-4 text-brand-600" /> ตู้ (เรียงตามปริมาณถุง)</h2>
-          {s.cabinets.length === 0 ? (
-            <p className="py-8 text-center text-sm text-neutral-400">ยังไม่มีตู้</p>
+          <h2 className="mb-4 flex items-center gap-1.5 font-bold text-neutral-800"><Box className="h-4 w-4 text-brand-600" /> ตู้ที่มีถุงรอคัดแยก (เรียงจากมากสุด)</h2>
+          {pendingCabs.length === 0 ? (
+            <p className="py-8 text-center text-sm text-neutral-400">ไม่มีตู้ที่มีถุงรอคัดแยก 👍</p>
           ) : (
             <div className="space-y-3.5">
-              {s.cabinets.map((c) => {
+              {pendingCabs.map((c) => {
                 const area = [c.subdistrict, c.district, c.province].filter(Boolean).join(" · ");
                 return (
                   <div key={c.id} className="space-y-1.5">
@@ -45,12 +46,12 @@ export default function AdminDropGoPage() {
                       <p className="min-w-0 flex-1 truncate text-sm font-semibold text-neutral-800">
                         {c.name} <span className="font-mono text-[11px] font-normal text-brand-700">{cabinetFullCode(c.franchiseCode, c.code)}</span>
                       </p>
-                      {c.pending > 0 && <span className="chip shrink-0 bg-amber-100 text-amber-700">{c.pending} รอ</span>}
+                      <span className="chip shrink-0 bg-amber-100 text-amber-700">{c.pending} รอ</span>
                     </div>
                     {area && <p className="truncate text-xs text-neutral-400">{area}</p>}
                     <div className="h-5 overflow-hidden rounded-full bg-neutral-100">
-                      <div className="flex h-full items-center justify-end rounded-full bg-brand-500 px-2 text-[11px] font-bold text-white" style={{ width: `${Math.max(12, (c.total / maxCab) * 100)}%` }}>
-                        {c.total}
+                      <div className="flex h-full items-center justify-end rounded-full bg-amber-500 px-2 text-[11px] font-bold text-white" style={{ width: `${Math.max(12, (c.pending / maxCab) * 100)}%` }}>
+                        {c.pending}
                       </div>
                     </div>
                   </div>
