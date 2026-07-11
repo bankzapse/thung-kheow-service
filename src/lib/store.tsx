@@ -40,6 +40,7 @@ function profileToUser(p: any): User {
     province: p.province ?? undefined,
     district: p.district ?? undefined,
     subdistrict: p.subdistrict ?? undefined,
+    payout: p.payout ?? undefined, // บัญชีรับเงินโอน + สถานะอนุมัติ (ต้อง map ไม่งั้น currentUser.payout เป็น undefined ตอน login)
     createdAt: p.created_at,
   };
 }
