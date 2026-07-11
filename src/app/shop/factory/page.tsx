@@ -8,8 +8,17 @@ import type { FactorySaleItem } from "@/lib/types";
 import { formatBaht, thaiDateTime } from "@/lib/utils";
 import { Factory, TrendingUp, Coins, Wallet, Scale } from "lucide-react";
 
+type Period = "day" | "month" | "all";
+function periodSince(p: Period): Date | undefined {
+  const n = new Date();
+  if (p === "day") return new Date(n.getFullYear(), n.getMonth(), n.getDate());
+  if (p === "month") return new Date(n.getFullYear(), n.getMonth(), 1);
+  return undefined;
+}
+
 export default function ShopFactoryPage() {
   const { db, recordFactorySale } = useStore();
+  const [period, setPeriod] = useState<Period>("all");
   const [qty, setQty] = useState<Record<string, string>>({});
   const [fp, setFp] = useState<Record<string, string>>({});
   const [factoryName, setFactoryName] = useState("");
@@ -42,8 +51,10 @@ export default function ShopFactoryPage() {
     if (ok) { setQty({}); setFp({}); setFactoryName(""); setNote(""); }
   };
 
-  const summary = factoryProfitSummary(db);
-  const recent = (db.factorySales ?? []).slice(0, 8);
+  const since = periodSince(period);
+  const cutoff = since?.toISOString();
+  const summary = factoryProfitSummary(db, since);
+  const recent = (db.factorySales ?? []).filter((s) => !cutoff || s.soldAt >= cutoff).slice(0, 8);
 
   return (
     <div className="space-y-5 pb-28">
@@ -52,7 +63,17 @@ export default function ShopFactoryPage() {
         <p className="text-sm text-neutral-500">กรอกน้ำหนักที่ขาย + ราคาโรงงาน — ระบบคิดกำไร (ราคาขาย − ราคาที่จ่ายผู้ขาย) ให้อัตโนมัติ</p>
       </div>
 
-      {/* สรุปกำไรสะสม */}
+      {/* เลือกช่วงเวลา */}
+      <div className="inline-flex rounded-xl bg-neutral-100 p-1">
+        {([["day", "วันนี้"], ["month", "เดือนนี้"], ["all", "ทั้งหมด"]] as [Period, string][]).map(([k, label]) => (
+          <button key={k} onClick={() => setPeriod(k)}
+            className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition ${period === k ? "bg-white text-brand-700 shadow-sm" : "text-neutral-500"}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* สรุปกำไรตามช่วงเวลา */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat icon={<Wallet className="h-5 w-5" />} label="รายได้จากโรงงาน" value={`฿${formatBaht(summary.revenue)}`} tone="brand" />
         <Stat icon={<Coins className="h-5 w-5" />} label="ต้นทุน (จ่ายผู้ขาย)" value={`฿${formatBaht(summary.cost)}`} />

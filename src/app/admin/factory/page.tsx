@@ -7,10 +7,21 @@ import { centralPrice, factoryPrice, factoryProfitSummary } from "@/lib/selector
 import { formatBaht, thaiDateTime } from "@/lib/utils";
 import { Factory, TrendingUp, Wallet, Coins, Scale, Check } from "lucide-react";
 
+type Period = "day" | "month" | "all";
+function periodSince(p: Period): Date | undefined {
+  const n = new Date();
+  if (p === "day") return new Date(n.getFullYear(), n.getMonth(), n.getDate());
+  if (p === "month") return new Date(n.getFullYear(), n.getMonth(), 1);
+  return undefined;
+}
+
 export default function AdminFactoryPage() {
   const { db, setFactoryPrice } = useStore();
-  const summary = factoryProfitSummary(db);
-  const recent = (db.factorySales ?? []).slice(0, 12);
+  const [period, setPeriod] = useState<Period>("all");
+  const since = periodSince(period);
+  const summary = factoryProfitSummary(db, since);
+  const cutoff = since?.toISOString();
+  const recent = (db.factorySales ?? []).filter((s) => !cutoff || s.soldAt >= cutoff).slice(0, 12);
 
   const [edit, setEdit] = useState<Record<string, string>>({});
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -28,6 +39,16 @@ export default function AdminFactoryPage() {
       <div>
         <h1 className="flex items-center gap-2 text-2xl font-bold text-neutral-800"><Factory className="h-6 w-6 text-brand-600" /> กำไรจากโรงงานของเก่า</h1>
         <p className="text-sm text-neutral-500">ตั้งราคาขายโรงงาน & ดูกำไรส่วนต่าง (ราคาขายโรงงาน − ราคาที่จ่ายผู้ขาย) — กำไรชั้นที่ 3 ของบริษัท</p>
+      </div>
+
+      {/* เลือกช่วงเวลา */}
+      <div className="inline-flex rounded-xl bg-neutral-100 p-1">
+        {([["day", "วันนี้"], ["month", "เดือนนี้"], ["all", "ทั้งหมด"]] as [Period, string][]).map(([k, label]) => (
+          <button key={k} onClick={() => setPeriod(k)}
+            className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition ${period === k ? "bg-white text-brand-700 shadow-sm" : "text-neutral-500"}`}>
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* สรุปกำไร */}

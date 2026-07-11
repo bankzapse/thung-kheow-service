@@ -318,7 +318,7 @@ export interface MeshBag {
   status: BagStatus;
   items?: BagItem[]; // ผู้ดูแลกรอกตอนคัดแยก
   valueBaht?: number; // มูลค่าที่ผู้ดูแลตีราคา
-  points?: number; // = valueBaht × 10
+  points?: number; // = valueBaht × 1 (1 คะแนน = ฿1)
   note?: string;
   droppedAt: string;
   creditedAt?: string;
