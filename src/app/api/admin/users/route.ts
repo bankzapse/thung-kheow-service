@@ -21,10 +21,12 @@ export async function POST(req: Request) {
   const caller = auth?.user;
   if (!caller) return bad("unauthorized", 401);
 
-  const { data: me } = await supabase.from("profiles").select("role, owner").eq("id", caller.id).single();
-  const meRow = me as { role?: string; owner?: boolean } | null;
-  if (!meRow || meRow.role !== "admin") return bad("forbidden", 403);
-  const isOwner = !!meRow.owner;
+  const { data: me } = await supabase.from("profiles").select("role, roles, owner").eq("id", caller.id).single();
+  const meRow = me as { role?: string; roles?: string[]; owner?: boolean } | null;
+  // อนุญาตถ้าเป็นเจ้าของระบบ หรือมีบทบาท admin (บทบาทหลักหรืออยู่ใน roles) — กันกรณี active role ถูกสลับเป็นอย่างอื่น
+  const isAdmin = !!meRow && (meRow.owner === true || meRow.role === "admin" || (Array.isArray(meRow.roles) && meRow.roles.includes("admin")));
+  if (!isAdmin) return bad("forbidden", 403);
+  const isOwner = !!meRow?.owner;
 
   const body = await req.json().catch(() => ({}));
   const action = body?.action as string;
