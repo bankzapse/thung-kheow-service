@@ -22,6 +22,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     mode,
+    rev: (process.env.VERCEL_GIT_COMMIT_SHA ?? "local").slice(0, 7), // commit ที่ deploy อยู่
     canSellerOtp,
     config: { supabase, serviceRole, smsok, smsHook, otpSecret },
     hint: canSellerOtp
