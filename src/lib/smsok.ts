@@ -12,7 +12,7 @@
 const API_URL = process.env.SMSOK_API_URL || "https://api.smsok.co";
 const API_KEY = process.env.SMSOK_API_KEY;
 const API_SECRET = process.env.SMSOK_API_SECRET;
-const SENDER = process.env.SMSOK_SENDER || "MindFull";
+const SENDER = process.env.SMSOK_SENDER || "Chao-Dee";
 
 /** ตั้งค่า SMS OK ครบหรือยัง (มี key + secret) */
 export const smsokConfigured = Boolean(API_KEY && API_SECRET);
