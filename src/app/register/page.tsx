@@ -26,6 +26,7 @@ function RegisterForm() {
   const [otp, setOtp] = useState("");
   const [otpToken, setOtpToken] = useState<string | null>(null);
   const [smsMode, setSmsMode] = useState(false); // true = ส่ง OTP จริงผ่าน SMS OK
+  const [agreed, setAgreed] = useState(false); // ยินยอม PDPA + อายุ 15+
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -41,6 +42,7 @@ function RegisterForm() {
     if (email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim())) return setErr("อีเมลไม่ถูกต้อง");
     if (password.length < 6) return setErr("รหัสผ่านอย่างน้อย 6 ตัวอักษร");
     if (password !== confirm) return setErr("รหัสผ่านยืนยันไม่ตรงกัน");
+    if (!agreed) return setErr("กรุณายอมรับข้อกำหนดและนโยบายความเป็นส่วนตัว");
     setBusy(true);
     try {
       // ส่ง OTP ผ่านระบบของแอปเอง (SMS OK) — ทั้งโหมด Supabase และเดโม (ไม่พึ่ง Send SMS Hook ที่อาจ 404)
@@ -111,8 +113,17 @@ function RegisterForm() {
             <Field label="ยืนยันรหัสผ่าน" icon={<KeyRound className="h-4 w-4" />}>
               <input className="input pl-9" type="password" placeholder="พิมพ์รหัสผ่านอีกครั้ง" value={confirm} onChange={(e) => setConfirm(e.target.value)} onKeyDown={(e) => e.key === "Enter" && requestOtp()} />
             </Field>
+            <label className="flex cursor-pointer items-start gap-2 pt-1 text-xs text-neutral-600">
+              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600" />
+              <span>
+                ฉันมีอายุ 15 ปีขึ้นไป และได้อ่าน · ยอมรับ{" "}
+                <Link href="/terms" className="font-semibold text-brand-600 underline">ข้อกำหนดการใช้งาน</Link> และ{" "}
+                <Link href="/privacy" className="font-semibold text-brand-600 underline">นโยบายความเป็นส่วนตัว</Link>{" "}
+                รวมถึงยินยอมให้เก็บและใช้ข้อมูลส่วนบุคคลตามนโยบายดังกล่าว
+              </span>
+            </label>
             {err && <p className="text-sm text-red-500">{err}</p>}
-            <button className="btn-primary w-full" onClick={requestOtp} disabled={busy}>
+            <button className="btn-primary w-full" onClick={requestOtp} disabled={busy || !agreed}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>ขอรหัส OTP <ArrowRight className="h-4 w-4" /></>}
             </button>
           </div>
