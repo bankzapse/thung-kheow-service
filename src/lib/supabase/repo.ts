@@ -72,7 +72,7 @@ function toExpense(e: any): Expense {
 
 /** โหลดข้อมูลทั้งหมดที่ user เห็น (RLS คัดกรองให้) → รูป DB */
 export async function loadAll(sb: any): Promise<DB> {
-  const [users, prices, bprices, slots, jobs, jobItems, jobHist, bills, billItems, expenses, tickets, draws, wallet, cabs, meshBags, bagItems, pointTxns, redemptions, franchises, franchisePayoutsRes, factorySalesRes] =
+  const [users, prices, bprices, slots, jobs, jobItems, jobHist, bills, billItems, expenses, tickets, draws, wallet, cabs, meshBags, bagItems, pointTxns, redemptions, franchises, franchisePayoutsRes, factorySalesRes, publicProfilesRes] =
     await Promise.all([
       sb.from("profiles").select("*"),
       sb.from("material_prices").select("*"),
@@ -95,10 +95,13 @@ export async function loadAll(sb: any): Promise<DB> {
       sb.from("franchises").select("*"),
       sb.from("franchise_payouts").select("*"),
       sb.from("factory_sales").select("*"),
+      sb.from("public_profiles").select("id, name"), // ชื่อผู้ใช้ทุกคน (view เปิดเฉพาะ id/name/role) สำหรับ map ชื่อ
     ]);
 
   const userRows: any[] = users.data ?? [];
-  const nameById = new Map<string, string>(userRows.map((u) => [u.id, u.name]));
+  // map ชื่อจาก view (มีชื่อทุกคน) — ถ้า view ยังไม่มี (ก่อนรัน migration) fallback เป็น userRows
+  const nameRows: any[] = (publicProfilesRes?.data && publicProfilesRes.data.length) ? publicProfilesRes.data : userRows;
+  const nameById = new Map<string, string>(nameRows.map((u) => [u.id, u.name]));
 
   // central prices + factory sell prices
   const centralPrices: Record<string, number> = {};

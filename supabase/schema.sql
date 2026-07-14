@@ -226,7 +226,10 @@ $$;
 
 -- profiles: อ่านได้เฉพาะผู้ล็อกอิน (บล็อก anon) · แก้ของตัวเอง · แอดมินแก้ได้หมด
 drop policy if exists "profiles read" on profiles;
-create policy "profiles read"   on profiles for select using (auth.uid() is not null);
+-- 🔒 อ่านได้เฉพาะแถวตัวเอง หรือ operator (admin/buyer) — ชื่อคนอื่นใช้ผ่าน view public_profiles
+create policy "profiles read"   on profiles for select using (auth.uid() = id or is_operator());
+create or replace view public_profiles as select id, name, role from profiles;
+grant select on public_profiles to authenticated, anon;
 create policy "profiles insert" on profiles for insert with check (auth.uid() = id);
 create policy "profiles update" on profiles for update using (auth.uid() = id or is_admin());
 
@@ -293,7 +296,7 @@ begin
     new.id,
     coalesce(new.raw_user_meta_data->>'name', 'ผู้ใช้ใหม่'),
     new.phone, new.email,
-    coalesce((new.raw_user_meta_data->>'role')::user_role, 'seller'),
+    'seller', -- 🔒 บังคับ seller เสมอ ห้ามยกระดับสิทธิ์ผ่าน metadata (บทบาทอื่นตั้งผ่าน service-role API)
     new.raw_user_meta_data->>'line_user_id',
     (new.raw_user_meta_data->>'line_user_id') is not null
   ) on conflict (id) do nothing;
@@ -550,6 +553,7 @@ begin
   if not is_operator() then raise exception 'operator only'; end if;
   select * into v_bag from mesh_bags where id = p_bag_id for update;
   if v_bag.id is null then raise exception 'bag not found'; end if;
+  if v_bag.user_id = auth.uid() then raise exception 'cannot value your own bag'; end if; -- 🔒 กัน operator ปั๊มคะแนนให้ตัวเอง
   if v_bag.status = 'credited' then raise exception 'bag already credited'; end if;
   select coalesce(sum((it->>'subtotal')::numeric), 0) into v_value from jsonb_array_elements(p_items) it;
   v_points := v_value * 1; -- POINTS_PER_BAHT = 1 (1 คะแนน = ฿1) ให้ตรงกับฝั่งแอป
@@ -566,18 +570,20 @@ end $$;
 
 create or replace function redeem_points(p_amount numeric, p_points numeric, p_method text, p_account text)
 returns uuid language plpgsql security definer set search_path = public as $$
-declare v_uid uuid := auth.uid(); v_bal numeric; v_rid uuid; v_code text;
+declare v_uid uuid := auth.uid(); v_bal numeric; v_rid uuid; v_code text; v_amount numeric;
 begin
   if v_uid is null then raise exception 'not authenticated'; end if;
   if coalesce(p_account, '') = '' then raise exception 'account required'; end if;
+  if p_points is null or p_points <= 0 then raise exception 'invalid points'; end if;
+  v_amount := p_points; -- 🔒 1 คะแนน = ฿1 เสมอ (คิดฝั่ง server ไม่เชื่อ p_amount)
   select points into v_bal from profiles where id = v_uid for update;
   if v_bal < p_points then raise exception 'not enough points'; end if;
   update profiles set points = points - p_points where id = v_uid returning points into v_bal;
   v_code := 'R-' || lpad((floor(random() * 9000) + 1000)::int::text, 4, '0');
   insert into redemptions(code, user_id, amount_baht, points, method, account, status)
-    values (v_code, v_uid, p_amount, p_points, coalesce(p_method, 'promptpay'), p_account, 'pending') returning id into v_rid;
+    values (v_code, v_uid, v_amount, p_points, coalesce(p_method, 'promptpay'), p_account, 'pending') returning id into v_rid;
   insert into point_transactions(user_id, type, points, balance_after, note, redemption_id)
-    values (v_uid, 'redeem', -p_points, v_bal, 'แลกเงิน ฿' || p_amount, v_rid);
+    values (v_uid, 'redeem', -p_points, v_bal, 'แลกเงิน ฿' || v_amount, v_rid);
   return v_rid;
 end $$;
 
@@ -589,6 +595,7 @@ begin
   if p_status not in ('paid', 'rejected') then raise exception 'bad status'; end if;
   select * into v_r from redemptions where id = p_id for update;
   if v_r.id is null or v_r.status <> 'pending' then raise exception 'not a pending redemption'; end if;
+  if v_r.user_id = auth.uid() then raise exception 'cannot review your own redemption'; end if; -- 🔒 กันอนุมัติจ่ายเงินให้ตัวเอง
   if p_status = 'paid' then
     update redemptions set status = 'paid', paid_at = now() where id = p_id;
   else
@@ -707,3 +714,12 @@ begin
   if not is_admin() then raise exception 'admin only'; end if;
   update material_prices set factory_price_per_unit = greatest(0, coalesce(p_price, 0)) where id = p_material_id;
 end $$;
+
+-- คุมจำนวนครั้งรีเซ็ตรหัสผ่าน (กัน brute-force OTP) — เข้าถึงผ่าน service-role เท่านั้น
+create table if not exists otp_throttle (
+  phone        text primary key,
+  fails        int not null default 0,
+  locked_until timestamptz,
+  updated_at   timestamptz not null default now()
+);
+alter table otp_throttle enable row level security;
