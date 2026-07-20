@@ -226,8 +226,10 @@ $$;
 
 -- profiles: อ่านได้เฉพาะผู้ล็อกอิน (บล็อก anon) · แก้ของตัวเอง · แอดมินแก้ได้หมด
 drop policy if exists "profiles read" on profiles;
--- 🔒 อ่านได้เฉพาะแถวตัวเอง หรือ operator (admin/buyer) — ชื่อคนอื่นใช้ผ่าน view public_profiles
-create policy "profiles read"   on profiles for select using (auth.uid() = id or is_operator());
+-- 🔒 อ่านได้เฉพาะแถวตัวเอง หรือ admin — ชื่อคนอื่นใช้ผ่าน view public_profiles
+-- (เดิมเป็น is_operator() ซึ่งรวม buyer = พาร์ทเนอร์ภายนอก → อ่าน phone/address/credit
+--  และ payout ที่มีเลขบัญชี + สำเนาหน้าบุ๊คแบงก์ ของทุกคนได้ ขัดกับนโยบายความเป็นส่วนตัว)
+create policy "profiles read"   on profiles for select using (auth.uid() = id or is_admin());
 create or replace view public_profiles as select id, name, role from profiles;
 grant select on public_profiles to authenticated, anon;
 create policy "profiles insert" on profiles for insert with check (auth.uid() = id);
@@ -551,7 +553,8 @@ create policy "bagitems read" on bag_items for select using (
 drop policy if exists "pts read" on point_transactions;
 create policy "pts read" on point_transactions for select using (auth.uid() = user_id or is_admin());
 drop policy if exists "redeem read" on redemptions;
-create policy "redeem read" on redemptions for select using (auth.uid() = user_id or is_operator());
+-- 🔒 มีเลขบัญชี/พร้อมเพย์ปลายทาง → เจ้าของคำขอ หรือ admin เท่านั้น (อนุมัติทำที่ admin/payments)
+create policy "redeem read" on redemptions for select using (auth.uid() = user_id or is_admin());
 
 create or replace function drop_bags(p_franchise_code text, p_cabinet_code text, p_bag_codes text[])
 returns int language plpgsql security definer set search_path = public as $$
@@ -575,19 +578,37 @@ end $$;
 
 create or replace function value_bag(p_bag_id uuid, p_items jsonb)
 returns numeric language plpgsql security definer set search_path = public as $$
-declare v_bag mesh_bags%rowtype; v_value numeric; v_points numeric; v_bal numeric;
+declare
+  v_bag mesh_bags%rowtype; v_value numeric; v_points numeric; v_bal numeric;
+  v_n int; v_matched int;
 begin
   if not is_operator() then raise exception 'operator only'; end if;
   select * into v_bag from mesh_bags where id = p_bag_id for update;
   if v_bag.id is null then raise exception 'bag not found'; end if;
   if v_bag.user_id = auth.uid() then raise exception 'cannot value your own bag'; end if; -- 🔒 กัน operator ปั๊มคะแนนให้ตัวเอง
   if v_bag.status = 'credited' then raise exception 'bag already credited'; end if;
-  select coalesce(sum((it->>'subtotal')::numeric), 0) into v_value from jsonb_array_elements(p_items) it;
+
+  -- 🔒 ห้ามเชื่อ subtotal/price ที่ client ส่งมา — ไม่งั้นศูนย์คัดแยกตีราคาเท่าไหร่ก็ได้
+  -- แล้วผู้ขายเอาคะแนนไป redeem เป็นเงินโอนจริง (1 คะแนน = ฿1) ใช้จาก client แค่ material_id + qty
+  select count(*) into v_n from jsonb_array_elements(p_items);
+  select count(*) into v_matched
+    from jsonb_array_elements(p_items) it join material_prices mp on mp.id = it->>'material_id';
+  if v_n = 0 then raise exception 'no items'; end if;
+  if v_n <> v_matched then raise exception 'unknown material in items'; end if;
+  if exists (select 1 from jsonb_array_elements(p_items) it
+             where coalesce((it->>'qty')::numeric, 0) <= 0) then raise exception 'invalid qty'; end if;
+
+  select coalesce(sum(round((it->>'qty')::numeric * mp.price_per_unit)), 0) into v_value
+    from jsonb_array_elements(p_items) it join material_prices mp on mp.id = it->>'material_id';
+  -- เพดานต่อถุง (อะลูมิเนียม ฿45/กก. = ~111 กก.) ปรับได้ถ้าธุรกิจโตจนชน
+  if v_value > 5000 then raise exception 'bag value % exceeds limit — needs admin review', v_value; end if;
+
   v_points := v_value * 1; -- POINTS_PER_BAHT = 1 (1 คะแนน = ฿1) ให้ตรงกับฝั่งแอป
   delete from bag_items where bag_id = p_bag_id;
   insert into bag_items(bag_id, material_id, name, qty, price_per_unit, subtotal)
-  select p_bag_id, it->>'material_id', it->>'name', (it->>'qty')::numeric, (it->>'price_per_unit')::numeric, (it->>'subtotal')::numeric
-  from jsonb_array_elements(p_items) it;
+  select p_bag_id, mp.id, mp.name, (it->>'qty')::numeric, mp.price_per_unit,
+         round((it->>'qty')::numeric * mp.price_per_unit)
+  from jsonb_array_elements(p_items) it join material_prices mp on mp.id = it->>'material_id';
   update mesh_bags set status = 'credited', value_baht = v_value, points = v_points, credited_at = now() where id = p_bag_id;
   update profiles set points = points + v_points where id = v_bag.user_id returning points into v_bal;
   insert into point_transactions(user_id, type, points, balance_after, note, bag_id)
@@ -619,7 +640,7 @@ create or replace function set_redemption_status(p_id uuid, p_status text)
 returns void language plpgsql security definer set search_path = public as $$
 declare v_r redemptions%rowtype; v_bal numeric;
 begin
-  if not is_operator() then raise exception 'operator only'; end if;
+  if not is_admin() then raise exception 'admin only'; end if; -- 🔒 จ่ายเงินจริง → admin เท่านั้น
   if p_status not in ('paid', 'rejected') then raise exception 'bad status'; end if;
   select * into v_r from redemptions where id = p_id for update;
   if v_r.id is null or v_r.status <> 'pending' then raise exception 'not a pending redemption'; end if;
