@@ -14,6 +14,21 @@ export const runtime = "nodejs";
 const toE164 = (p: string) => "+66" + String(p || "").trim().replace(/^0/, "");
 const bad = (msg: string, status = 400) => NextResponse.json({ ok: false, error: msg }, { status });
 
+/**
+ * 🔒 ยืนยันว่าเป้าหมายเป็นบัญชีศูนย์คัดแยก (buyer) จริง และไม่ใช่เจ้าของระบบ
+ * ใช้ก่อนเรียก admin.auth.admin.* ซึ่ง bypass RLS และไม่มี scope ของตัวเอง
+ * คืน NextResponse เมื่อไม่ผ่าน (ให้ caller return ต่อ) · คืน null เมื่อผ่าน
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function assertBuyerTarget(table: (n: string) => any, userId: string) {
+  const { data } = await table("profiles").select("role, owner").eq("id", userId).single();
+  const t = data as { role?: string; owner?: boolean } | null;
+  if (!t) return bad("ไม่พบบัญชีนี้", 404);
+  if (t.owner === true) return bad("แก้ไข/ลบบัญชีเจ้าของระบบไม่ได้", 403);
+  if (t.role !== "buyer") return bad("แก้ไข/ลบได้เฉพาะบัญชีศูนย์คัดแยก", 403);
+  return null;
+}
+
 export async function POST(req: Request) {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return bad("not enabled", 404);
   const supabase = await createClient();
@@ -109,6 +124,11 @@ export async function POST(req: Request) {
       case "updateCenter": {
         const { userId, name, address, province, district, subdistrict } = body;
         if (!userId) return bad("missing userId");
+        // 🔒 ต้องยืนยันว่าเป้าหมายเป็นบัญชีศูนย์คัดแยกจริง (และไม่ใช่เจ้าของระบบ) ก่อนแตะ auth
+        // เดิม .eq("role","buyer") คุมแค่ตาราง profiles แต่ updateUserById ด้านล่างไม่ได้คุม
+        // → admin ธรรมดาส่ง userId ของ owner มาเปลี่ยนรหัสผ่าน = ยึดบัญชีเจ้าของได้
+        const tgt = await assertBuyerTarget(table, userId);
+        if (tgt) return tgt;
         const newPhone = body.phone != null && body.phone !== "" ? String(body.phone).trim() : "";
         const password = body.password;
         if (newPhone && !/^0\d{8,9}$/.test(newPhone)) return bad("เบอร์ไม่ถูกต้อง (10 หลัก)");
@@ -136,6 +156,9 @@ export async function POST(req: Request) {
       }
       case "removeCenter": {
         if (!body.userId) return bad("missing userId");
+        // 🔒 เดิมไม่เช็ค role เลย → admin ธรรมดาลบบัญชีเจ้าของระบบได้ (removeSeller เช็คถูกอยู่แล้ว)
+        const tgt = await assertBuyerTarget(table, body.userId);
+        if (tgt) return tgt;
         const { error } = await admin.auth.admin.deleteUser(body.userId);
         if (error) return bad(error.message, 500);
         return NextResponse.json({ ok: true });

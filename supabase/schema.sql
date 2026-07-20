@@ -233,6 +233,33 @@ grant select on public_profiles to authenticated, anon;
 create policy "profiles insert" on profiles for insert with check (auth.uid() = id);
 create policy "profiles update" on profiles for update using (auth.uid() = id or is_admin());
 
+-- 🔒 policy ข้างบนเป็น row-level → ถ้าปล่อยไว้ ผู้ใช้แก้แถวตัวเองได้ "ทุกคอลัมน์" รวม role/owner/credit/points
+-- (ยิง REST ตรงด้วย anon key ก็ตั้งตัวเองเป็น admin แล้วเสกคะแนนแลกเงินได้) → ตรึงคอลัมน์สิทธิ์/ยอดเงินด้วย trigger
+-- SECURITY DEFINER function ทุกตัวรันในสิทธิ์ owner (current_user เปลี่ยน) จึงไม่โดนตรึง — ดู migration round5
+-- ⚠️ ต้องเป็น SECURITY INVOKER (ห้ามใส่ security definer) ไม่งั้น current_user ในตัว trigger
+-- จะเป็น owner เสมอ → เงื่อนไขไม่มีวันเป็นจริง = ไม่กันอะไรเลย
+create or replace function profiles_guard()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if current_user in ('authenticated', 'anon') then
+    new.role        := old.role;
+    new.roles       := old.roles;
+    new.owner       := old.owner;
+    new.permissions := old.permissions;
+    new.credit      := old.credit;
+    new.points      := old.points;
+    new.status      := old.status;
+    new.payout      := old.payout;
+    new.partner     := old.partner;
+    new.franchise_id := old.franchise_id;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists profiles_guard_trg on profiles;
+create trigger profiles_guard_trg before update on profiles
+  for each row execute function profiles_guard();
+
 -- ราคากลาง + draws: อ่านสาธารณะ · เขียนเฉพาะแอดมิน
 create policy "prices read"  on material_prices for select using (true);
 create policy "prices admin" on material_prices for all using (is_admin()) with check (is_admin());

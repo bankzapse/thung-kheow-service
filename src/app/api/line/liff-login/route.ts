@@ -17,7 +17,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Supabase admin ยังไม่ตั้งค่า" }, { status: 500 });
   }
 
-  // 1) verify + profile จาก LINE
+  // 1) 🔒 verify ว่า access token ถูกออกให้ "channel ของเรา" จริง
+  // GET /v2/profile รับ token จาก channel ไหนก็ได้ → ถ้าไม่เช็ค client_id ผู้โจมตีตั้ง LIFF ของตัวเอง
+  // หลอกเหยื่อกดยินยอม แล้วเอา token มายิงที่นี่ → ได้ magic-link OTP ของเหยื่อ = ยึดบัญชี
+  const channelId = process.env.LINE_LOGIN_CHANNEL_ID;
+  if (!channelId) return NextResponse.json({ error: "LINE Login ยังไม่ตั้งค่า" }, { status: 500 });
+  const vRes = await fetch(`https://api.line.me/oauth2/v2.1/verify?access_token=${encodeURIComponent(accessToken)}`);
+  if (!vRes.ok) return NextResponse.json({ error: "LINE token ไม่ถูกต้อง" }, { status: 401 });
+  const v = (await vRes.json()) as { client_id?: string; expires_in?: number };
+  if (v.client_id !== channelId || !v.expires_in || v.expires_in <= 0) {
+    return NextResponse.json({ error: "LINE token ไม่ถูกต้อง" }, { status: 401 });
+  }
+
+  // 2) profile จาก LINE
   const profRes = await fetch("https://api.line.me/v2/profile", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -27,7 +39,7 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   const email = `line_${profile.userId}@line.local`;
 
-  // 2) หา/สร้างผู้ใช้ (ผูกด้วย line_user_id)
+  // 3) หา/สร้างผู้ใช้ (ผูกด้วย line_user_id)
   const { data: existing } = await admin.from("profiles").select("id").eq("line_user_id", profile.userId).maybeSingle();
   if (!existing) {
     const { error: createErr } = await admin.auth.admin.createUser({
@@ -40,7 +52,7 @@ export async function POST(req: Request) {
     }
   }
 
-  // 3) magic-link OTP → ให้ client แลกเป็น session
+  // 4) magic-link OTP → ให้ client แลกเป็น session
   const { data: link, error: linkErr } = await admin.auth.admin.generateLink({ type: "magiclink", email });
   if (linkErr || !link?.properties?.email_otp) {
     return NextResponse.json({ error: linkErr?.message ?? "สร้าง session ไม่สำเร็จ" }, { status: 500 });
