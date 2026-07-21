@@ -2,24 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { Photo } from "@/components/Photo";
+import { SITE_URL, SITE_NAME, SITE_TITLE, SITE_DESC, LEGAL_NAME, LEGAL_NAME_EN, SUPPORT_EMAIL, SUPPORT_TEL } from "@/lib/site";
 import {
   Recycle, ScanLine, Coins, Banknote, Boxes, Leaf, ShieldCheck, MapPin, ArrowRight,
-  PackageCheck, Building2, Smartphone, Mail, Phone, MessageCircle, Facebook,
+  PackageCheck, Building2, Smartphone, Mail, Phone, MessageCircle, Facebook, Plus,
 } from "lucide-react";
 
-const SITE = "https://refund-service-henna.vercel.app";
-const TITLE = "ถุงเขียว — เปลี่ยนขยะรีไซเคิลเป็นเงิน ผ่านตู้ Drop Bag";
-const DESC =
-  "ถุงเขียว (Thung Khiao): คัดแยกขยะรีไซเคิลใส่ถุง หย่อนที่ตู้ Drop Bag สแกน QR สะสมแต้ม แลกเป็นเงินจริงผ่านพร้อมเพย์ — ลดขยะ สร้างรายได้ให้ชุมชนทั่วไทย";
-
+// metadataBase / OG / twitter ตั้งไว้ที่ root layout แล้ว (src/app/layout.tsx)
 export const metadata: Metadata = {
-  title: TITLE,
-  description: DESC,
-  keywords: ["ถุงเขียว", "รีไซเคิล", "ขยะรีไซเคิล", "ตู้รีไซเคิล", "แยกขยะแลกเงิน", "Drop Bag", "recycle", "รักษ์โลก", "ธนาคารขยะ"],
-  metadataBase: new URL(SITE),
+  title: { absolute: SITE_TITLE }, // absolute = ไม่เติม "| ถุงเขียว" ต่อท้าย
+  description: SITE_DESC,
   alternates: { canonical: "/" },
-  openGraph: { title: TITLE, description: DESC, url: SITE, siteName: "ถุงเขียว", locale: "th_TH", type: "website" },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESC },
 };
 
 // ตัวเลขเครือข่าย — อัปเดตทุกสัปดาห์
@@ -31,19 +24,88 @@ const STATS = {
   paid: 1_240_000,
 };
 
-// รูปประกอบฟรีจาก Unsplash (มี fallback gradient หากโหลดไม่ได้)
+// รูปประกอบ (Unsplash License — ใช้เชิงพาณิชย์ได้) เก็บไว้ในเครื่องเอง
+// ไม่ hotlink เพราะเป็น dependency ภายนอกใน LCP path + เสี่ยงรูปหาย
 const IMG = {
-  hero: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=1100&q=70",
-  nature: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=70",
-  bottles: "https://images.unsplash.com/photo-1567393528677-d6adae7d4a0a?auto=format&fit=crop&w=900&q=70",
-  hands: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=900&q=70",
+  hero: "/img/hero.jpg",
+  nature: "/img/nature.jpg",
+  bottles: "/img/bottles.jpg",
 };
 
 const th = (n: number) => n.toLocaleString("en-US");
 
+/**
+ * JSON-LD — บอก Google ว่าใครเป็นผู้ให้บริการ + ตอบคำถามที่คนไทยค้นจริง
+ * FAQ ต้องแสดงบนหน้าจริงด้วย (ดูส่วน FAQ ด้านล่าง) — Google ลงโทษถ้า markup ไม่ตรงกับที่เห็น
+ */
+const FAQS = [
+  {
+    q: "ถุงเขียวคืออะไร ขายขยะได้เงินจริงไหม",
+    a: "ถุงเขียวคือบริการรับซื้อขยะรีไซเคิลผ่านตู้ Drop Bag คัดแยกขยะใส่ถุง นำไปหย่อนที่ตู้ สแกน QR สะสมแต้ม แล้วแลกเป็นเงินจริงเข้าพร้อมเพย์ 1 คะแนน = 1 บาท",
+  },
+  {
+    q: "ตู้รับซื้อขยะของถุงเขียวอยู่ที่ไหนบ้าง",
+    a: `ปัจจุบันมีตู้ Drop Bag ${STATS.cabinets} จุด ตรวจสอบจุดที่ใกล้บ้านคุณได้ในแอปถุงเขียว`,
+  },
+  {
+    q: "รับซื้อของเก่าประเภทไหนบ้าง",
+    a: "ขวดพลาสติก PET ขวดขาวขุ่น HDPE กระป๋องอะลูมิเนียม กระดาษ ขวดแก้ว และพลาสติกรีไซเคิลอื่น ๆ ตีราคาตามน้ำหนักและชนิดวัสดุ ดูราคากลางได้ในแอป",
+  },
+  {
+    q: "แลกคะแนนเป็นเงินได้อย่างไร",
+    a: "กดแลกคะแนนในแอป ระบุบัญชีพร้อมเพย์ที่ต้องการรับเงิน ทีมงานจะตรวจสอบและโอนให้ตามรอบที่กำหนด",
+  },
+];
+
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#org`,
+      name: SITE_NAME,
+      alternateName: ["Thung Khiao", "ถุงเขียว รีไซเคิล"],
+      legalName: `${LEGAL_NAME} (${LEGAL_NAME_EN})`,
+      url: SITE_URL,
+      logo: `${SITE_URL}/icon-512.png`,
+      description: SITE_DESC,
+      email: SUPPORT_EMAIL,
+      telephone: SUPPORT_TEL,
+      areaServed: { "@type": "Country", name: "TH" },
+      contactPoint: [
+        {
+          "@type": "ContactPoint",
+          contactType: "customer support",
+          email: SUPPORT_EMAIL,
+          telephone: SUPPORT_TEL,
+          availableLanguage: ["th"],
+        },
+      ],
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: SITE_NAME,
+      inLanguage: "th-TH",
+      publisher: { "@id": `${SITE_URL}/#org` },
+    },
+    {
+      "@type": "FAQPage",
+      "@id": `${SITE_URL}/#faq`,
+      mainEntity: FAQS.map((f) => ({
+        "@type": "Question",
+        name: f.q,
+        acceptedAnswer: { "@type": "Answer", text: f.a },
+      })),
+    },
+  ],
+};
+
 export default function Landing() {
   return (
     <div className="min-h-dvh scroll-smooth bg-white text-neutral-800">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       {/* NAV */}
       <header className="sticky top-0 z-40 border-b border-neutral-100 bg-white/85 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-5">
@@ -89,7 +151,7 @@ export default function Landing() {
             </div>
           </div>
           <div className="relative">
-            <Photo src={IMG.hero} alt="คัดแยกขยะรีไซเคิล" className="aspect-[4/3] w-full rounded-3xl object-cover shadow-2xl ring-1 ring-black/5" grad="from-brand-400 to-emerald-600" />
+            <Photo src={IMG.hero} alt="คัดแยกขยะรีไซเคิลใส่ถุงเขียวเพื่อขายเป็นเงิน" className="aspect-[4/3] w-full rounded-3xl shadow-2xl ring-1 ring-black/5" grad="from-brand-400 to-emerald-600" priority sizes="(max-width: 1024px) 100vw, 560px" />
             <div className="absolute -bottom-5 -left-5 hidden rounded-2xl bg-white p-4 shadow-xl ring-1 ring-black/5 sm:block">
               <p className="text-2xl font-extrabold text-brand-600">{STATS.wasteTon} ตัน</p>
               <p className="text-xs text-neutral-400">ขยะเข้าสู่รีไซเคิล</p>
@@ -121,7 +183,7 @@ export default function Landing() {
               <Step n={4} icon={<Coins className="h-5 w-5" />} title="แลกเป็นเงิน" desc="สะสมแต้มครบ กดแลกเงินเข้าพร้อมเพย์ ภายใน 1–3 วันทำการ" />
             </div>
             <div className="relative overflow-hidden rounded-3xl">
-              <Photo src={IMG.bottles} alt="ขวดพลาสติกรีไซเคิล" className="h-full min-h-[320px] w-full object-cover" grad="from-emerald-400 to-teal-600" />
+              <Photo src={IMG.bottles} alt="ขวดพลาสติกที่รับซื้อเป็นของเก่า" className="h-full min-h-[320px] w-full" grad="from-emerald-400 to-teal-600" sizes="(max-width: 768px) 100vw, 50vw" />
             </div>
           </div>
         </div>
@@ -164,7 +226,7 @@ export default function Landing() {
       <section className="bg-neutral-50 py-16 md:py-20">
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 md:grid-cols-2">
           <div className="relative order-2 overflow-hidden rounded-3xl md:order-1">
-            <Photo src={IMG.nature} alt="ธรรมชาติสีเขียว" className="aspect-[5/4] w-full object-cover shadow-xl ring-1 ring-black/5" grad="from-brand-400 to-emerald-600" />
+            <Photo src={IMG.nature} alt="ธรรมชาติสีเขียว — ลดขยะเพื่อสิ่งแวดล้อม" className="aspect-[5/4] w-full shadow-xl ring-1 ring-black/5" grad="from-brand-400 to-emerald-600" sizes="(max-width: 1024px) 100vw, 480px" />
           </div>
           <div className="order-1 md:order-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold text-brand-700"><Smartphone className="h-3.5 w-3.5" /> ดาวน์โหลดแอป</span>
@@ -175,6 +237,26 @@ export default function Landing() {
               <StoreBadge store="google" />
             </div>
             <p className="mt-3 text-xs text-neutral-400">* เร็ว ๆ นี้ · หรือ <Link href="/app" className="font-semibold text-brand-600">ทดลองใช้บนเว็บ</Link></p>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ — ต้องแสดงจริงเพื่อให้ตรงกับ FAQPage JSON-LD ด้านบน */}
+      <section id="faq" className="scroll-mt-20 py-16 md:py-20">
+        <div className="mx-auto max-w-3xl px-5">
+          <SectionHead eyebrow="คำถามที่พบบ่อย" title="ขายขยะกับถุงเขียว ทำอย่างไร" />
+          <div className="mt-8 divide-y divide-neutral-100 overflow-hidden rounded-2xl ring-1 ring-neutral-100">
+            {FAQS.map((f) => (
+              <details key={f.q} className="group bg-white p-5 open:bg-brand-50/40">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold text-neutral-800">
+                  <h3 className="text-base font-semibold">{f.q}</h3>
+                  <span className="shrink-0 text-brand-600 transition group-open:rotate-45">
+                    <Plus className="h-5 w-5" />
+                  </span>
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-neutral-500">{f.a}</p>
+              </details>
+            ))}
           </div>
         </div>
       </section>

@@ -6,6 +6,12 @@ const homeFor = (role?: string) => (role === "admin" ? "/admin" : "/home");
 
 const isPublic = (path: string) =>
   path === "/" ||
+  // ไฟล์ที่ bot/เบราว์เซอร์ต้องเข้าถึงได้เสมอ — ถ้าโดนเด้งไป /login
+  // Googlebot จะอ่าน robots/sitemap ไม่ได้ และ PWA จะติดตั้งไม่ได้
+  path === "/robots.txt" ||
+  path === "/sitemap.xml" ||
+  path === "/manifest.webmanifest" ||
+  path.startsWith("/opengraph-image") ||
   path.startsWith("/login") ||
   path.startsWith("/register") ||
   path.startsWith("/forgot-password") ||
