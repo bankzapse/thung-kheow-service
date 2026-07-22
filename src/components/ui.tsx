@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { STATUS_META, type JobStatus } from "@/lib/types";
 import { Check, X, Info, MessageCircle, Loader2 } from "lucide-react";
@@ -140,12 +141,38 @@ export function Segmented<T extends string>({
 }
 
 /* ---------------- Empty state ---------------- */
-export function EmptyState({ icon, title, hint }: { icon?: React.ReactNode; title: string; hint?: string }) {
+/**
+ * หน้าว่าง — เดิมเป็นข้อความเปล่ากับ emoji จาง ๆ ดูเหมือนหน้าเสีย
+ * ใส่วงกลมไล่สีรองไอคอน + ปุ่มพาไปทำสิ่งที่ควรทำต่อ (ไม่ใช่ปล่อยให้ผู้ใช้ตัน)
+ */
+export function EmptyState({
+  icon,
+  title,
+  hint,
+  actionLabel,
+  actionHref,
+}: {
+  icon?: React.ReactNode;
+  title: string;
+  hint?: string;
+  actionLabel?: string;
+  actionHref?: string;
+}) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 px-6 py-14 text-center">
-      <div className="mb-1 text-4xl opacity-60">{icon ?? "📭"}</div>
-      <p className="font-medium text-neutral-600">{title}</p>
-      {hint && <p className="text-sm text-neutral-400">{hint}</p>}
+    <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+      <div className="relative mb-2">
+        <div className="absolute inset-0 -z-10 scale-125 rounded-full bg-gradient-to-br from-brand-100 to-brand-50 blur-md" />
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-brand-50 to-brand-100 text-4xl ring-1 ring-brand-100">
+          {icon ?? "📭"}
+        </div>
+      </div>
+      <p className="font-semibold text-neutral-700">{title}</p>
+      {hint && <p className="max-w-[16rem] text-sm text-neutral-400">{hint}</p>}
+      {actionLabel && actionHref && (
+        <Link href={actionHref} className="btn-primary mt-3 !px-5">
+          {actionLabel}
+        </Link>
+      )}
     </div>
   );
 }

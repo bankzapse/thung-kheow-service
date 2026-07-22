@@ -111,7 +111,7 @@ export default function PointsPage() {
 
         {tab === "points" && (
           ledger.length === 0 ? (
-            <div className="card"><EmptyState icon="✨" title="ยังไม่มีประวัติคะแนน" /></div>
+            <div className="card"><EmptyState icon="✨" title="ยังไม่มีประวัติคะแนน" hint="หย่อนถุงแรกเพื่อเริ่มสะสมคะแนน" actionLabel="ไปหย่อนถุง" actionHref="/drop" /></div>
           ) : (
             <div className="card divide-y divide-neutral-100 !py-1">
               {ledger.map((t) => <LedgerRow key={t.id} t={t} />)}

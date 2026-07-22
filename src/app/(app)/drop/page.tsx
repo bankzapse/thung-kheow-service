@@ -144,6 +144,31 @@ export default function DropPage() {
           </div>
         </div>
 
+        {/* วิธีใช้ — โชว์เฉพาะตอนยังไม่ได้สแกนถุงไหน (คนใช้ครั้งแรก)
+            พอเริ่มสแกนแล้วซ่อนไป ไม่ให้เกะกะคนที่ใช้เป็นแล้ว */}
+        {bags.length === 0 && (
+          <div className="card">
+            <h2 className="mb-3 font-bold text-neutral-800">หย่อนถุงยังไง</h2>
+            <ol className="space-y-3">
+              {[
+                ["1", "คัดแยกขยะใส่ถุง", "ขวด · กระป๋อง · กระดาษ · พลาสติก"],
+                ["2", "หย่อนถุงที่ตู้ Drop Bag", `ใส่ได้ครั้งละไม่เกิน ${MAX_BAGS_PER_DROP} ถุง`],
+                ["3", "สแกน QR บนถุง", "รอทีมงานคัดแยก แล้วคะแนนเข้าอัตโนมัติ"],
+              ].map(([n, title, sub]) => (
+                <li key={n} className="flex gap-3">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
+                    {n}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-neutral-800">{title}</p>
+                    <p className="text-xs text-neutral-400">{sub}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
         {/* ไปหน้าสถานะ */}
         <Link href="/status" className="card flex items-center gap-3 hover:shadow-float">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><PackageCheck className="h-5 w-5" /></span>

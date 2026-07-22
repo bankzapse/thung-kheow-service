@@ -31,10 +31,13 @@ export default function StatusPage() {
 
         {myBags.length === 0 ? (
           <div className="card">
-            <EmptyState icon="🧺" title="ยังไม่มีถุงที่หย่อน" hint="ไปที่ Drop Bag แล้วสแกน QR บนถุง" />
-            <Link href="/drop" className="btn-primary mx-auto mt-1 w-full max-w-xs">
-              <PackagePlus className="h-4 w-4" /> ไปหย่อนถุง (Drop Bag)
-            </Link>
+            <EmptyState
+              icon="🧺"
+              title="ยังไม่มีถุงที่หย่อน"
+              hint="คัดแยกขยะใส่ถุง แล้วนำไปหย่อนที่ตู้ใกล้บ้าน — สแกน QR บนถุงเพื่อรับคะแนน"
+              actionLabel="ไปหย่อนถุง"
+              actionHref="/drop"
+            />
           </div>
         ) : (
           <div>
