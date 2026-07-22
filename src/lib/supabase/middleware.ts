@@ -25,7 +25,30 @@ const isPublic = (path: string) =>
  * รีเฟรช session + ป้องกัน route ตาม role (production)
  * ถ้ายังไม่ตั้งค่า env → ข้าม (เดโม localStorage — layout ฝั่ง client คุม role เอง)
  */
+/**
+ * ปลายทางจาก ?liff.state= — LIFF โหลด "หน้าแรก" พร้อมพารามิเตอร์นี้ก่อนเสมอ
+ * แล้วค่อยพาไปหน้าจริง ถ้าปล่อยให้ redirect ฝั่ง client ผู้ใช้จะเห็นหน้าการตลาด
+ * แวบหนึ่ง (ต้องรอโหลด HTML + JS + hydrate ก่อน) → ดักที่ middleware แทน ไม่มีแวบ
+ *
+ * เขียนตัวกรองไว้ตรงนี้เอง ไม่ import จาก lib/utils เพื่อไม่ให้ middleware bundle
+ * ต้องลาก clsx/tailwind-merge ติดมาด้วย
+ */
+function liffTarget(request: NextRequest): string | null {
+  if (request.nextUrl.pathname !== "/") return null;
+  const raw = request.nextUrl.searchParams.get("liff.state");
+  if (!raw) return null;
+  const s = raw.trim();
+  // 🔒 กัน open redirect: "//evil.com" กับ "/\evil.com" เบราว์เซอร์อ่านเป็นโดเมนภายนอก
+  if (!s.startsWith("/") || s.startsWith("//") || s.startsWith("/\\")) return null;
+  if (s === "/" || /^\/(login|register|forgot-password|auth)(\/|\?|$)/.test(s)) return null;
+  return s;
+}
+
 export async function updateSession(request: NextRequest) {
+  // ทำก่อนทุกอย่าง — ไม่ต้องรอตรวจ session ด้วยซ้ำ (ปลายทางจะถูกตรวจในรอบถัดไปเอง)
+  const liffPath = liffTarget(request);
+  if (liffPath) return NextResponse.redirect(new URL(liffPath, request.url));
+
   let response = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
