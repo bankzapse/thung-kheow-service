@@ -56,10 +56,12 @@ export default function AdminFranchisesPage() {
   // แก้ไข / ลบ แฟรนไชส์
   const [editFr, setEditFr] = useState<FranchiseWithStats | null>(null);
   const [ef, setEf] = useState({ name: "", ownerName: "", phone: "", password: "" });
+  /** เบอร์ของแฟรนไชส์ = เบอร์บัญชีเจ้าของ (แหล่งเดียว) · ตกกลับไปใช้ตาราง franchises ถ้ายังไม่มีเจ้าของ */
+  const ownerPhoneOf = (f: FranchiseWithStats) =>
+    db.users.find((u) => u.role === "franchise" && u.franchiseId === f.id)?.phone || f.phone || "";
+
   const openEdit = (f: FranchiseWithStats) => {
-    // ใช้เบอร์ "เข้าระบบ" จริงของเจ้าของ (บัญชี role=franchise) ไม่ใช่เบอร์ติดต่อในตารางแฟรนไชส์
-    const owner = db.users.find((u) => u.role === "franchise" && u.franchiseId === f.id);
-    setEf({ name: f.name, ownerName: f.ownerName ?? "", phone: owner?.phone || f.phone || "", password: "" });
+    setEf({ name: f.name, ownerName: f.ownerName ?? "", phone: ownerPhoneOf(f), password: "" });
     setEditFr(f);
   };
   const saveEdit = () => {
@@ -171,7 +173,10 @@ export default function AdminFranchisesPage() {
             </div>
             <div className="space-y-1 text-xs text-neutral-500">
               <p className="flex items-center gap-1.5"><User className="h-3.5 w-3.5" /> {f.ownerName || "-"}</p>
-              <p className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> {f.phone || "-"}</p>
+              {/* เบอร์เดียวทั้งระบบ — อ่านจากบัญชีเจ้าของ (แหล่งเดียวกับฟอร์มแก้ไข)
+                  เดิมการ์ดอ่าน f.phone (ตาราง franchises) ส่วนฟอร์มอ่านจาก profile
+                  ทำให้เห็นคนละเบอร์ และกดบันทึกทีเดียวเบอร์ติดต่อโดนทับเงียบ ๆ */}
+              <p className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> {ownerPhoneOf(f) || "-"}</p>
             </div>
             <div className="flex flex-wrap gap-2 border-t border-neutral-100 pt-3">
               <span className="chip bg-neutral-100 text-neutral-600"><Box className="h-3.5 w-3.5" /> {f.cabinetCount} ตู้</span>

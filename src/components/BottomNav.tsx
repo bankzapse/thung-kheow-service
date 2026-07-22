@@ -31,11 +31,12 @@ export function BottomNav({ role }: { role: Role }) {
   // admin/franchise ไม่ใช้ bottom nav (มี layout แยก)
   if (role !== "seller" && role !== "buyer") return null;
   // Hide tab bar on full-screen task pages (they have their own action bars)
+  // /drop ไม่อยู่ในรายการนี้แล้ว — Rich Menu ใน LINE ลิงก์ตรงมาหน้านี้ ถ้าไม่มีแท็บ
+  // ผู้ใช้จะไปหน้าอื่นไม่ได้เลย (แถบ "ยืนยันหย่อนถุง" ของหน้านั้นถูกยกขึ้นเหนือแท็บแทน)
   if (
     pathname.startsWith("/create") ||
     pathname.startsWith("/job/") ||
-    pathname.startsWith("/rewards") ||
-    pathname.startsWith("/drop")
+    pathname.startsWith("/rewards")
   ) {
     return null;
   }

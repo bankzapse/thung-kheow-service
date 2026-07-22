@@ -4,6 +4,9 @@
 
 :root {
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* ความสูงรวมของแท็บล่าง (BottomNav) = เนื้อหา + pt-1.5 + pb(safe-area ขั้นต่ำ 0.4rem)
+     หน้าไหนมีแถบปุ่มลอยของตัวเอง ให้ยกขึ้นด้วย bottom: var(--bottom-nav-h) จะได้ไม่ทับกัน */
+  --bottom-nav-h: calc(4.25rem + max(env(safe-area-inset-bottom, 0px), 0.4rem));
 }
 
 html,

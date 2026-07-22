@@ -70,7 +70,7 @@ export default function DropPage() {
   const canConfirm = !!cab && bags.length > 0 && !submitting;
 
   return (
-    <div className="pb-28">
+    <div className="pb-48">
       <AppHeader title="Drop Bag" subtitle="สแกน QR บนถุง รับคะแนน" back />
 
       <div className="space-y-4 px-5 py-4">
@@ -147,8 +147,8 @@ export default function DropPage() {
         </Link>
       </div>
 
-      {/* sticky confirm */}
-      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md border-t border-neutral-100 bg-white/95 px-5 py-3 backdrop-blur">
+      {/* sticky confirm — ยกขึ้นเหนือแท็บล่าง (ดู --bottom-nav-h ใน globals.css) */}
+      <div className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-30 mx-auto max-w-md border-t border-neutral-100 bg-white/95 px-5 py-3 backdrop-blur">
         <button className="btn-primary w-full" disabled={!canConfirm} onClick={confirm}>
           {submitting ? <Spinner className="h-4 w-4" /> : <><ChevronRight className="h-4 w-4" /> ยืนยันหย่อนถุง {bags.length > 0 ? `(${bags.length})` : ""}</>}
         </button>
