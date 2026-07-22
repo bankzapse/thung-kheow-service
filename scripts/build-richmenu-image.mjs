@@ -4,13 +4,15 @@
  *
  *   node scripts/build-richmenu-image.mjs
  *
- * ต้องรันบนเครื่องที่มีฟอนต์ไทย (macOS มีอยู่แล้ว) — ผลลัพธ์เป็น PNG นิ่ง
- * commit ลง repo ได้เลย ไม่ต้องมีฟอนต์ตอน deploy
+ * ใช้ IBM Plex Sans Thai จาก scripts/fonts/ (ฟอนต์เดียวกับหน้าเว็บ) ไม่ต้อง
+ * ลงฟอนต์ในเครื่อง — ผลลัพธ์เป็น PNG นิ่ง commit ลง repo ได้เลย
  *
  * พิกัดต้องตรงกับ RICH_MENU_AREAS ใน scripts/line-richmenu.mjs
  */
 import sharp from "sharp";
+import { Resvg } from "@resvg/resvg-js";
 import { readFile, writeFile } from "node:fs/promises";
+import { FONT_FILES, FONT_FAMILY } from "./lib/thai-font.mjs";
 
 const W = 2500;
 const H = 1686;
@@ -47,7 +49,7 @@ const ICONS = {
   user: `<circle cy="-12" r="16" fill="none" stroke="#fff" stroke-width="7"/><path d="M-26 34c0-16 12-26 26-26s26 10 26 26" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/>`,
 };
 
-const FONT = "IBM Plex Sans Thai, Noto Sans Thai, Thonburi, Sarabun, sans-serif";
+const FONT = FONT_FAMILY;
 
 /** escape ข้อความก่อนใส่ใน SVG — "&" ดิบทำให้ XML parse ไม่ผ่าน */
 const esc = (s) =>
@@ -106,11 +108,22 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
 </svg>`;
 
 const out = new URL("../public/richmenu.png", import.meta.url).pathname;
-let buf = await sharp(Buffer.from(svg)).png({ quality: 90, compressionLevel: 9 }).toBuffer();
 
-// LINE จำกัดไฟล์ไม่เกิน 1 MB — ถ้าเกินให้ลดเป็น JPEG คุณภาพสูง
+// เรนเดอร์ด้วย resvg ไม่ใช่ sharp — sharp เรียก librsvg ซึ่งบน macOS หาฟอนต์
+// ผ่าน CoreText คือเห็นเฉพาะฟอนต์ที่ "ติดตั้งในเครื่อง" ป้อนไฟล์ .ttf ให้ตรง ๆ
+// ไม่ได้ (FONTCONFIG_FILE ไม่มีผลบน mac) ผลคือมันเงียบ ๆ ตกไปใช้ Thonburi
+// resvg รับ fontFiles ได้ และ shape ภาษาไทยถูกต้อง (ใช้ rustybuzz ข้างใน)
+const raw = new Resvg(svg, {
+  font: { fontFiles: FONT_FILES, loadSystemFonts: false, defaultFontFamily: FONT_FAMILY },
+}).render().asPng();
+
+// resvg เข้ารหัส PNG แบบไม่บีบ (ไฟล์ ~1.5 MB) → บีบซ้ำด้วย sharp ให้ต่ำกว่า
+// ลิมิต 1 MB ของ LINE · ต้องคง PNG ไว้ เพราะ line-richmenu.mjs อัปโหลดด้วย
+// Content-Type: image/png ตายตัว ถ้าปล่อยเป็น JPEG จะไม่ตรงกับหัวที่ส่ง
+let buf = await sharp(raw).png({ compressionLevel: 9, palette: true, quality: 92 }).toBuffer();
+
 if (buf.length > 1024 * 1024) {
-  buf = await sharp(Buffer.from(svg)).jpeg({ quality: 88 }).toBuffer();
+  buf = await sharp(raw).png({ compressionLevel: 9, palette: true, quality: 80 }).toBuffer();
 }
 await writeFile(out, buf);
 console.log(`สร้าง ${out} — ${(buf.length / 1024).toFixed(0)} KB (${W}×${H})`);
