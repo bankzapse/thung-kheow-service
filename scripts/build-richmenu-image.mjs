@@ -81,12 +81,12 @@ const cell = (i) => {
       <circle cx="${x + w - 60}" cy="${y + 70}" r="180" fill="#ffffff" opacity="0.10"/>
       <circle cx="${x + 50}" cy="${y + ROW_H - 40}" r="130" fill="#ffffff" opacity="0.07"/>
     </g>
-    <circle cx="${cx}" cy="${cy - 100}" r="76" fill="#ffffff" opacity="0.22"/>
-    <g transform="translate(${cx} ${cy - 100})">${ICONS[c.icon]}</g>
-    <text x="${cx}" y="${cy + 80}" font-family="${FONT}" font-size="74" font-weight="700"
+    <circle cx="${cx}" cy="${cy - 118}" r="84" fill="#ffffff" opacity="0.22"/>
+    <g transform="translate(${cx} ${cy - 118})">${ICONS[c.icon]}</g>
+    <text x="${cx}" y="${cy + 92}" font-family="${FONT}" font-size="94" font-weight="700"
           fill="#ffffff" text-anchor="middle">${esc(c.label)}</text>
-    <text x="${cx}" y="${cy + 160}" font-family="${FONT}" font-size="46"
-          fill="#ffffff" opacity="0.82" text-anchor="middle">${esc(c.sub)}</text>`;
+    <text x="${cx}" y="${cy + 182}" font-family="${FONT}" font-size="58"
+          fill="#ffffff" opacity="0.85" text-anchor="middle">${esc(c.sub)}</text>`;
 };
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
