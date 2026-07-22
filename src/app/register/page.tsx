@@ -67,7 +67,7 @@ function RegisterForm() {
     try {
       if (supabaseConfigured) {
         // สร้างบัญชีผ่าน service-role (ยืนยัน OTP ฝั่ง server) → แล้วเข้าสู่ระบบเพื่อรับ session
-        const r = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name.trim(), phone: phone.trim(), email: email || undefined, password, code: otp.trim(), token: otpToken }) });
+        const r = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name.trim(), phone: phone.trim(), email: email || undefined, password, code: otp.trim(), token: otpToken, consent: agreed }) });
         const j = await r.json().catch(() => ({ ok: false }));
         if (!r.ok || j.ok === false) return setErr(friendlyError(j.error, "สมัครไม่สำเร็จ"));
         const { error } = await createClient().auth.signInWithPassword({ phone: toE164(phone), password });

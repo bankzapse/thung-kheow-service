@@ -8,6 +8,7 @@ import { supabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/client";
 import { liffConfigured, getLineProfile, getLiffAccessToken, isInLineClient } from "@/lib/liff";
 import { AuthShell } from "@/components/AuthShell";
+import { LineSetup } from "@/components/LineSetup";
 import { readNextParam } from "@/lib/utils";
 import type { Role } from "@/lib/types";
 import { Loader2, MessageCircle, User, Building2, ShieldCheck, Phone, KeyRound, PackageSearch, ArrowLeft } from "lucide-react";
@@ -97,6 +98,8 @@ export function AuthScreen({ portalKey }: { portalKey: PortalKey }) {
   const { loginWithPassword, loginAs, switchRole, loginWithLine, currentUser } = useStore();
 
   const [lineBusy, setLineBusy] = useState(liffConfigured && portal.line);
+  // เข้าใช้ครั้งแรกด้วย LINE — ต้องยืนยันเบอร์ + ให้ความยินยอมก่อนสร้าง/ผูกบัญชี
+  const [setup, setSetup] = useState<{ token: string; displayName?: string } | null>(null);
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
@@ -143,6 +146,11 @@ export function AuthScreen({ portalKey }: { portalKey: PortalKey }) {
         if (!token) return setLineBusy(false);
         const res = await fetch("/api/line/liff-login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accessToken: token }) });
         const j = await res.json().catch(() => ({}));
+        // ยังไม่เคยผูกบัญชี → ต้องยืนยันเบอร์ + ให้ความยินยอมก่อน (ไม่สร้างบัญชีอัตโนมัติ)
+        if (res.ok && j.needsSetup) {
+          setSetup({ token, displayName: j.displayName });
+          return setLineBusy(false);
+        }
         if (!res.ok || !j.email) {
           setErr(j.error ?? "เข้าสู่ระบบด้วย LINE ไม่สำเร็จ");
           return setLineBusy(false);
@@ -179,6 +187,23 @@ export function AuthScreen({ portalKey }: { portalKey: PortalKey }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runLineLogin]);
+
+  // เข้าใช้ครั้งแรกด้วย LINE → ยืนยันเบอร์ + ขอความยินยอม แล้วค่อยล็อกอินซ้ำเพื่อรับ session
+  if (setup) {
+    return (
+      <AuthShell subtitle="เริ่มใช้งานด้วยบัญชี LINE" grad={portal.grad}>
+        <LineSetup
+          accessToken={setup.token}
+          displayName={setup.displayName}
+          onDone={async () => {
+            setSetup(null);
+            await runLineLogin();
+          }}
+          onCancel={() => setSetup(null)}
+        />
+      </AuthShell>
+    );
+  }
 
   if (liffConfigured && portal.line && lineBusy) {
     return (

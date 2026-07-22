@@ -48,5 +48,14 @@ export async function POST(req: Request) {
     .eq("id", auth.user.id);
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
+  // การล็อกอินผ่าน LIFF ใช้ magic-link ซึ่งต้องมีอีเมล — บัญชีที่สมัครด้วยเบอร์ยังไม่มี
+  // เติมให้ (ถ้ายังไม่มี) ไม่งั้นผูกแล้วแต่ครั้งหน้ากดเข้าด้วย LINE จะไม่ผ่าน
+  if (!auth.user.email) {
+    await admin.auth.admin.updateUserById(auth.user.id, {
+      email: `line_${profile.userId}@line.local`,
+      email_confirm: true,
+    });
+  }
+
   return NextResponse.json({ ok: true, displayName: profile.displayName });
 }
