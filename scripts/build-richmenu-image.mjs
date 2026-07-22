@@ -32,7 +32,7 @@ const cellBox = (i) =>
 // ไล่สีต่อช่อง (โทนเขียว-เทียลชุดเดียวกัน ไม่ให้ดูมั่ว) + 2 ปุ่มบนมีรูปประกอบ
 const CELLS = [
   { label: "หย่อนถุง", sub: "สแกน QR บนถุง", icon: "scan", from: "#22c55e", to: "#15803d", photo: "hero" },
-  { label: "คะแนน & แลกเงิน", sub: "ดูยอด · โอนพร้อมเพย์", icon: "coin", from: "#14b8a6", to: "#0f766e", photo: "nature" },
+  { label: "คะแนน & แลกเงิน", sub: "ดูยอด · โอนพร้อมเพย์", icon: "coin", from: "#14b8a6", to: "#0f766e", photo: "coins" },
   { label: "สถานะถุง", sub: "ติดตามการคัดแยก", icon: "box", from: "#22d3ee", to: "#0e7490" },
   { label: "หน้าแรก", sub: "ภาพรวมบัญชี", icon: "home", from: "#34d399", to: "#047857" },
   { label: "โปรไฟล์", sub: "บัญชี · ตั้งค่า", icon: "user", from: "#4d7c6f", to: "#1f3d34" },
@@ -53,9 +53,13 @@ const FONT = "IBM Plex Sans Thai, Noto Sans Thai, Thonburi, Sarabun, sans-serif"
 const esc = (s) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+// รูปประกอบ (Unsplash License — ใช้เชิงพาณิชย์ได้ ไม่ต้องให้เครดิต)
+//   hero.jpg  = ถังแยกขยะ
+//   coins.jpg = โหลเหรียญ+ต้นไม้ · Towfiqu barbhuiya
+//               https://unsplash.com/photos/joqWSI9u_XM
 // อ่านรูปมาเป็น data URI (resvg ฝัง <image> แบบ base64 ได้)
 const photoUri = {};
-for (const name of ["hero", "nature"]) {
+for (const name of ["hero", "coins"]) {
   const buf = await readFile(new URL(`../public/img/${name}.jpg`, import.meta.url));
   photoUri[name] = `data:image/jpeg;base64,${buf.toString("base64")}`;
 }
@@ -70,22 +74,26 @@ const cell = (i) => {
       <linearGradient id="g${i}" x1="${x}" y1="${y}" x2="${x + w}" y2="${y + ROW_H}" gradientUnits="userSpaceOnUse">
         <stop stop-color="${c.from}"/><stop offset="1" stop-color="${c.to}"/>
       </linearGradient>
+      <linearGradient id="shade${i}" x1="0" y1="${y + ROW_H / 2}" x2="0" y2="${y + ROW_H}" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#04180f" stop-opacity="0"/><stop offset="1" stop-color="#04180f" stop-opacity="0.55"/>
+      </linearGradient>
       <clipPath id="clip${i}">
         <rect x="${x + 6}" y="${y + 6}" width="${w - 12}" height="${ROW_H - 12}" rx="34"/>
       </clipPath>
     </defs>
     <g clip-path="url(#clip${i})">
       ${c.photo ? `<image href="${photoUri[c.photo]}" x="${x + 6}" y="${y + 6}" width="${w - 12}" height="${ROW_H - 12}" preserveAspectRatio="xMidYMid slice"/>` : ""}
-      <rect x="${x + 6}" y="${y + 6}" width="${w - 12}" height="${ROW_H - 12}" fill="url(#g${i})" opacity="${c.photo ? 0.82 : 1}"/>
+      <rect x="${x + 6}" y="${y + 6}" width="${w - 12}" height="${ROW_H - 12}" fill="url(#g${i})" opacity="${c.photo ? 0.72 : 1}"/>
       <!-- วงกลมจาง ๆ ให้ไม่แบน -->
+      ${c.photo ? `<rect x="${x + 6}" y="${y + ROW_H / 2}" width="${w - 12}" height="${ROW_H / 2}" fill="url(#shade${i})"/>` : ""}
       <circle cx="${x + w - 60}" cy="${y + 70}" r="180" fill="#ffffff" opacity="0.10"/>
       <circle cx="${x + 50}" cy="${y + ROW_H - 40}" r="130" fill="#ffffff" opacity="0.07"/>
     </g>
-    <circle cx="${cx}" cy="${cy - 118}" r="84" fill="#ffffff" opacity="0.22"/>
-    <g transform="translate(${cx} ${cy - 118})">${ICONS[c.icon]}</g>
-    <text x="${cx}" y="${cy + 92}" font-family="${FONT}" font-size="94" font-weight="700"
+    <circle cx="${cx}" cy="${cy - 150}" r="88" fill="#ffffff" opacity="0.22"/>
+    <g transform="translate(${cx} ${cy - 150})">${ICONS[c.icon]}</g>
+    <text x="${cx}" y="${cy + 100}" font-family="${FONT}" font-size="124" font-weight="700"
           fill="#ffffff" text-anchor="middle">${esc(c.label)}</text>
-    <text x="${cx}" y="${cy + 182}" font-family="${FONT}" font-size="58"
+    <text x="${cx}" y="${cy + 212}" font-family="${FONT}" font-size="78"
           fill="#ffffff" opacity="0.85" text-anchor="middle">${esc(c.sub)}</text>`;
 };
 
