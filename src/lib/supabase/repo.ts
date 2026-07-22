@@ -226,7 +226,8 @@ export const addSlot = (sb: any, me: User, i: any) => sb.from("schedule_slots").
 export const removeSlot = (sb: any, id: string) => sb.from("schedule_slots").delete().eq("id", id);
 export const setBuyerPrice = (sb: any, me: User, materialId: string, price: number) => sb.from("buyer_prices").upsert({ buyer_id: me.id, material_id: materialId, price });
 export const setBaseLocation = (sb: any, me: User, lat: number, lng: number) => sb.from("profiles").update({ base_lat: lat, base_lng: lng }).eq("id", me.id);
-export const connectLine = (sb: any, me: User) => sb.from("profiles").update({ line_connected: true, line_user_id: "U" + Math.random().toString(36).slice(2, 10) }).eq("id", me.id);
+// connectLine เอาออกแล้ว — เดิมเขียน line_user_id เป็นเลขสุ่มปลอม ทำให้ผูกกับ LINE จริงไม่ได้
+// ตอนนี้ผูกผ่าน POST /api/line/link (ตรวจ access token กับ LINE ก่อน แล้วเขียนด้วย service-role)
 export const setUserStatus = (sb: any, userId: string, status: string) => sb.rpc("set_user_status", { p_user: userId, p_status: status });
 export const setCentralPrice = (sb: any, materialId: string, price: number) => {
   const m = MATERIALS.find((x) => x.id === materialId);

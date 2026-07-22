@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useStore, DEMO_PASSWORD } from "@/lib/store";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/client";
-import { liffConfigured, getLineProfile, getLiffAccessToken } from "@/lib/liff";
+import { liffConfigured, getLineProfile, getLiffAccessToken, isInLineClient } from "@/lib/liff";
 import { AuthShell } from "@/components/AuthShell";
 import { readNextParam } from "@/lib/utils";
 import type { Role } from "@/lib/types";
@@ -162,8 +162,21 @@ export function AuthScreen({ portalKey }: { portalKey: PortalKey }) {
     }
   }, [loginWithLine]);
 
+  // auto-login เฉพาะตอนเปิดจากในแอป LINE (LIFF) — ที่นั่นผู้ใช้ตั้งใจเข้าด้วย LINE อยู่แล้ว
+  // เปิดจากเบราว์เซอร์ปกติให้เห็นฟอร์มก่อน ไม่งั้นคนที่สมัครด้วยเบอร์+รหัสผ่านจะเข้าไม่ได้เลย
   useEffect(() => {
-    if (liffConfigured && portal.line) runLineLogin();
+    if (!liffConfigured || !portal.line) return;
+    let cancelled = false;
+    isInLineClient()
+      .then((inLine) => {
+        if (cancelled) return;
+        if (inLine) runLineLogin();
+        else setLineBusy(false);
+      })
+      .catch(() => !cancelled && setLineBusy(false));
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runLineLogin]);
 

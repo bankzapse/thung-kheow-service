@@ -10,6 +10,7 @@ import { supabaseConfigured } from "./supabase/config";
 import { createClient } from "./supabase/client";
 import * as repo from "./supabase/repo";
 import { friendlyError } from "./authError";
+import { liffConfigured, getLiffAccessToken } from "./liff";
 
 /** รหัสผ่านเริ่มต้นของบัญชีเดโม (seed users) — โหมดเดโมเท่านั้น */
 export const DEMO_PASSWORD = "123456";
@@ -106,7 +107,7 @@ interface StoreValue {
   loginWithLine: (profile: { userId: string; displayName: string; pictureUrl?: string }) => void;
   logout: () => void;
   deleteAccount: () => Promise<void>;
-  connectLine: () => void;
+  connectLine: () => void | Promise<void>;
   // seller
   createJob: (input: CreateJobInput) => Promise<Job>;
   cancelJob: (jobId: string) => void;
@@ -508,9 +509,38 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     pushToast("ลบบัญชีและข้อมูลเรียบร้อย", "success");
   }, [currentUser, logout, pushToast]);
 
-  const connectLine = useCallback(() => {
+  /**
+   * เชื่อมบัญชี LINE เข้ากับผู้ใช้ที่ล็อกอินอยู่ (ผู้ที่สมัครด้วยเบอร์)
+   * → ครั้งหน้าล็อกอินผ่าน LIFF ได้เลย และไม่เกิดบัญชีซ้ำ
+   *
+   * เดิมเขียน line_user_id เป็นเลขสุ่มปลอม ทำให้ผูกกับ LINE จริงไม่ได้ตลอดไป
+   * ตอนนี้ขอ access token จาก LIFF แล้วให้ server ตรวจกับ LINE ก่อนบันทึก
+   */
+  const connectLine = useCallback(async () => {
     if (supabaseConfigured) {
-      if (currentUser) sbWrite((sb) => repo.connectLine(sb, currentUser), "เชื่อมบัญชี LINE OA สำเร็จ 🎉", "line");
+      if (!currentUser) return;
+      if (!liffConfigured) {
+        pushToast("ยังไม่ได้ตั้งค่า LINE (LIFF)", "info");
+        return;
+      }
+      try {
+        const token = await getLiffAccessToken();
+        if (!token) return; // กำลัง redirect ไปหน้า LINE
+        const r = await fetch("/api/line/link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accessToken: token }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || j.ok === false) {
+          pushToast(j.error ?? "เชื่อมบัญชี LINE ไม่สำเร็จ", "info");
+          return;
+        }
+        scheduleReload(0); // ดึงโปรไฟล์ใหม่ให้สถานะ "เชื่อมแล้ว" อัปเดตทันที
+        pushToast("เชื่อมบัญชี LINE สำเร็จ 🎉", "line");
+      } catch {
+        pushToast("เชื่อมบัญชี LINE ไม่สำเร็จ", "info");
+      }
       return;
     }
     if (!currentUserId) return;
@@ -521,7 +551,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ),
     }));
     pushToast("เชื่อมบัญชี LINE OA สำเร็จ 🎉", "line");
-  }, [currentUserId, currentUser, sbWrite, pushToast]);
+  }, [currentUserId, currentUser, pushToast, scheduleReload]);
 
   // ---- jobs ----
   const createJob = useCallback(

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { verifyLineAccessToken, fetchLineProfile } from "@/lib/line";
 
 export const runtime = "nodejs";
 
@@ -17,24 +18,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Supabase admin ยังไม่ตั้งค่า" }, { status: 500 });
   }
 
-  // 1) 🔒 verify ว่า access token ถูกออกให้ "channel ของเรา" จริง
-  // GET /v2/profile รับ token จาก channel ไหนก็ได้ → ถ้าไม่เช็ค client_id ผู้โจมตีตั้ง LIFF ของตัวเอง
-  // หลอกเหยื่อกดยินยอม แล้วเอา token มายิงที่นี่ → ได้ magic-link OTP ของเหยื่อ = ยึดบัญชี
-  const channelId = process.env.LINE_LOGIN_CHANNEL_ID;
-  if (!channelId) return NextResponse.json({ error: "LINE Login ยังไม่ตั้งค่า" }, { status: 500 });
-  const vRes = await fetch(`https://api.line.me/oauth2/v2.1/verify?access_token=${encodeURIComponent(accessToken)}`);
-  if (!vRes.ok) return NextResponse.json({ error: "LINE token ไม่ถูกต้อง" }, { status: 401 });
-  const v = (await vRes.json()) as { client_id?: string; expires_in?: number };
-  if (v.client_id !== channelId || !v.expires_in || v.expires_in <= 0) {
-    return NextResponse.json({ error: "LINE token ไม่ถูกต้อง" }, { status: 401 });
-  }
+  // 1) 🔒 verify ว่า access token ถูกออกให้ "channel ของเรา" จริง (ดู lib/line.ts)
+  const v = await verifyLineAccessToken(accessToken);
+  if (!v.ok) return NextResponse.json({ error: "LINE token ไม่ถูกต้อง" }, { status: 401 });
 
   // 2) profile จาก LINE
-  const profRes = await fetch("https://api.line.me/v2/profile", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!profRes.ok) return NextResponse.json({ error: "LINE token ไม่ถูกต้อง" }, { status: 401 });
-  const profile = (await profRes.json()) as { userId: string; displayName: string; pictureUrl?: string };
+  const profile = await fetchLineProfile(accessToken);
+  if (!profile) return NextResponse.json({ error: "อ่านโปรไฟล์ LINE ไม่สำเร็จ" }, { status: 502 });
 
   const admin = createAdminClient();
   const email = `line_${profile.userId}@line.local`;

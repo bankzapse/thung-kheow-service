@@ -11,12 +11,12 @@ import type { JobStatus } from "./types";
 
 const MESSAGING_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
 const MESSAGING_SECRET = process.env.LINE_CHANNEL_SECRET;
+// LIFF ไม่ได้ใช้ OAuth code flow → ต้องการแค่ Channel ID (public client_id)
+// ไม่ต้องมี CHANNEL_SECRET / REDIRECT_URI เหมือน LINE Login แบบเว็บ
 const LOGIN_CHANNEL_ID = process.env.LINE_LOGIN_CHANNEL_ID;
-const LOGIN_CHANNEL_SECRET = process.env.LINE_LOGIN_CHANNEL_SECRET;
-const LOGIN_REDIRECT_URI = process.env.LINE_LOGIN_REDIRECT_URI;
 
 export const lineConfigured = Boolean(MESSAGING_TOKEN);
-export const lineLoginConfigured = Boolean(LOGIN_CHANNEL_ID && LOGIN_CHANNEL_SECRET && LOGIN_REDIRECT_URI);
+export const lineLoginConfigured = Boolean(LOGIN_CHANNEL_ID);
 
 /** ส่งข้อความ (push) ไปยัง LINE userId — คืน {skipped:true} ถ้ายังไม่ตั้งค่า token */
 export async function pushText(to: string, text: string) {
@@ -55,38 +55,35 @@ export function statusMessage(code: string, status: JobStatus, buyerName?: strin
   return map[status];
 }
 
-/* ---------------- LINE Login (OAuth 2.1) ---------------- */
+/* ---------------- LINE Login / LIFF (ฝั่ง server) ---------------- */
 
-export function buildLoginUrl(state: string): string | null {
-  if (!LOGIN_CHANNEL_ID || !LOGIN_REDIRECT_URI) return null;
-  const p = new URLSearchParams({
-    response_type: "code",
-    client_id: LOGIN_CHANNEL_ID,
-    redirect_uri: LOGIN_REDIRECT_URI,
-    state,
-    scope: "profile openid",
-  });
-  return `https://access.line.me/oauth2/v2.1/authorize?${p.toString()}`;
+export interface LineProfile {
+  userId: string;
+  displayName: string;
+  pictureUrl?: string;
 }
 
-export async function exchangeCodeForProfile(code: string) {
-  if (!LOGIN_CHANNEL_ID || !LOGIN_CHANNEL_SECRET || !LOGIN_REDIRECT_URI) return null;
-  const tokenRes = await fetch("https://api.line.me/oauth2/v2.1/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: LOGIN_REDIRECT_URI,
-      client_id: LOGIN_CHANNEL_ID,
-      client_secret: LOGIN_CHANNEL_SECRET,
-    }),
+/**
+ * 🔒 ตรวจว่า access token ถูกออกให้ "channel ของเรา" จริงและยังไม่หมดอายุ
+ *
+ * สำคัญมาก: GET /v2/profile รับ token ที่ออกจาก channel ไหนก็ได้ ถ้าไม่เช็ค client_id
+ * ผู้โจมตีตั้ง LIFF ของตัวเอง หลอกเหยื่อกดยินยอม แล้วเอา token มายิงที่เรา = ยึดบัญชีได้
+ */
+export async function verifyLineAccessToken(accessToken: string): Promise<{ ok: boolean; reason?: string }> {
+  if (!LOGIN_CHANNEL_ID) return { ok: false, reason: "LINE Login ยังไม่ตั้งค่า" };
+  const res = await fetch(`https://api.line.me/oauth2/v2.1/verify?access_token=${encodeURIComponent(accessToken)}`);
+  if (!res.ok) return { ok: false, reason: "token ไม่ถูกต้อง" };
+  const j = (await res.json()) as { client_id?: string; expires_in?: number };
+  if (j.client_id !== LOGIN_CHANNEL_ID) return { ok: false, reason: "token มาจาก channel อื่น" };
+  if (!j.expires_in || j.expires_in <= 0) return { ok: false, reason: "token หมดอายุ" };
+  return { ok: true };
+}
+
+/** โปรไฟล์ LINE จาก access token — เรียกหลัง verifyLineAccessToken ผ่านแล้วเท่านั้น */
+export async function fetchLineProfile(accessToken: string): Promise<LineProfile | null> {
+  const res = await fetch("https://api.line.me/v2/profile", {
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!tokenRes.ok) return null;
-  const token = (await tokenRes.json()) as { access_token: string };
-  const profRes = await fetch("https://api.line.me/v2/profile", {
-    headers: { Authorization: `Bearer ${token.access_token}` },
-  });
-  if (!profRes.ok) return null;
-  return (await profRes.json()) as { userId: string; displayName: string; pictureUrl?: string };
+  if (!res.ok) return null;
+  return (await res.json()) as LineProfile;
 }
