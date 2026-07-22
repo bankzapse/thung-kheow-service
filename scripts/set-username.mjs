@@ -145,15 +145,20 @@ console.log("✅ ตั้ง username แล้ว");
 
 // 3) ปลดเบอร์ — ทำหลังสุดเสมอ เพราะเป็นขั้นที่ย้อนยากถ้าอย่างอื่นล้ม
 if (unlinkPhone) {
-  // ⚠️ ต้องเป็น null — ส่ง "" ตัว GoTrue ไม่ลบให้ (เคยพลาดตรงนี้: profiles ว่าง
-  // แต่ auth ยังจองเบอร์อยู่ → สมัครเบอร์เดิมใหม่ไม่ได้ และดูจาก UI ไม่เห็นปัญหา)
+  // GoTrue admin API ไม่ลบเบอร์ให้ ไม่ว่าจะส่ง "" หรือ null — ข้ามฟิลด์นั้นไปเฉย ๆ
+  // ลองผ่าน API ก่อน (เผื่อเวอร์ชันหลังรองรับ) แล้วเช็คผลจริง
   await auth(`admin/users/${u.id}`, { method: "PUT", body: JSON.stringify({ phone: null }) });
   await rest(`profiles?id=eq.${u.id}`, { method: "PATCH", body: JSON.stringify({ phone: null }) });
 
-  // ยืนยันว่าเบอร์หลุดจริงทั้งสองที่
   const chk = await auth(`admin/users/${u.id}`, { method: "GET" });
   if (chk?.phone) {
-    console.error(`⚠️ auth ยังจองเบอร์ ${chk.phone} อยู่ — เบอร์นี้ยังเอาไปสมัครใหม่ไม่ได้`);
+    console.error(`\n⚠️ auth ยังจองเบอร์ ${chk.phone} อยู่ — API ลบให้ไม่ได้`);
+    console.error("   profiles ว่างแล้ว แต่เบอร์นี้ยังเอาไปสมัครใหม่ไม่ได้");
+    console.error("   ต้องรันใน Supabase → SQL Editor:\n");
+    console.error(`   update auth.users set phone=null, phone_confirmed_at=null,`);
+    console.error(`          phone_change='', phone_change_token=''`);
+    console.error(`    where id = '${u.id}';\n`);
+    console.error("   (ตัวอย่างพร้อมใช้: supabase/manual/unlink-phone-owner.sql)");
     process.exit(1);
   }
   console.log("✅ ปลดเบอร์ออกแล้ว (ทั้ง auth + profiles) — เบอร์นี้เอาไปสมัครใหม่ได้");
