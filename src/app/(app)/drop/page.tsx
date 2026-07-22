@@ -35,21 +35,25 @@ export default function DropPage() {
   const [scanOpen, setScanOpen] = useState(false);
   const closeScan = useCallback(() => setScanOpen(false), []); // memoize กันกล้อง restart ทุก re-render
   const scan = async () => {
-    // แอป native → กล้อง MLKit; ในไลน์ → liff.scanCodeV2
+    // แอป native → กล้อง MLKit (สิทธิ์ระดับ OS ขอครั้งเดียว)
     if (isNativeApp()) {
       const v = await nativeScanQr();
       if (v) handleCode(v);
       return;
     }
-    // ใช้สแกนของ LINE เฉพาะเมื่ออยู่ใน LINE จริงๆ — เว็บ/มือถือปกติต้องเปิดกล้องเว็บ
-    if (liffConfigured && (await isInLineClient())) {
-      const v = await scanQr();
-      if (v) handleCode(v);
-      return;
-    }
-    // เว็บ/มือถือ: เปิดกล้องจริงด้วย QrScanner (getUserMedia)
+    // ที่เหลือ (รวมในแอป LINE) ใช้สแกนเนอร์ของเราเอง — หน้าตาเดียวกันทุกแพลตฟอร์ม
+    // ถ้าเว็บวิวเปิดกล้องไม่ได้ onCameraFail จะพาไปใช้สแกนเนอร์ของ LINE แทน
     setScanOpen(true);
   };
+
+  /** เปิดกล้องเองไม่ได้ → ตกกลับไป liff.scanCodeV2 (มีเฉพาะในแอป LINE) */
+  const fallbackToLineScanner = useCallback(async () => {
+    setScanOpen(false);
+    if (!liffConfigured || !(await isInLineClient())) return;
+    const v = await scanQr();
+    if (v) handleCode(v);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const addManual = () => {
     if (!manual.trim()) return;
@@ -154,7 +158,7 @@ export default function DropPage() {
         </button>
       </div>
 
-      <QrScanner open={scanOpen} onClose={closeScan} onResult={handleCode} />
+      <QrScanner open={scanOpen} onClose={closeScan} onResult={handleCode} onCameraFail={fallbackToLineScanner} />
     </div>
   );
 }

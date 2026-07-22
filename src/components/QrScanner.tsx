@@ -10,7 +10,18 @@ import { X, Loader2, CameraOff, CheckCircle2 } from "lucide-react";
  * - ไม่มีกล้อง/ไม่ได้สิทธิ์ → โชว์ข้อความให้พิมพ์รหัสเอง
  * ต้องรันบน HTTPS (หรือ localhost) — โปรดักชัน Vercel เป็น HTTPS อยู่แล้ว
  */
-export function QrScanner({ open, onClose, onResult }: { open: boolean; onClose: () => void; onResult: (text: string) => void }) {
+export function QrScanner({
+  open,
+  onClose,
+  onResult,
+  onCameraFail,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onResult: (text: string) => void;
+  /** เปิดกล้องไม่ได้ (เช่น เว็บวิวบล็อก getUserMedia) → ให้ผู้เรียกสลับไปใช้ทางอื่น */
+  onCameraFail?: () => void;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -18,6 +29,8 @@ export function QrScanner({ open, onClose, onResult }: { open: boolean; onClose:
   const lastScanRef = useRef(0); // throttle การถอดรหัส
   const onResultRef = useRef(onResult);
   onResultRef.current = onResult;
+  const onCameraFailRef = useRef(onCameraFail);
+  onCameraFailRef.current = onCameraFail;
 
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(true);
@@ -80,9 +93,16 @@ export function QrScanner({ open, onClose, onResult }: { open: boolean; onClose:
         if (cancelled) return;
         setStarting(false);
         const name = (e as Error)?.name;
+        // ผู้ใช้กด "ไม่อนุญาต" เอง = ตั้งใจ อย่าเด้งไปสแกนเนอร์อื่นให้งง
+        // แต่ถ้าเว็บวิวไม่รองรับ/ไม่มีกล้อง → ให้ผู้เรียกสลับไปทางอื่นได้ (เช่น สแกนเนอร์ของ LINE)
+        const userDenied = name === "NotAllowedError";
+        if (!userDenied && onCameraFailRef.current) {
+          onCameraFailRef.current();
+          return;
+        }
         setError(
-          name === "NotAllowedError" || name === "SecurityError"
-            ? "ไม่ได้รับอนุญาตให้ใช้กล้อง — เปิดสิทธิ์กล้องในเบราว์เซอร์แล้วลองใหม่ หรือพิมพ์รหัสเอง"
+          userDenied || name === "SecurityError"
+            ? "ไม่ได้รับอนุญาตให้ใช้กล้อง — เปิดสิทธิ์กล้องแล้วลองใหม่ หรือพิมพ์รหัสเอง"
             : name === "NotFoundError" || name === "OverconstrainedError"
               ? "ไม่พบกล้องบนอุปกรณ์นี้ — พิมพ์รหัสด้วยตนเองแทน"
               : "เปิดกล้องไม่สำเร็จ — พิมพ์รหัสด้วยตนเองแทน",
@@ -100,31 +120,51 @@ export function QrScanner({ open, onClose, onResult }: { open: boolean; onClose:
       {/* กล้อง */}
       <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" playsInline autoPlay muted />
 
-      {/* overlay กรอบเล็ง */}
+      {/* กรอบเล็ง — มุมล้วน + พื้นที่นอกกรอบมืดลง ให้สายตาโฟกัสในกรอบ (แบบสแกนเนอร์ของ LINE) */}
       {!error && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className={`relative h-64 w-64 rounded-3xl ring-4 transition-colors ${flash ? "ring-brand-400" : "ring-white/80"}`}>
-            <span className="absolute -left-1 -top-1 h-8 w-8 rounded-tl-3xl border-l-4 border-t-4 border-brand-400" />
-            <span className="absolute -right-1 -top-1 h-8 w-8 rounded-tr-3xl border-r-4 border-t-4 border-brand-400" />
-            <span className="absolute -bottom-1 -left-1 h-8 w-8 rounded-bl-3xl border-b-4 border-l-4 border-brand-400" />
-            <span className="absolute -bottom-1 -right-1 h-8 w-8 rounded-br-3xl border-b-4 border-r-4 border-brand-400" />
+        <div className="pointer-events-none absolute inset-0">
+          {/* ฉากมืดเจาะรูตรงกลางด้วย box-shadow ขนาดยักษ์ */}
+          <div
+            className="absolute left-1/2 top-1/2 h-[74vw] max-h-[340px] w-[74vw] max-w-[340px] -translate-x-1/2 -translate-y-1/2 rounded-2xl transition-shadow"
+            style={{ boxShadow: "0 0 0 100vmax rgba(0,0,0,0.55)" }}
+          />
+          <div className="absolute left-1/2 top-1/2 h-[74vw] max-h-[340px] w-[74vw] max-w-[340px] -translate-x-1/2 -translate-y-1/2">
+            {(
+              [
+                ["-left-px -top-px", "rounded-tl-2xl border-l-[5px] border-t-[5px]"],
+                ["-right-px -top-px", "rounded-tr-2xl border-r-[5px] border-t-[5px]"],
+                ["-bottom-px -left-px", "rounded-bl-2xl border-b-[5px] border-l-[5px]"],
+                ["-bottom-px -right-px", "rounded-br-2xl border-b-[5px] border-r-[5px]"],
+              ] as const
+            ).map(([pos, shape]) => (
+              <span
+                key={pos}
+                className={`absolute ${pos} ${shape} h-11 w-11 transition-colors ${flash ? "border-brand-400" : "border-white"}`}
+              />
+            ))}
             {flash && (
               <div className="absolute inset-0 grid place-items-center">
-                <CheckCircle2 className="h-16 w-16 text-brand-400 drop-shadow-lg" />
+                <CheckCircle2 className="h-20 w-20 text-brand-400 drop-shadow-lg" />
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* top bar */}
-      <div className="relative z-10 flex items-center justify-between p-4">
-        <span className="rounded-full bg-black/50 px-3 py-1.5 text-sm font-semibold text-white backdrop-blur">
-          {starting ? "กำลังเปิดกล้อง…" : flash ? "สแกนสำเร็จ ✓" : "สแกน QR ถุง"}
-        </span>
-        <button onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur">
-          <X className="h-5 w-5" />
+      {/* ปุ่มปิด — มุมซ้ายบน ตำแหน่งเดียวกับสแกนเนอร์ของ LINE */}
+      <div className="relative z-10 flex items-start justify-between p-4">
+        <button
+          onClick={onClose}
+          aria-label="ปิด"
+          className="flex h-11 w-11 items-center justify-center rounded-full text-white drop-shadow-lg"
+        >
+          <X className="h-7 w-7" />
         </button>
+        {(starting || flash) && (
+          <span className="rounded-full bg-black/50 px-3 py-1.5 text-sm font-semibold text-white backdrop-blur">
+            {starting ? "กำลังเปิดกล้อง…" : "สแกนสำเร็จ ✓"}
+          </span>
+        )}
       </div>
 
       {/* กำลังเปิดกล้อง */}
@@ -145,11 +185,12 @@ export function QrScanner({ open, onClose, onResult }: { open: boolean; onClose:
         </div>
       )}
 
-      {/* bottom actions */}
+      {/* คำแนะนำล่างจอ — ไม่มีปุ่มใหญ่บังกล้อง (ปิดที่กากบาทมุมบน) */}
       {!error && (
-        <div className="absolute inset-x-0 bottom-0 z-10 p-5">
-          <p className="mb-3 text-center text-sm text-white/80">เล็งกล้องไปที่ QR บนถุง 1 ถุง</p>
-          <button onClick={onClose} className="btn-primary w-full !py-3.5 text-base">ยกเลิก</button>
+        <div className="absolute inset-x-0 bottom-0 z-10 px-6 pb-[max(env(safe-area-inset-bottom),1.5rem)] pt-5">
+          <p className="text-center text-base text-white drop-shadow">
+            {flash ? "เพิ่มถุงแล้ว" : "เล็งกล้องไปที่ QR บนถุง — ครั้งละ 1 ถุง"}
+          </p>
         </div>
       )}
     </div>
