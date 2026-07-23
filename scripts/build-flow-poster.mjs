@@ -143,10 +143,24 @@ function materialStrip() {
       <text x="${mx}" y="${ty + thumb + 58}" font-family="${FONT}" font-size="42" font-weight="600"
             fill="#33463b" text-anchor="middle">${esc(label)}</text>`;
   }).join("");
+  // ป้ายเตือนสีแดง — จงใจใช้สีนอกโทนแบรนด์ให้สะดุดตา ห้ามทิ้งขยะทั่วไปลงตู้
+  const cardRight = MARGIN + (SPLIT - MARGIN - 60);
+  const pillW = 800;
+  const pillH = 76;
+  const pillX = cardRight - 40 - pillW;
+  const pillY = BOT_Y + 28;
+  const icx = pillX + 54;
+  const icy = pillY + pillH / 2;
+  const warn = `
+    <rect x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="${pillH / 2}" fill="#dc2626"/>
+    <circle cx="${icx}" cy="${icy}" r="26" fill="#ffffff"/>
+    <path d="M${icx - 11} ${icy - 11}L${icx + 11} ${icy + 11}M${icx + 11} ${icy - 11}L${icx - 11} ${icy + 11}"
+          stroke="#dc2626" stroke-width="7" stroke-linecap="round"/>
+    <text x="${icx + 46}" y="${icy + 17}" font-family="${FONT}" font-size="44" font-weight="700" fill="#ffffff">ห้ามทิ้งขยะทั่วไป · ขยะเปียก</text>`;
   return `
     <rect x="${MARGIN}" y="${BOT_Y}" width="${SPLIT - MARGIN - 60}" height="${BOT_H}" rx="44" fill="#ffffff" stroke="#e3ece6" stroke-width="3"/>
-    <text x="${innerX}" y="${BOT_Y + 72}" font-family="${FONT}" font-size="54" font-weight="700" fill="#153d29">รับเฉพาะวัสดุเหล่านี้</text>
-    <text x="${innerX + 470}" y="${BOT_Y + 72}" font-family="${FONT}" font-size="40" fill="#7a8a80">คัดแยก &amp; ล้างให้สะอาดก่อนใส่ถุง</text>
+    <text x="${innerX}" y="${BOT_Y + 78}" font-family="${FONT}" font-size="54" font-weight="700" fill="#153d29">รับเฉพาะวัสดุเหล่านี้</text>
+    ${warn}
     ${items}`;
 }
 
