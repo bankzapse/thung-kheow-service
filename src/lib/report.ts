@@ -203,9 +203,9 @@ export function reportToCsv(rep: RevenueReport): string {
   return "﻿" + lines.join("\r\n");
 }
 
-/** ชื่อไฟล์รายงาน เช่น thungkhiao-revenue-GLN-2026-07-08.csv */
+/** ชื่อไฟล์รายงาน เช่น thung-kheow-revenue-GLN-2026-07-08.csv */
 export function revenueReportFilename(rep: RevenueReport, ext = "csv"): string {
   const scope = rep.scope === "all" ? "all" : rep.groups[0]?.franchiseCode || "franchise";
   const day = rep.generatedAt.slice(0, 10);
-  return `thungkhiao-revenue-${scope}-${day}.${ext}`;
+  return `thung-kheow-revenue-${scope}-${day}.${ext}`;
 }

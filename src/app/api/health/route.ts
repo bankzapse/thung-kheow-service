@@ -40,7 +40,7 @@ export async function GET() {
       lineChannelId,   // null = LINE_LOGIN_CHANNEL_ID ไม่ได้ตั้ง
       messagingApi: has(process.env.LINE_CHANNEL_ACCESS_TOKEN), // ยังไม่จำเป็นสำหรับล็อกอิน
     },
-    siteUrl, // null = ยังไม่ตั้ง → canonical/OG จะ fallback เป็น app.thungkhiao.co
+    siteUrl, // null = ยังไม่ตั้ง → canonical/OG จะ fallback เป็น thung-kheow.com
     config: { supabase, serviceRole, smsok, otpSecret, otpReady },
     hint: !canSellerOtp
       ? "ผู้ขายจะรับ OTP ไม่ได้ — ตั้ง SMSOK_API_KEY/SMSOK_API_SECRET (Sender อนุมัติ + มียอดเงิน) และ OTP_SECRET"

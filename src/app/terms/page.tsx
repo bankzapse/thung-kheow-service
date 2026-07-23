@@ -89,7 +89,7 @@ export default function TermsPage() {
       <Sec n={11} title="ติดต่อเรา">
         <p>ห้างหุ้นส่วนจำกัด พุงกลม แคทเทอริ่ง (PHOONGKLOM CATERING LIMITED PARTNERSHIP) · เลขทะเบียน 0503567002941</p>
         <p>359/112 โครงการสุขสมฤทัย หมู่ที่ 4 ตำบลยางเนิ้ง อำเภอสารภี จังหวัดเชียงใหม่ 50140</p>
-        <p>โทร: <a href="tel:0892616445" className="text-brand-600">089-261-6445</a> · อีเมล: <a href="mailto:support@thungkhiao.co" className="text-brand-600">support@thungkhiao.co</a> · LINE: @thungkhiao</p>
+        <p>โทร: <a href="tel:0892616445" className="text-brand-600">089-261-6445</a> · อีเมล: <a href="mailto:support@thung-kheow.com" className="text-brand-600">support@thung-kheow.com</a> · LINE: @200iyzrg</p>
       </Sec>
     </LegalShell>
   );

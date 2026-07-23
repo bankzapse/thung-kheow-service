@@ -285,7 +285,7 @@ export default function Landing() {
               <div>
                 <p className="mb-3 text-sm font-semibold text-white">ติดต่อเรา</p>
                 <ul className="space-y-2 text-sm text-neutral-400">
-                  <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-brand-400" /> support@thungkhiao.co</li>
+                  <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-brand-400" /> support@thung-kheow.com</li>
                   <li className="flex items-center gap-2">
                     <MessageCircle className="h-4 w-4 text-brand-400" />
                     <a href={LINE_OA_ADD_URL} target="_blank" rel="noopener noreferrer" className="hover:text-white">

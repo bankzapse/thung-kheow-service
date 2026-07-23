@@ -19,7 +19,7 @@ export default function DeleteAccountPage() {
         <UL
           items={[
             <><b>ในแอป (แนะนำ):</b> แท็บ “โปรไฟล์” → เลื่อนลงล่างสุด → “ลบบัญชีและข้อมูล” → ยืนยัน</>,
-            <><b>อีเมล:</b> ส่งคำขอมาที่ <a href="mailto:support@thungkhiao.co?subject=ขอลบบัญชี%20ถุงเขียว" className="text-brand-600">support@thungkhiao.co</a> พร้อมเบอร์โทร/อีเมลที่ใช้สมัคร</>,
+            <><b>อีเมล:</b> ส่งคำขอมาที่ <a href="mailto:support@thung-kheow.com?subject=ขอลบบัญชี%20ถุงเขียว" className="text-brand-600">support@thung-kheow.com</a> พร้อมเบอร์โทร/อีเมลที่ใช้สมัคร</>,
             <><b>LINE:</b> ทักหาเราที่ <a href={LINE_OA_ADD_URL} target="_blank" rel="noopener noreferrer" className="font-bold text-brand-600">{LINE_OA_ID}</a> แจ้ง “ขอลบบัญชี”</>,
           ]}
         />
@@ -49,7 +49,7 @@ export default function DeleteAccountPage() {
       </Sec>
 
       <Sec n={6} title="ติดต่อ">
-        <p>ห้างหุ้นส่วนจำกัด พุงกลม แคทเทอริ่ง · โทร: <a href="tel:0892616445" className="text-brand-600">089-261-6445</a> · อีเมล: <a href="mailto:support@thungkhiao.co" className="text-brand-600">support@thungkhiao.co</a> · LINE: <a href={LINE_OA_ADD_URL} target="_blank" rel="noopener noreferrer" className="text-brand-600">{LINE_OA_ID}</a></p>
+        <p>ห้างหุ้นส่วนจำกัด พุงกลม แคทเทอริ่ง · โทร: <a href="tel:0892616445" className="text-brand-600">089-261-6445</a> · อีเมล: <a href="mailto:support@thung-kheow.com" className="text-brand-600">support@thung-kheow.com</a> · LINE: <a href={LINE_OA_ADD_URL} target="_blank" rel="noopener noreferrer" className="text-brand-600">{LINE_OA_ID}</a></p>
       </Sec>
     </LegalShell>
   );
