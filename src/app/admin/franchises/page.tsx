@@ -61,18 +61,19 @@ export default function AdminFranchisesPage() {
 
   // แก้ไข / ลบ แฟรนไชส์
   const [editFr, setEditFr] = useState<FranchiseWithStats | null>(null);
-  const [ef, setEf] = useState({ name: "", ownerName: "", phone: "", password: "" });
+  const [ef, setEf] = useState({ name: "", ownerName: "", phone: "", password: "", username: "" });
+  const ownerOf = (f: FranchiseWithStats) => db.users.find((u) => u.role === "franchise" && u.franchiseId === f.id);
   /** เบอร์ของแฟรนไชส์ = เบอร์บัญชีเจ้าของ (แหล่งเดียว) · ตกกลับไปใช้ตาราง franchises ถ้ายังไม่มีเจ้าของ */
-  const ownerPhoneOf = (f: FranchiseWithStats) =>
-    db.users.find((u) => u.role === "franchise" && u.franchiseId === f.id)?.phone || f.phone || "";
+  const ownerPhoneOf = (f: FranchiseWithStats) => ownerOf(f)?.phone || f.phone || "";
 
   const openEdit = (f: FranchiseWithStats) => {
-    setEf({ name: f.name, ownerName: f.ownerName ?? "", phone: ownerPhoneOf(f), password: "" });
+    setEf({ name: f.name, ownerName: f.ownerName ?? "", phone: ownerPhoneOf(f), password: "", username: ownerOf(f)?.username ?? "" });
     setEditFr(f);
   };
+  const efUsernameOk = !ef.username.trim() || isValidUsername(ef.username);
   const saveEdit = () => {
-    if (!editFr) return;
-    editFranchise(editFr.id, { name: ef.name, ownerName: ef.ownerName, phone: ef.phone, password: ef.password || undefined });
+    if (!editFr || !efUsernameOk) return;
+    editFranchise(editFr.id, { name: ef.name, ownerName: ef.ownerName, phone: ef.phone, password: ef.password || undefined, username: ef.username.trim() || undefined });
     setEditFr(null);
   };
   const [delFr, setDelFr] = useState<FranchiseWithStats | null>(null);
@@ -297,7 +298,7 @@ export default function AdminFranchisesPage() {
         footer={
           <>
             <button className="btn-outline flex-1" onClick={() => setEditFr(null)}>ยกเลิก</button>
-            <button className="btn-primary flex-1" disabled={!ef.name.trim() || !/^0\d{8,9}$/.test(ef.phone)} onClick={saveEdit}>บันทึก</button>
+            <button className="btn-primary flex-1" disabled={!ef.name.trim() || !efUsernameOk || (!!ef.phone && !/^0\d{8,9}$/.test(ef.phone))} onClick={saveEdit}>บันทึก</button>
           </>
         }
       >
@@ -309,6 +310,11 @@ export default function AdminFranchisesPage() {
           <div>
             <label className="label">ชื่อเจ้าของ</label>
             <input className="input" value={ef.ownerName} onChange={(e) => setEf({ ...ef, ownerName: e.target.value })} placeholder="คุณ…" />
+          </div>
+          <div>
+            <label className="label">ชื่อผู้ใช้ (เข้าระบบ)</label>
+            <input className="input" value={ef.username} onChange={(e) => setEf({ ...ef, username: e.target.value.replace(/[^a-zA-Z0-9._-]/g, "").toLowerCase() })} placeholder="เช่น eakchai" autoCapitalize="none" />
+            {!efUsernameOk && <p className="mt-1 text-xs text-amber-600">ชื่อผู้ใช้ต้องเป็น a–z, 0–9, จุด _ - ยาว 3–32 ตัว</p>}
           </div>
           <div>
             <label className="label">เบอร์ติดต่อ</label>

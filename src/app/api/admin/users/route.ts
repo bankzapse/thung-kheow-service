@@ -89,7 +89,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true, id: fr.id });
       }
       case "updateFranchise": {
-        const { franchiseId, name, ownerName, password } = body;
+        const { franchiseId, name, ownerName, password, username } = body;
         if (!franchiseId) return bad("missing franchiseId");
         const newPhone = body.phone != null && body.phone !== "" ? String(body.phone).trim() : "";
         if (newPhone && !/^0\d{8,9}$/.test(newPhone)) return bad("เบอร์ไม่ถูกต้อง (10 หลัก)");
@@ -121,6 +121,21 @@ export async function POST(req: Request) {
             }
           }
           if (ownerName != null) await table("profiles").update({ name: String(ownerName).trim() }).eq("id", ownerId);
+          // เปลี่ยนชื่อผู้ใช้ (เข้าระบบ) — ต้องเปลี่ยนอีเมล auth ด้วย เพราะล็อกอินแปลง
+          // username → email ภายใน (usernameToEmail) แล้ว signInWithPassword ด้วยอีเมลนั้น
+          if (username != null && String(username).trim() !== "") {
+            const uname = String(username).trim().toLowerCase();
+            const email = usernameToEmail(uname);
+            if (!email) return bad("ชื่อผู้ใช้ไม่ถูกต้อง (a-z, 0-9, . _ - ยาว 3–32 ตัว)");
+            const { data: dup } = await table("profiles").select("id").eq("username", uname).neq("id", ownerId).maybeSingle();
+            if (dup) return bad("ชื่อผู้ใช้นี้มีแล้ว");
+            const { data: cur } = await admin.auth.admin.getUserById(ownerId);
+            if ((cur?.user?.email ?? "").toLowerCase() !== email.toLowerCase()) {
+              const { error } = await admin.auth.admin.updateUserById(ownerId, { email, email_confirm: true });
+              if (error) return bad(/registered|already|exists|duplicate/i.test(error.message) ? "ชื่อผู้ใช้นี้มีบัญชีอื่นใช้อยู่แล้ว" : error.message, 400);
+            }
+            await table("profiles").update({ username: uname }).eq("id", ownerId);
+          }
         }
         return NextResponse.json({ ok: true });
       }

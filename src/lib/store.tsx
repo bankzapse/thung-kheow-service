@@ -159,7 +159,7 @@ interface StoreValue {
   editCabinet: (id: string, patch: { name?: string; address?: string; province?: string; district?: string; subdistrict?: string }) => void;
   setCabinetLocation: (id: string, lat: number, lng: number) => void;
   addFranchise: (input: { code: string; name: string; ownerName: string; username: string; phone?: string; password?: string }) => void;
-  editFranchise: (id: string, patch: { name?: string; ownerName?: string; phone?: string; password?: string }) => void;
+  editFranchise: (id: string, patch: { name?: string; ownerName?: string; phone?: string; password?: string; username?: string }) => void;
   removeFranchise: (id: string) => void;
 }
 
@@ -1385,21 +1385,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   // แก้ไขแฟรนไชส์ (ชื่อ/เจ้าของ/เบอร์/รหัสผ่านเข้าระบบ) — บริษัทเท่านั้น
   const editFranchise = useCallback(
-    (id: string, patch: { name?: string; ownerName?: string; phone?: string; password?: string }) => {
+    (id: string, patch: { name?: string; ownerName?: string; phone?: string; password?: string; username?: string }) => {
       if (patch.phone != null && patch.phone.trim() && !/^0\d{8,9}$/.test(patch.phone.trim())) { pushToast("เบอร์ไม่ถูกต้อง (10 หลัก ขึ้นต้น 0)", "info"); return; }
       if (patch.password && patch.password.length < 4) { pushToast("รหัสผ่านอย่างน้อย 4 ตัวอักษร", "info"); return; }
+      const uname = patch.username?.trim().toLowerCase();
+      if (uname && !usernameToEmail(uname)) { pushToast("ชื่อผู้ใช้ไม่ถูกต้อง (a-z, 0-9, . _ - ยาว 3–32 ตัว)", "info"); return; }
+      if (uname && db.users.some((u) => u.username?.toLowerCase() === uname && !(u.role === "franchise" && u.franchiseId === id))) { pushToast("ชื่อผู้ใช้นี้มีแล้ว", "info"); return; }
       if (supabaseConfigured) {
-        adminUsersApi("updateFranchise", { franchiseId: id, name: patch.name?.trim(), ownerName: patch.ownerName?.trim(), phone: patch.phone?.trim(), password: patch.password || undefined }, "บันทึกข้อมูลแฟรนไชส์แล้ว");
+        adminUsersApi("updateFranchise", { franchiseId: id, name: patch.name?.trim(), ownerName: patch.ownerName?.trim(), phone: patch.phone?.trim(), password: patch.password || undefined, username: uname || undefined }, "บันทึกข้อมูลแฟรนไชส์แล้ว");
         return;
       }
       setDb((d) => ({
         ...d,
         franchises: d.franchises.map((f) => (f.id === id ? { ...f, ...(patch.name != null ? { name: patch.name.trim() || f.name } : {}), ...(patch.ownerName != null ? { ownerName: patch.ownerName.trim() } : {}), ...(patch.phone != null ? { phone: patch.phone.trim() } : {}) } : f)),
-        users: d.users.map((u) => (u.role === "franchise" && u.franchiseId === id ? { ...u, ...(patch.ownerName != null ? { name: patch.ownerName.trim() } : {}), ...(patch.phone != null ? { phone: patch.phone.trim() } : {}), ...(patch.password ? { password: patch.password } : {}) } : u)),
+        users: d.users.map((u) => (u.role === "franchise" && u.franchiseId === id ? { ...u, ...(patch.ownerName != null ? { name: patch.ownerName.trim() } : {}), ...(patch.phone != null ? { phone: patch.phone.trim() } : {}), ...(patch.password ? { password: patch.password } : {}), ...(uname ? { username: uname } : {}) } : u)),
       }));
       pushToast("บันทึกข้อมูลแฟรนไชส์แล้ว", "success");
     },
-    [pushToast, adminUsersApi],
+    [db.users, pushToast, adminUsersApi],
   );
 
   // ลบแฟรนไชส์ (พร้อมตู้ + บัญชีเจ้าของ) — บริษัทเท่านั้น
