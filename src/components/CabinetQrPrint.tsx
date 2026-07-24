@@ -7,15 +7,18 @@ import { Printer, Box } from "lucide-react";
 
 /** พิมพ์ QR ป้ายตู้ + ถุงตาข่าย (ใช้ทั้งฝั่งผู้ดูแลและเจ้าของแฟรนไชส์) */
 export function CabinetQrPrint({ cab }: { cab: Cabinet }) {
-  const [start, setStart] = useState(1);
-  const [count, setCount] = useState(24); // 24 = เต็ม 1 แผ่น A4 พอดี (4 × 6)
+  // เก็บเป็น string เพื่อให้ลบช่องว่างได้ระหว่างพิมพ์ (ไม่เด้งเป็น 1) แล้ว clamp ตอนใช้/blur
+  const [start, setStart] = useState("1");
+  const [count, setCount] = useState("24"); // 24 = เต็ม 1 แผ่น A4 พอดี (4 × 6)
   const [withCabinetLabel, setWithCabinetLabel] = useState(true);
   const full = cabinetFullCode(cab.franchiseCode, cab.code);
 
-  const codes = useMemo(() => {
-    const n = Math.min(200, Math.max(1, count));
-    return Array.from({ length: n }, (_, i) => String(start + i).padStart(7, "0"));
-  }, [start, count]);
+  const startN = Math.max(1, Number(start) || 1);
+  const countN = Math.min(200, Math.max(1, Number(count) || 1));
+  const codes = useMemo(
+    () => Array.from({ length: countN }, (_, i) => String(startN + i).padStart(7, "0")),
+    [startN, countN],
+  );
 
   return (
     <div className="space-y-5">
@@ -32,11 +35,11 @@ export function CabinetQrPrint({ cab }: { cab: Cabinet }) {
         <div className="card flex flex-wrap items-end gap-4">
           <div>
             <label className="label">เลขถุงเริ่มต้น</label>
-            <input className="input w-32" inputMode="numeric" value={start} onChange={(e) => setStart(Math.max(1, Number(e.target.value.replace(/\D/g, "")) || 1))} />
+            <input className="input w-32" inputMode="numeric" value={start} onChange={(e) => setStart(e.target.value.replace(/\D/g, ""))} onBlur={() => setStart(String(startN))} />
           </div>
           <div>
             <label className="label">จำนวนถุง (สูงสุด 200)</label>
-            <input className="input w-32" inputMode="numeric" value={count} onChange={(e) => setCount(Math.max(1, Number(e.target.value.replace(/\D/g, "")) || 1))} />
+            <input className="input w-32" inputMode="numeric" value={count} onChange={(e) => setCount(e.target.value.replace(/\D/g, ""))} onBlur={() => setCount(String(countN))} />
             <p className="mt-1 text-xs text-neutral-400">24 ใบ = เต็ม 1 แผ่น A4 พอดี</p>
           </div>
           <label className="flex cursor-pointer items-center gap-2 pb-1 text-sm text-neutral-600">
