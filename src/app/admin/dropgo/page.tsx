@@ -58,7 +58,7 @@ export default function AdminDropGoPage() {
         ) : (
           <CabinetMap pins={pins} height={400} />
         )}
-        <p className="mt-2 text-xs text-neutral-400">ตัวเลขบนหมุด = ถุงที่หย่อนแล้วรอเก็บไปคัดแยก (อยู่ที่ตู้ตอนนี้) · หมุดเทา = ตู้ว่าง · แตะหมุดเพื่อดูรายละเอียด/นำทาง{noGeoCount > 0 && <span className="text-amber-600"> · มี {noGeoCount} ตู้ยังไม่ปักหมุด (ตั้งที่หน้าแฟรนไชส์)</span>}</p>
+        <p className="mt-2 text-xs text-neutral-400">ตัวเลขบนหมุด = ถุงที่หย่อนแล้วรอเก็บไปคัดแยก (อยู่ที่ตู้ตอนนี้) · <span className="font-semibold text-amber-600">หมุดส้ม = มีถุงรอเก็บ</span> · <span className="font-semibold text-red-600">หมุดแดง = ว่าง (0)</span> · แตะหมุดเพื่อดูรายละเอียด/นำทาง{noGeoCount > 0 && <span className="text-amber-600"> · มี {noGeoCount} ตู้ยังไม่ปักหมุด (ตั้งที่หน้าแฟรนไชส์)</span>}</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

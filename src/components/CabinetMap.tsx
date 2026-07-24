@@ -84,8 +84,7 @@ export function CabinetMap({
     const bounds = L.latLngBounds([]);
 
     pins.forEach((p) => {
-      const active = (p.badge ?? 0) > 0;
-      L.marker([p.lat, p.lng], { icon: pinIcon(active ? accent : "#94a3b8", p.badge) })
+      L.marker([p.lat, p.lng], { icon: pinIcon(pinColor(p.badge), p.badge) })
         .bindPopup(popupHtml(p, accent))
         .addTo(layer);
       bounds.extend([p.lat, p.lng]);
@@ -114,9 +113,19 @@ export function CabinetMap({
   return <div ref={boxRef} className="overflow-hidden rounded-2xl ring-1 ring-neutral-200" style={{ height }} />;
 }
 
+/**
+ * สีหมุดตามจำนวนถุงรอเก็บ (badge)
+ *   ว่าง 0 ถุง → แดง · มีถุงรอเก็บ → ส้ม · ไม่มีตัวเลข (แผนที่ผู้ขาย) → เขียว
+ */
+function pinColor(badge?: number): string {
+  if (badge == null) return "#16a34a"; // เขียว — แผนที่ตู้ใกล้ฉัน (ไม่นับถุง)
+  return badge > 0 ? "#f59e0b" : "#dc2626"; // ส้ม = มีถุง · แดง = ว่าง
+}
+
 /** หมุดหยดน้ำ SVG + ตัวเลขตรงกลาง (divIcon = ไม่ต้องพึ่งไฟล์รูปของ Leaflet) */
 function pinIcon(color: string, badge?: number) {
-  const label = badge && badge > 0 ? `<text x="15" y="15" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="sans-serif">${badge}</text>` : "";
+  // โชว์ตัวเลขเมื่อมี badge (รวม 0 ด้วย) · แผนที่ผู้ขาย (badge undefined) ไม่โชว์เลข
+  const label = badge != null ? `<text x="15" y="15" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="sans-serif">${badge}</text>` : "";
   return L.divIcon({
     className: "",
     html: `<svg width="30" height="40" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg">
