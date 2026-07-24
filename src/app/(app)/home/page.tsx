@@ -22,7 +22,7 @@ import {
   cabinetsWithCounts,
   type CabinetWithCounts,
 } from "@/lib/selectors";
-import { RADIUS_KM, DEFAULT_BASE, distanceKm, formatDistance, directionsUrl, hasGeo } from "@/lib/geo";
+import { RADIUS_KM, NEARBY_CABINET_RADIUS_KM, DEFAULT_BASE, distanceKm, formatDistance, directionsUrl, hasGeo } from "@/lib/geo";
 import { displayCabinetCode } from "@/lib/types";
 import { CabinetMap, type CabinetPin } from "@/components/CabinetMap";
 import { MIN_CREDIT } from "@/lib/fees";
@@ -203,7 +203,10 @@ function NearbyCabinets({
   rows: { c: CabinetWithCounts; km: number }[];
   base: { lat: number; lng: number };
 }) {
-  const pins: CabinetPin[] = rows.map(({ c, km }) => ({
+  // เฉพาะตู้ในรัศมี 10 กม. · แสดงไม่เกิน 5 ตู้ (rows เรียงตามระยะมาแล้ว)
+  const within = rows.filter(({ km }) => km <= NEARBY_CABINET_RADIUS_KM);
+  const shown = within.slice(0, 5);
+  const pins: CabinetPin[] = shown.map(({ c, km }) => ({
     id: c.id,
     lat: c.location.lat,
     lng: c.location.lng,
@@ -212,7 +215,6 @@ function NearbyCabinets({
     address: c.location.address,
     distanceLabel: formatDistance(km),
   }));
-  const nearest = rows.slice(0, 3);
 
   return (
     <div className="card">
@@ -220,32 +222,45 @@ function NearbyCabinets({
         <h2 className="flex items-center gap-1.5 font-bold text-neutral-800">
           <MapPin className="h-4 w-4 text-brand-600" /> ตู้หย่อนถุงใกล้คุณ
         </h2>
-        <span className="text-xs text-neutral-400">{rows.length} ตู้</span>
+        <span className="text-xs text-neutral-400">ในรัศมี {NEARBY_CABINET_RADIUS_KM} กม.</span>
       </div>
-      <CabinetMap pins={pins} user={base} height={300} />
-      <div className="mt-3 space-y-2">
-        {nearest.map(({ c, km }) => (
-          <a
-            key={c.id}
-            href={directionsUrl(c.location.lat, c.location.lng, c.name)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 rounded-xl bg-neutral-50 px-3 py-2 ring-1 ring-neutral-100 transition active:scale-[0.99]"
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-700">
-              <Box className="h-4.5 w-4.5" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-neutral-800">{c.name}</p>
-              <p className="truncate text-xs text-neutral-400">{c.location.address}</p>
-            </div>
-            <span className="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700">
-              {formatDistance(km)}
-            </span>
-            <Navigation className="h-4 w-4 shrink-0 text-neutral-300" />
-          </a>
-        ))}
-      </div>
+      {shown.length === 0 ? (
+        <p className="py-6 text-center text-sm text-neutral-400">ยังไม่มีตู้ในรัศมี {NEARBY_CABINET_RADIUS_KM} กม. — กด “ดูตู้ทั้งหมด” เพื่อดูตู้อื่น</p>
+      ) : (
+        <>
+          <CabinetMap pins={pins} user={base} height={300} />
+          <div className="mt-3 space-y-2">
+            {shown.map(({ c, km }) => (
+              <a
+                key={c.id}
+                href={directionsUrl(c.location.lat, c.location.lng, c.name)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-xl bg-neutral-50 px-3 py-2 ring-1 ring-neutral-100 transition active:scale-[0.99]"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-700">
+                  <Box className="h-4.5 w-4.5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-neutral-800">{c.name}</p>
+                  <p className="truncate text-xs text-neutral-400">{c.location.address}</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700">
+                  {formatDistance(km)}
+                </span>
+                <Navigation className="h-4 w-4 shrink-0 text-neutral-300" />
+              </a>
+            ))}
+          </div>
+        </>
+      )}
+      <Link
+        href="/cabinets"
+        className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-brand-50 px-3 py-2.5 text-sm font-semibold text-brand-700 ring-1 ring-brand-100 transition active:scale-[0.99]"
+      >
+        <MapPin className="h-4 w-4" /> ดูตู้หย่อนถุงทั้งหมด ({rows.length} ตู้)
+        <ChevronRight className="h-4 w-4" />
+      </Link>
     </div>
   );
 }
