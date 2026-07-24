@@ -65,7 +65,11 @@ export function CabinetMap({
     }).addTo(map);
     layerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
+    // กล่องเปลี่ยนขนาด (เลย์เอาต์เพิ่งเสร็จ/เปิดในแท็บ) → invalidateSize กัน tile เบลอ
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    if (boxRef.current) ro.observe(boxRef.current);
     return () => {
+      ro.disconnect();
       map.remove();
       mapRef.current = null;
       layerRef.current = null;

@@ -63,8 +63,12 @@ export function LocationPicker({
     map.on("click", (e: L.LeafletMouseEvent) => place(e.latlng.lat, e.latlng.lng));
     mapRef.current = map;
     if (value) place(value.lat, value.lng);
+    // modal เปิดทีหลัง/กล่องเปลี่ยนขนาด → invalidateSize ใหม่ ไม่งั้นแผนที่วัดขนาดผิด
+    // แล้วโหลด tile ผิดขนาด (เบลอ) · ResizeObserver ดักทุกครั้งที่ container เปลี่ยนขนาด
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    if (boxRef.current) ro.observe(boxRef.current);
     setTimeout(() => map.invalidateSize(), 0);
-    return () => { map.remove(); mapRef.current = null; markerRef.current = null; };
+    return () => { ro.disconnect(); map.remove(); mapRef.current = null; markerRef.current = null; };
     // สร้างครั้งเดียว
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
