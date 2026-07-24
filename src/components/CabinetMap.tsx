@@ -1,9 +1,9 @@
 "use client";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef, useState } from "react";
-import { MapPin, Navigation, Box } from "lucide-react";
-import { GOOGLE_MAPS_KEY, loadGoogleMaps, directionsUrl } from "@/lib/googleMaps";
+import "leaflet/dist/leaflet.css";
+import { useEffect, useMemo, useRef } from "react";
+import L from "leaflet";
+import { directionsUrl } from "@/lib/geo";
 
 export interface CabinetPin {
   id: string;
@@ -20,9 +20,11 @@ export interface CabinetPin {
 const esc = (s: string) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+const BKK = { lat: 13.7563, lng: 100.5018 };
+
 /**
- * แผนที่ Google แสดงหมุดตู้ + ป๊อปอัปรายละเอียด
- * ไม่มี API key → fallback เป็นรายการตู้ (ยังกดนำทางได้) เพื่อไม่ให้หน้าพัง
+ * แผนที่ตู้ด้วย OpenStreetMap + Leaflet — ฟรี ไม่ต้อง API key/บัตร
+ * หมุดโชว์ตัวเลข (จำนวนถุง) + ป๊อปอัปรายละเอียด + ปุ่มนำทาง (เปิด Google Maps)
  */
 export function CabinetMap({
   pins,
@@ -37,143 +39,108 @@ export function CabinetMap({
   height?: number;
   accent?: string;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [state, setState] = useState<"loading" | "ready" | "fallback">(
-    GOOGLE_MAPS_KEY ? "loading" : "fallback",
+  const boxRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const layerRef = useRef<L.LayerGroup | null>(null);
+
+  // ลายเซ็นข้อมูล — ให้ effect รันใหม่เฉพาะตอนข้อมูลจริงเปลี่ยน (ไม่ใช่ทุก render)
+  const sig = useMemo(
+    () =>
+      JSON.stringify(pins.map((p) => [p.id, p.lat, p.lng, p.badge ?? 0])) +
+      "|" +
+      (user ? `${user.lat},${user.lng}` : ""),
+    [pins, user],
   );
 
+  // สร้างแผนที่ครั้งเดียว
   useEffect(() => {
-    if (!GOOGLE_MAPS_KEY) return;
-    let cancelled = false;
-
-    loadGoogleMaps()
-      .then(() => {
-        if (cancelled || !ref.current) return;
-        const g = (window as any).google;
-
-        const center =
-          user ??
-          (pins.length
-            ? { lat: avg(pins.map((p) => p.lat)), lng: avg(pins.map((p) => p.lng)) }
-            : { lat: 13.7563, lng: 100.5018 });
-
-        const map = new g.maps.Map(ref.current, {
-          center,
-          zoom,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: false,
-          clickableIcons: false,
-        });
-
-        const info = new g.maps.InfoWindow();
-        const bounds = new g.maps.LatLngBounds();
-
-        pins.forEach((p) => {
-          const marker = new g.maps.Marker({
-            position: { lat: p.lat, lng: p.lng },
-            map,
-            title: p.name,
-            label: p.badge && p.badge > 0 ? { text: String(p.badge), color: "#fff", fontSize: "12px", fontWeight: "700" } : undefined,
-            icon: pinIcon(g, p.badge && p.badge > 0 ? accent : "#94a3b8"),
-          });
-          marker.addListener("click", () => {
-            info.setContent(popupHtml(p, accent));
-            info.open(map, marker);
-          });
-          bounds.extend({ lat: p.lat, lng: p.lng });
-        });
-
-        if (user) {
-          new g.maps.Marker({
-            position: user,
-            map,
-            title: "ตำแหน่งของคุณ",
-            icon: {
-              path: g.maps.SymbolPath.CIRCLE,
-              scale: 8,
-              fillColor: "#2563eb",
-              fillOpacity: 1,
-              strokeColor: "#fff",
-              strokeWeight: 3,
-            },
-            zIndex: 999,
-          });
-          bounds.extend(user);
-        }
-
-        // ซูมให้เห็นทุกหมุดพอดี (ถ้ามีมากกว่า 1 จุด)
-        if (pins.length + (user ? 1 : 0) > 1) {
-          map.fitBounds(bounds, 64);
-        }
-        setState("ready");
-      })
-      .catch(() => {
-        if (!cancelled) setState("fallback");
-      });
-
+    if (!boxRef.current || mapRef.current) return;
+    const map = L.map(boxRef.current, { attributionControl: true, zoomControl: true }).setView(
+      [user?.lat ?? BKK.lat, user?.lng ?? BKK.lng],
+      zoom,
+    );
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+    layerRef.current = L.layerGroup().addTo(map);
+    mapRef.current = map;
     return () => {
-      cancelled = true;
+      map.remove();
+      mapRef.current = null;
+      layerRef.current = null;
     };
-  }, [pins, user, zoom, accent]);
+    // สร้างครั้งเดียว — ตำแหน่ง/หมุดอัปเดตใน effect ด้านล่าง
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  if (state === "fallback") return <FallbackList pins={pins} />;
+  // วางหมุดใหม่เมื่อข้อมูลเปลี่ยน
+  useEffect(() => {
+    const map = mapRef.current;
+    const layer = layerRef.current;
+    if (!map || !layer) return;
+    layer.clearLayers();
 
-  return (
-    <div className="relative overflow-hidden rounded-2xl ring-1 ring-neutral-200" style={{ height }}>
-      <div ref={ref} className="h-full w-full" />
-      {state === "loading" && (
-        <div className="absolute inset-0 flex items-center justify-center bg-neutral-50 text-sm text-neutral-400">
-          กำลังโหลดแผนที่…
-        </div>
-      )}
-    </div>
-  );
+    const bounds = L.latLngBounds([]);
+
+    pins.forEach((p) => {
+      const active = (p.badge ?? 0) > 0;
+      L.marker([p.lat, p.lng], { icon: pinIcon(active ? accent : "#94a3b8", p.badge) })
+        .bindPopup(popupHtml(p, accent))
+        .addTo(layer);
+      bounds.extend([p.lat, p.lng]);
+    });
+
+    if (user) {
+      L.marker([user.lat, user.lng], { icon: userIcon(), zIndexOffset: 1000 })
+        .bindPopup("ตำแหน่งของคุณ")
+        .addTo(layer);
+      bounds.extend([user.lat, user.lng]);
+    }
+
+    // จัด view หลังวัดขนาด container ใหม่ — ถ้า fitBounds ตอน container ยังไม่มี
+    // ขนาดจริง (เพิ่ง mount) หมุดจะไปโผล่นอกจอ → invalidateSize ก่อนแล้วค่อย fit
+    const applyView = () => {
+      map.invalidateSize();
+      if (pins.length + (user ? 1 : 0) > 1) {
+        map.fitBounds(bounds, { padding: [48, 48], maxZoom: 15 });
+      } else if (pins.length === 1) {
+        map.setView([pins[0].lat, pins[0].lng], zoom);
+      }
+    };
+    setTimeout(applyView, 0);
+  }, [sig, accent, zoom]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return <div ref={boxRef} className="overflow-hidden rounded-2xl ring-1 ring-neutral-200" style={{ height }} />;
 }
 
-function FallbackList({ pins }: { pins: CabinetPin[] }) {
-  return (
-    <div className="space-y-2">
-      {!GOOGLE_MAPS_KEY && (
-        <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700 ring-1 ring-amber-100">
-          ยังไม่ได้ตั้ง <span className="font-mono">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</span> — แสดงเป็นรายการแทนแผนที่
-        </p>
-      )}
-      {pins.map((p) => (
-        <div key={p.id} className="flex items-center gap-3 rounded-xl bg-white px-3 py-2.5 ring-1 ring-neutral-100">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-700">
-            <Box className="h-4.5 w-4.5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-neutral-800">{p.name}</p>
-            <p className="truncate text-xs text-neutral-400">
-              {p.distanceLabel ? `${p.distanceLabel} · ` : ""}
-              {p.badgeLabel ? `${p.badgeLabel} · ` : ""}
-              {p.address}
-            </p>
-          </div>
-          <a
-            href={directionsUrl(p.lat, p.lng, p.name)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 rounded-lg bg-brand-50 px-2.5 py-1.5 text-xs font-semibold text-brand-700"
-          >
-            <Navigation className="mr-0.5 inline h-3.5 w-3.5" /> นำทาง
-          </a>
-        </div>
-      ))}
-      {pins.length === 0 && (
-        <p className="flex items-center justify-center gap-1 py-8 text-sm text-neutral-400">
-          <MapPin className="h-4 w-4" /> ยังไม่มีตู้ในบริเวณนี้
-        </p>
-      )}
-    </div>
-  );
+/** หมุดหยดน้ำ SVG + ตัวเลขตรงกลาง (divIcon = ไม่ต้องพึ่งไฟล์รูปของ Leaflet) */
+function pinIcon(color: string, badge?: number) {
+  const label = badge && badge > 0 ? `<text x="15" y="15" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="sans-serif">${badge}</text>` : "";
+  return L.divIcon({
+    className: "",
+    html: `<svg width="30" height="40" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 39 C6 26 1 21 1 14 A14 14 0 1 1 29 14 C29 21 24 26 15 39 Z" fill="${color}" stroke="#fff" stroke-width="2"/>
+      <circle cx="15" cy="14" r="9" fill="rgba(255,255,255,0.18)"/>${label}</svg>`,
+    iconSize: [30, 40],
+    iconAnchor: [15, 40],
+    popupAnchor: [0, -36],
+  });
+}
+
+function userIcon() {
+  return L.divIcon({
+    className: "",
+    html: `<svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="7" fill="#2563eb" stroke="#fff" stroke-width="3"/></svg>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+    popupAnchor: [0, -12],
+  });
 }
 
 function popupHtml(p: CabinetPin, accent: string): string {
   const meta = [p.distanceLabel, p.badgeLabel].filter(Boolean).join(" · ");
-  return `<div style="font-family:'IBM Plex Sans Thai',sans-serif;min-width:180px;max-width:240px;padding:2px 4px">
+  return `<div style="font-family:'IBM Plex Sans Thai',sans-serif;min-width:170px;max-width:230px">
     <div style="font-weight:700;color:#153d29;font-size:15px">${esc(p.name)}</div>
     ${p.code ? `<div style="font-family:monospace;color:${accent};font-size:12px;font-weight:600">${esc(p.code)}</div>` : ""}
     ${meta ? `<div style="color:#5b6b60;font-size:12px;margin-top:2px">${esc(meta)}</div>` : ""}
@@ -183,19 +150,3 @@ function popupHtml(p: CabinetPin, accent: string): string {
        padding:6px 12px;border-radius:8px;text-decoration:none">นำทางไปตู้นี้</a>
   </div>`;
 }
-
-// หมุดหยดน้ำวาดเอง (SVG path) — สีตามสถานะ
-function pinIcon(g: any, color: string) {
-  return {
-    path: "M0 0 C-7 -12 -14 -19 -14 -30 A14 14 0 1 1 14 -30 C14 -19 7 -12 0 0 Z",
-    fillColor: color,
-    fillOpacity: 1,
-    strokeColor: "#ffffff",
-    strokeWeight: 2,
-    scale: 1,
-    labelOrigin: new g.maps.Point(0, -30),
-    anchor: new g.maps.Point(0, 0),
-  };
-}
-
-const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;

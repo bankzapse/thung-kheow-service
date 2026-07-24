@@ -22,10 +22,9 @@ import {
   cabinetsWithCounts,
   type CabinetWithCounts,
 } from "@/lib/selectors";
-import { RADIUS_KM, DEFAULT_BASE, distanceKm, formatDistance } from "@/lib/geo";
+import { RADIUS_KM, DEFAULT_BASE, distanceKm, formatDistance, directionsUrl } from "@/lib/geo";
 import { displayCabinetCode } from "@/lib/types";
 import { CabinetMap, type CabinetPin } from "@/components/CabinetMap";
-import { directionsUrl } from "@/lib/googleMaps";
 import { MIN_CREDIT } from "@/lib/fees";
 import { PICKUP_ENABLED } from "@/lib/features";
 import { formatBaht, thaiDate } from "@/lib/utils";

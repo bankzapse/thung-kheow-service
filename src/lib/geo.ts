@@ -19,3 +19,12 @@ export function formatDistance(km: number): string {
   if (km < 1) return `${Math.round(km * 1000)} ม.`;
   return `${km.toFixed(1)} กม.`;
 }
+
+/**
+ * ลิงก์นำทาง Google Maps — แผนที่ในแอปเป็น OSM ก็จริง แต่ปุ่ม "นำทาง"
+ * เปิดแอป Google Maps ให้ผู้ใช้กดนำทางจริง (แค่เปิดลิงก์ ไม่ใช้ API/ไม่ต้อง key)
+ */
+export function directionsUrl(lat: number, lng: number, label?: string): string {
+  const dest = label ? `${label} ${lat},${lng}` : `${lat},${lng}`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}`;
+}
