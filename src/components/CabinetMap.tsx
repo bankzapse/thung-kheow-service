@@ -110,7 +110,9 @@ export function CabinetMap({
     setTimeout(applyView, 0);
   }, [sig, accent, zoom]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <div ref={boxRef} className="overflow-hidden rounded-2xl ring-1 ring-neutral-200" style={{ height }} />;
+  // isolate = สร้าง stacking context ของตัวเอง → z-index ภายในของ Leaflet (controls ~1000)
+  // ถูกจำกัดในกล่อง ไม่ทะลุขึ้นเหนือ header/แถบเมนู sticky ตอนเลื่อนหน้า
+  return <div ref={boxRef} className="isolate overflow-hidden rounded-2xl ring-1 ring-neutral-200" style={{ height }} />;
 }
 
 /**

@@ -94,7 +94,7 @@ export function LocationPicker({
           {geocoding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />} ค้นหาจากที่อยู่
         </button>
       </div>
-      <div ref={boxRef} className="overflow-hidden rounded-xl ring-1 ring-neutral-200" style={{ height }} />
+      <div ref={boxRef} className="isolate overflow-hidden rounded-xl ring-1 ring-neutral-200" style={{ height }} />
       <p className="flex items-center gap-1 text-xs text-neutral-400">
         <MapPin className="h-3.5 w-3.5 shrink-0" />
         {value ? <span className="font-mono">{value.lat.toFixed(5)}, {value.lng.toFixed(5)}</span> : "แตะแผนที่เพื่อปักหมุดตำแหน่งตู้ (หรือกดค้นหาจากที่อยู่)"}
