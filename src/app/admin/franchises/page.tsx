@@ -10,6 +10,7 @@ import { hasGeo } from "@/lib/geo";
 import { franchisesWithStats, franchiseRevenue, cabinetsWithCounts, cabinetsForFranchise, type FranchiseWithStats } from "@/lib/selectors";
 import { cabinetFullCode, displayCabinetCode } from "@/lib/types";
 import { isValidUsername } from "@/lib/username";
+import { PROVINCES } from "@/lib/thai-address";
 import { formatBaht, thaiDate } from "@/lib/utils";
 import { RevenueExport } from "@/components/RevenueExport";
 import { Store, Plus, Box, PackageOpen, Coins, Phone, User, Truck, Building2, Wallet, AlertTriangle, FileSignature, Printer, QrCode, MapPin, Pencil, Trash2, KeyRound, Search, X } from "lucide-react";
@@ -30,7 +31,8 @@ export default function AdminFranchisesPage() {
   // ค้นหา (ชื่อ/เจ้าของ/เบอร์/รหัส) + กรองตามจังหวัด (จังหวัดของตู้ในแฟรนไชส์)
   const [q, setQ] = useState("");
   const [prov, setProv] = useState("");
-  const provinces = [...new Set((db.cabinets ?? []).map((c) => c.province).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, "th"));
+  // 77 จังหวัดครบ (ไม่ใช่เฉพาะจังหวัดที่มีตู้แล้ว) · ทำเครื่องหมาย ● จังหวัดที่มีตู้
+  const provWithCab = new Set((db.cabinets ?? []).map((c) => c.province).filter(Boolean) as string[]);
   const provincesOf = (fid: string) => new Set(db.cabinets.filter((c) => c.franchiseId === fid).map((c) => c.province).filter(Boolean));
   const ownerPhoneRaw = (fid: string) => db.users.find((u) => u.role === "franchise" && u.franchiseId === fid)?.phone || "";
   const franchises = allFranchises.filter((f) => {
@@ -196,7 +198,7 @@ export default function AdminFranchisesPage() {
         </div>
         <select className="input w-auto min-w-[150px]" value={prov} onChange={(e) => setProv(e.target.value)}>
           <option value="">ทุกจังหวัด</option>
-          {provinces.map((p) => <option key={p} value={p}>{p}</option>)}
+          {PROVINCES.map((p) => <option key={p} value={p}>{provWithCab.has(p) ? `● ${p}` : p}</option>)}
         </select>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
