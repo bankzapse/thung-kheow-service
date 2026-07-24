@@ -7,15 +7,17 @@ import { AppHeader } from "@/components/AppHeader";
 import { Modal } from "@/components/ui";
 import { PayoutCard } from "@/components/PayoutCard";
 import { pointsOf } from "@/lib/selectors";
+import { monthlyRewards } from "@/lib/rewards";
 import { realEmail } from "@/lib/username";
 import { REDEEM_TIERS } from "@/lib/types";
-import { formatBaht } from "@/lib/utils";
-import { Coins, Phone, Mail, LogOut, Trash2, ShieldAlert, ChevronRight, FileText, ShieldCheck } from "lucide-react";
+import { formatBaht, thaiMonthLabel } from "@/lib/utils";
+import { Coins, Phone, Mail, LogOut, Trash2, ShieldAlert, ChevronRight, FileText, ShieldCheck, Gift } from "lucide-react";
 
 export default function ProfilePage() {
   const { db, currentUser, logout, deleteAccount } = useStore();
   const u = currentUser!;
   const points = pointsOf(db, u.id);
+  const reward = monthlyRewards(db, u.id);
 
   const [delOpen, setDelOpen] = useState(false);
   const [delAck, setDelAck] = useState(false);
@@ -50,6 +52,7 @@ export default function ProfilePage() {
             <InfoRow icon={<Mail className="h-4 w-4" />} label="อีเมล" value={realEmail(u.email)!} />
           )}
           <InfoRow icon={<Coins className="h-4 w-4" />} label="คะแนนสะสม" value={`${formatBaht(points)} คะแนน`} />
+          <InfoRow icon={<Gift className="h-4 w-4" />} label={`โบนัสภารกิจ (${thaiMonthLabel(reward.month)})`} value={`+${formatBaht(reward.totalBonusPoints)} คะแนน`} />
         </div>
 
         {/* บัญชีรับเงินโอน */}

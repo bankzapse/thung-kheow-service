@@ -2,7 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { isMonthBonusClosed, sellerBonuses, bonusTxnNote } from "./rewards";
-import type { Bill, BillItem, Expense, Job, JobStatus, Role, ScheduleSlot, User, WalletTxn, MeshBag, BagItem, PointTxn, Redemption, Cabinet, Franchise, PayoutAccount, FranchisePayout, FactorySale, FactorySaleItem } from "./types";
+import type { Bill, BillItem, Expense, Job, JobStatus, Role, ScheduleSlot, User, WalletTxn, MeshBag, BagItem, PointTxn, Redemption, Cabinet, Franchise, PayoutAccount, FranchisePayout, FactorySale, FactorySaleItem, Mission } from "./types";
 import { POINTS_PER_BAHT, bagQr } from "./types";
 import { createInitialDB, emptyDB, type DB } from "./seed";
 import { billCode, jobCode, ticketNumber, todayISO, uid, currentMonth } from "./utils";
@@ -142,6 +142,7 @@ interface StoreValue {
   removeAdmin: (userId: string) => void;
   setAdminPermissions: (userId: string, permissions: string[]) => void;
   setCentralPrice: (materialId: string, price: number) => void;
+  setMissions: (missions: Mission[]) => void;
   setFactoryPrice: (materialId: string, price: number) => void;
   recordFactorySale: (items: FactorySaleItem[], factoryName?: string, note?: string) => boolean;
   setDrawPrize: (month: string, prizeName: string, prizeValue: number) => void;
@@ -924,6 +925,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [sbWrite],
   );
 
+  // บริษัทตั้งภารกิจ & โบนัส (กิจกรรม + แต้ม) — Supabase เก็บใน app_config (RLS is_admin)
+  const setMissions = useCallback(
+    (missions: Mission[]) => {
+      if (supabaseConfigured) return sbWrite((sb) => repo.setMissions(sb, missions));
+      setDb((d) => ({ ...d, missions }));
+    },
+    [sbWrite],
+  );
+
   // บริษัทตั้งราคาขายโรงงานของเก่า/กก.
   const setFactoryPrice = useCallback(
     (materialId: string, price: number) => {
@@ -1511,6 +1521,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     removeExpense,
     setUserStatus,
     setCentralPrice,
+    setMissions,
     setFactoryPrice,
     recordFactorySale,
     setDrawPrize,

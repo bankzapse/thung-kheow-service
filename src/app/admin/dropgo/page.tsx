@@ -8,6 +8,7 @@ import { formatBaht, thaiDateTime, thaiMonthLabel } from "@/lib/utils";
 import { POINTS_PER_BAHT, cabinetFullCode } from "@/lib/types";
 import { CabinetMap, type CabinetPin } from "@/components/CabinetMap";
 import { Modal } from "@/components/ui";
+import { MissionsEditor } from "@/components/MissionsEditor";
 import { hasGeo } from "@/lib/geo";
 import { Box, PackageOpen, Coins, Banknote, Recycle, Trophy, Clock, PackageCheck, MapPin, Sparkles, CheckCircle2, Gift } from "lucide-react";
 
@@ -137,6 +138,9 @@ export default function AdminDropGoPage() {
           <p className="text-xs text-neutral-400">แต้มจะเข้าบัญชีผู้ขายทันที · ทำได้ครั้งเดียวต่อเดือน (กดซ้ำไม่จ่ายซ้ำ)</p>
         </div>
       </Modal>
+
+      {/* บริษัทตั้งภารกิจ (กิจกรรม + แต้ม) เอง */}
+      <MissionsEditor />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* cabinets */}

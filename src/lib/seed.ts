@@ -1,6 +1,6 @@
 import type {
   Bill, BillItem, Expense, Job, RewardDraw, RewardTicket, ScheduleSlot, User, WalletTxn,
-  Cabinet, MeshBag, BagItem, PointTxn, Redemption, Franchise, FranchisePayout, FactorySale,
+  Cabinet, MeshBag, BagItem, PointTxn, Redemption, Franchise, FranchisePayout, FactorySale, Mission,
 } from "./types";
 import { bagQr } from "./types";
 import { MATERIALS, MATERIAL_MAP } from "./materials";
@@ -26,6 +26,7 @@ export interface DB {
   centralPrices: Record<string, number>; // ราคากลาง (แอดมินตั้ง) → override ค่า default
   factoryPrices: Record<string, number>; // ราคาขายโรงงานของเก่า/กก. (บริษัทตั้ง) → materialId → ราคา
   factorySales: FactorySale[]; // บันทึกการขายให้โรงงาน (กำไรบริษัทชั้นที่ 3)
+  missions: Mission[] | null; // ภารกิจที่บริษัทตั้งเอง (null = ใช้ค่า default)
   pricesUpdatedAt: string;
 }
 
@@ -54,7 +55,7 @@ export function emptyDB(): DB {
   return {
     users: [], jobs: [], slots: [], tickets: [], draws: [], bills: [], expenses: [], wallet: [],
     franchises: [], cabinets: [], bags: [], pointTxns: [], redemptions: [], franchisePayouts: [],
-    buyerPrices: {}, centralPrices: {}, factoryPrices: {}, factorySales: [],
+    buyerPrices: {}, centralPrices: {}, factoryPrices: {}, factorySales: [], missions: null,
     pricesUpdatedAt: new Date(0).toISOString(),
   };
 }
@@ -491,6 +492,7 @@ export function createInitialDB(): DB {
     // ราคาขายโรงงาน/กก. (สูงกว่าราคาที่จ่ายผู้ขาย → ส่วนต่างเป็นกำไรบริษัท)
     factoryPrices: { "aluminum-can": 55, pet: 14, hdpe: 17, pp5: 9, "glass-bottle": 3, cardboard: 6 },
     factorySales: [],
+    missions: null, // ใช้ภารกิจ default (บริษัทตั้งเองได้ที่หน้าแอดมิน)
     pricesUpdatedAt: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0).toISOString(),
   };
 }

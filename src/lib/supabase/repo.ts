@@ -5,7 +5,7 @@
  * ใช้เมื่อ supabaseConfigured = true เท่านั้น
  */
 import type { DB } from "../seed";
-import type { Bill, Expense, Job, RewardDraw, RewardTicket, ScheduleSlot, User, WalletTxn, Cabinet, MeshBag, BagItem, PointTxn, Redemption, Franchise } from "../types";
+import type { Bill, Expense, Job, RewardDraw, RewardTicket, ScheduleSlot, User, WalletTxn, Cabinet, MeshBag, BagItem, PointTxn, Redemption, Franchise, Mission } from "../types";
 import { MATERIALS } from "../materials";
 import { jobCode, ticketNumber, todayISO } from "../utils";
 
@@ -72,7 +72,7 @@ function toExpense(e: any): Expense {
 
 /** โหลดข้อมูลทั้งหมดที่ user เห็น (RLS คัดกรองให้) → รูป DB */
 export async function loadAll(sb: any): Promise<DB> {
-  const [users, prices, bprices, slots, jobs, jobItems, jobHist, bills, billItems, expenses, tickets, draws, wallet, cabs, meshBags, bagItems, pointTxns, redemptions, franchises, franchisePayoutsRes, factorySalesRes, publicProfilesRes] =
+  const [users, prices, bprices, slots, jobs, jobItems, jobHist, bills, billItems, expenses, tickets, draws, wallet, cabs, meshBags, bagItems, pointTxns, redemptions, franchises, franchisePayoutsRes, factorySalesRes, publicProfilesRes, appConfigRes] =
     await Promise.all([
       sb.from("profiles").select("*"),
       sb.from("material_prices").select("*"),
@@ -96,6 +96,7 @@ export async function loadAll(sb: any): Promise<DB> {
       sb.from("franchise_payouts").select("*"),
       sb.from("factory_sales").select("*"),
       sb.from("public_profiles").select("id, name"), // ชื่อผู้ใช้ทุกคน (view เปิดเฉพาะ id/name/role) สำหรับ map ชื่อ
+      sb.from("app_config").select("*"), // คอนฟิกกลาง (ภารกิจ ฯลฯ) — ตารางอาจยังไม่มีถ้ายังไม่รัน migration
     ]);
 
   const userRows: any[] = users.data ?? [];
@@ -179,6 +180,10 @@ export async function loadAll(sb: any): Promise<DB> {
     pointTxns: (pointTxns.data ?? []).map(toPointTxn),
     redemptions: (redemptions.data ?? []).map((r: any) => toRedemption(r, nameById)),
     franchisePayouts: (franchisePayoutsRes.data ?? []).map((r: any) => ({ id: r.id, franchiseId: r.franchise_id ?? "", franchiseName: r.franchise_name ?? "", amount: Number(r.amount), note: r.note ?? undefined, paidAt: r.paid_at })),
+    missions: (() => {
+      const row = (appConfigRes?.data ?? []).find((c: any) => c.key === "missions");
+      return Array.isArray(row?.value) && row.value.length ? (row.value as Mission[]) : null;
+    })(),
     pricesUpdatedAt: todayISO(),
   };
 }
@@ -233,6 +238,9 @@ export const setCentralPrice = (sb: any, materialId: string, price: number) => {
   const m = MATERIALS.find((x) => x.id === materialId);
   return sb.from("material_prices").upsert({ id: materialId, name: m?.name ?? materialId, unit: m?.unit ?? "กก.", price_per_unit: price, emoji: m?.emoji, category: m?.category });
 };
+/** บริษัทตั้งภารกิจ (เก็บเป็น jsonb ใน app_config key='missions') — RLS is_admin() */
+export const setMissions = (sb: any, missions: Mission[]) =>
+  sb.from("app_config").upsert({ key: "missions", value: missions, updated_at: new Date().toISOString() });
 export const setDrawPrize = (sb: any, month: string, prizeName: string, prizeValue: number) =>
   sb.from("reward_draws").upsert({ month, prize_name: prizeName, prize_value: prizeValue });
 export const drawWinner = (sb: any, month: string) => sb.rpc("draw_reward_winner", { p_month: month });

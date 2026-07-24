@@ -230,6 +230,19 @@ export const REDEEM_TIERS: { amountBaht: number; points: number }[] = [
   { amountBaht: 500, points: 500 },
 ];
 
+/** ภารกิจ (รางวัลได้แน่นอน) — บริษัทกำหนดกิจกรรม + แต้มได้เอง
+ *  metric = ตัววัดความคืบหน้าจากถุงจริง: จำนวนถุง / จำนวนประเภทวัสดุ / น้ำหนักรวม (กก.) */
+export type MissionMetric = "bags" | "categories" | "weight";
+export interface Mission {
+  key: string;
+  label: string; // ชื่อภารกิจ
+  desc: string; // คำอธิบาย
+  target: number; // เกณฑ์ที่ต้องทำให้ถึง
+  reward: number; // แต้มโบนัสที่ได้เมื่อทำครบ
+  metric: MissionMetric;
+  unit: string; // หน่วยแสดงผล (ถุง/ประเภท/กก.)
+}
+
 export interface Franchise {
   id: string;
   code: string; // อักษรย่อ เช่น "GLN"

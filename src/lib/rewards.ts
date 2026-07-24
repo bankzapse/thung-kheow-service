@@ -1,6 +1,9 @@
 import type { DB } from "./seed";
+import type { Mission, MissionMetric } from "./types";
 import { MATERIAL_MAP } from "./materials";
 import { currentMonth } from "./utils";
+
+export type { Mission, MissionMetric };
 
 /**
  * ระบบรางวัลแบบ "ได้แน่นอน" (ไม่เสี่ยงโชค) — ทุกคนที่ถึงเกณฑ์ได้เท่ากัน
@@ -19,24 +22,22 @@ export const BONUS_TIERS = [
 ] as const;
 export type BonusTier = (typeof BONUS_TIERS)[number];
 
-export type MissionMetric = "bags" | "categories" | "weight";
-export interface Mission {
-  key: string;
-  label: string;
-  desc: string;
-  target: number;
-  reward: number; // แต้มโบนัส (ได้แน่นอนเมื่อทำครบ)
-  metric: MissionMetric;
-  unit: string;
-}
-
-/** ภารกิจประจำเดือน — รีเซ็ตทุกต้นเดือน */
+/** ภารกิจเริ่มต้น (ค่า default) — ใช้เมื่อบริษัทยังไม่ได้ตั้งค่าเอง */
 export const MISSIONS: Mission[] = [
   { key: "first", label: "หย่อนถุงแรกของเดือน", desc: "เปิดเดือนใหม่", target: 1, reward: 10, metric: "bags", unit: "ถุง" },
   { key: "five", label: "หย่อนครบ 5 ถุง", desc: "สะสมให้ถึง 5 ถุง", target: 5, reward: 30, metric: "bags", unit: "ถุง" },
   { key: "sort4", label: "คัดแยกครบ 4 ประเภท", desc: "โลหะ · พลาสติก · แก้ว · กระดาษ …", target: 4, reward: 20, metric: "categories", unit: "ประเภท" },
   { key: "kg10", label: "รวมน้ำหนัก 10 กก.", desc: "จากถุงที่คัดแยกแล้ว", target: 10, reward: 40, metric: "weight", unit: "กก." },
 ];
+
+/** หน่วยแสดงผลตาม metric (ใช้ตอนบริษัทเพิ่ม/แก้ภารกิจ) */
+export const METRIC_UNIT: Record<MissionMetric, string> = { bags: "ถุง", categories: "ประเภท", weight: "กก." };
+export const METRIC_LABEL: Record<MissionMetric, string> = { bags: "จำนวนถุง", categories: "จำนวนประเภทวัสดุ", weight: "น้ำหนักรวม (กก.)" };
+
+/** ภารกิจที่บริษัทตั้งไว้ (ถ้ายังไม่ตั้ง = ใช้ค่า default) */
+export function activeMissions(db: DB): Mission[] {
+  return db.missions && db.missions.length ? db.missions : MISSIONS;
+}
 
 export interface MonthlyReward {
   month: string;
@@ -78,7 +79,7 @@ export function monthlyRewards(db: DB, userId: string, month: string = currentMo
 
   const valueOf = (m: Mission) =>
     m.metric === "bags" ? bagsThisMonth : m.metric === "categories" ? categoriesThisMonth : weightThisMonth;
-  const missions = MISSIONS.map((m) => ({ m, current: valueOf(m), done: valueOf(m) >= m.target }));
+  const missions = activeMissions(db).map((m) => ({ m, current: valueOf(m), done: valueOf(m) >= m.target }));
   const missionBonusPoints = missions.filter((x) => x.done).reduce((s, x) => s + x.m.reward, 0);
 
   return {

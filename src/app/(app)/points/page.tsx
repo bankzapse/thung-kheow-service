@@ -50,9 +50,6 @@ export default function PointsPage() {
           </div>
         </div>
 
-        {/* ภารกิจ & โบนัส (รางวัลแบบได้แน่นอน ไม่เสี่ยงโชค) */}
-        <MonthlyRewards db={db} userId={u.id} />
-
         {/* tabs */}
         <div className="flex gap-1 rounded-xl bg-neutral-100 p-1">
           <TabBtn active={tab === "redeem"} onClick={() => setTab("redeem")}>แลกเงินสด</TabBtn>
@@ -100,6 +97,9 @@ export default function PointsPage() {
               <Info className="mt-0.5 h-4 w-4 shrink-0" />
               <p>โอนเข้าบัญชีที่ยืนยันภายใน 1-3 วันทำการ · อัตรา 1 คะแนน = ฿1</p>
             </div>
+
+            {/* ภารกิจ & โบนัส (รางวัลแบบได้แน่นอน ไม่เสี่ยงโชค) — อยู่ใต้ส่วนแลกเงิน */}
+            <MonthlyRewards db={db} userId={u.id} />
           </>
         )}
 
