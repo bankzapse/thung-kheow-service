@@ -100,10 +100,13 @@ body {
     border-left: 1px solid #94a3b8 !important;
   }
   .bag-grid img {
-    width: 38mm !important;
-    height: 38mm !important;
+    width: 30mm !important;
+    height: 30mm !important;
   }
+  /* min-height คงขนาดช่องให้กริดยังเต็มแผ่น (24 ใบ) แม้ QR เล็กลง · จัดกลางช่อง */
   .bag-grid > div {
+    min-height: 44mm !important;
+    justify-content: center !important;
     padding: 1.5mm !important;
     border: 0 !important;
     border-right: 1px solid #94a3b8 !important;
