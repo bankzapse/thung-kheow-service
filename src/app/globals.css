@@ -89,12 +89,15 @@ body {
     max-width: 100% !important;
     padding: 8mm !important;
   }
-  /* ป้ายถุง: 4 คอลัมน์ · QR 38mm · ชิดกัน (gap 0) เส้นขอบชนกันเป็นเส้นตัด · มุมเหลี่ยม
-     → 4 × 6 = 24 ใบเต็มแผ่น A4 พอดี (สูง ~272mm) ตัดตามเส้นได้ง่าย */
+  /* ป้ายถุง: 4 คอลัมน์ · QR 38mm · ชิดกัน (gap 0) → 4 × 6 = 24 ใบเต็มแผ่น A4 พอดี
+     ตารางเส้นเดียว: กรอบนอก บน+ซ้าย ที่ตัวตาราง · แต่ละช่องมีแค่ขอบ ขวา+ล่าง
+     → รอยต่อทุกเส้นเป็นเส้นเดียว (ไม่ซ้อนเป็นเส้นคู่) ตัดตามเส้นได้ง่าย */
   .bag-grid {
     grid-template-columns: repeat(4, 1fr) !important;
     gap: 0 !important;
     align-content: start !important;
+    border-top: 1px solid #94a3b8 !important;
+    border-left: 1px solid #94a3b8 !important;
   }
   .bag-grid img {
     width: 38mm !important;
@@ -102,8 +105,10 @@ body {
   }
   .bag-grid > div {
     padding: 1.5mm !important;
+    border: 0 !important;
+    border-right: 1px solid #94a3b8 !important;
+    border-bottom: 1px solid #94a3b8 !important;
     border-radius: 0 !important;
-    border-color: #cbd5e1 !important; /* เส้นตัดให้เห็นชัดขึ้น */
   }
   .bag-grid span {
     margin-top: 1px !important;
