@@ -4,6 +4,7 @@ import type { User } from "./types";
 export const ADMIN_MENUS: { key: string; label: string }[] = [
   { key: "summary", label: "สรุปการเงิน" },
   { key: "dropgo", label: "Drop Bag (ภาพรวม)" },
+  { key: "missions", label: "จัดการภารกิจ" },
   { key: "franchises", label: "แฟรนไชส์" },
   { key: "centers", label: "ศูนย์คัดแยก" },
   { key: "sellers", label: "จัดการผู้ขาย" },
