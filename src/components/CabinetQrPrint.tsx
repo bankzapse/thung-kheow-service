@@ -63,7 +63,7 @@ export function CabinetQrPrint({ cab }: { cab: Cabinet }) {
             </div>
           </div>
         )}
-        <div>
+        <div className="bag-section">
           <p className="section-title no-print mb-2 px-1">ป้ายถุงตาข่าย ({codes.length} ใบ)</p>
           {/* bag-grid: หน้าจอ 3–5 คอลัมน์ · ตอนพิมพ์บังคับ 4 คอลัมน์ + QR 38mm = 24 ใบเต็ม A4 (ดู globals.css) */}
           <div className="bag-grid grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
