@@ -87,6 +87,23 @@ body {
   .print-area {
     box-shadow: none !important;
     max-width: 100% !important;
-    padding: 1.2cm !important;
+    padding: 8mm !important;
+  }
+  /* ป้ายถุง: บังคับ 4 คอลัมน์ + QR 33mm → 4 × 6 = 24 ใบเต็มแผ่น A4 พอดี (สูง ~263mm) */
+  .bag-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 3mm !important;
+    align-content: start !important;
+  }
+  .bag-grid img {
+    width: 33mm !important;
+    height: 33mm !important;
+  }
+  .bag-grid > div {
+    padding: 2mm !important;
+  }
+  .bag-grid span {
+    margin-top: 1px !important;
+    font-size: 9px !important;
   }
 }
