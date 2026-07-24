@@ -69,8 +69,13 @@ body {
   scrollbar-width: none;
 }
 
-/* print: show only the bill */
+/* print: show only the print-area (บิล / ป้าย QR ตู้) */
 @media print {
+  /* margin: 0 = ตัดหัว/ท้ายที่เบราว์เซอร์ใส่เอง (วันที่ · ชื่อหน้า · URL · เลขหน้า) ออก
+     (Chrome/Edge) แล้วเว้นขอบเองด้วย padding ของ .print-area แทน */
+  @page {
+    margin: 0;
+  }
   header,
   aside,
   .no-print {
@@ -82,5 +87,6 @@ body {
   .print-area {
     box-shadow: none !important;
     max-width: 100% !important;
+    padding: 1.2cm !important;
   }
 }
