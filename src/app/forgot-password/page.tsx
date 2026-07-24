@@ -10,6 +10,7 @@ import { friendlyError } from "@/lib/authError";
 import { ArrowRight, Loader2, Phone, KeyRound, CheckCircle2 } from "lucide-react";
 
 const PHONE_RE = /^0\d{8,9}$/;
+const SUPPORT_TEL_DISPLAY = "089-261-6445"; // เบอร์บริษัท (ตรงกับ /terms · /privacy)
 
 function ForgotForm() {
   const router = useRouter();
@@ -35,8 +36,10 @@ function ForgotForm() {
     try {
       // ส่ง OTP ผ่านระบบของแอปเอง (SMS OK ตรงๆ) — ทั้งโหมด Supabase และเดโม
       // (ไม่พึ่ง Send SMS Hook ของ Supabase ที่อาจตั้งค่าไม่ครบ)
-      const r = await fetch("/api/otp/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: phone.trim() }) });
+      // purpose:"reset" → เช็คก่อนว่ามีบัญชีสำหรับเบอร์นี้ ถึงจะส่ง OTP (กัน SMS รั่ว)
+      const r = await fetch("/api/otp/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: phone.trim(), purpose: "reset" }) });
       const j = await r.json().catch(() => ({ ok: false }));
+      if (j.notFound) return setErr(`ไม่พบเบอร์ ${phone.trim()} ในระบบ — ตรวจเบอร์อีกครั้ง หรือติดต่อบริษัท ${SUPPORT_TEL_DISPLAY}`);
       if (!r.ok || j.ok === false) return setErr(friendlyError(j.error, "ส่งรหัส OTP ไม่สำเร็จ"));
       setSmsMode(!!j.configured);
       setOtpToken(j.token ?? null);
@@ -98,7 +101,7 @@ function ForgotForm() {
       {step === 1 && (
         <>
           <div className="mb-1 text-lg font-bold text-neutral-800">ลืมรหัสผ่าน</div>
-          <p className="mb-4 text-sm text-neutral-500">กรอกเบอร์ที่สมัครไว้ เราจะส่งรหัส OTP ไปให้</p>
+          <p className="mb-4 text-sm text-neutral-500">กรอกเบอร์ที่ผูกไว้กับบัญชี เราจะส่งรหัส OTP ไปยืนยัน</p>
           <label className="label">เบอร์โทรศัพท์</label>
           <div className="relative">
             <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
@@ -108,7 +111,11 @@ function ForgotForm() {
           <button className="btn-primary mt-3 w-full" onClick={requestOtp} disabled={busy}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>ขอรหัส OTP <ArrowRight className="h-4 w-4" /></>}
           </button>
-          <p className="mt-4 text-center text-sm text-neutral-500">
+          <div className="mt-4 rounded-xl bg-neutral-50 px-3 py-2.5 text-xs text-neutral-500 ring-1 ring-neutral-100">
+            จำเบอร์ที่ผูกไว้ไม่ได้ หรือบัญชีไม่มีเบอร์? ติดต่อบริษัทเพื่อรีเซ็ตให้:{" "}
+            <a href={`tel:${SUPPORT_TEL_DISPLAY.replace(/-/g, "")}`} className="font-semibold text-brand-600">{SUPPORT_TEL_DISPLAY}</a>
+          </div>
+          <p className="mt-3 text-center text-sm text-neutral-500">
             จำรหัสผ่านได้แล้ว? <Link href={next} className="font-semibold text-brand-600">เข้าสู่ระบบ</Link>
           </p>
         </>

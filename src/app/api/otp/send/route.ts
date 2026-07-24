@@ -8,8 +8,10 @@ export const runtime = "nodejs";
 const COOLDOWN_MS = 30 * 1000; // ขอซ้ำได้ทุก 30 วิ
 const DAILY_CAP = 15; // ส่งได้ไม่เกิน 15 ครั้ง/เบอร์/วัน
 
+const toE164Bare = (p: string) => "66" + p.replace(/^0/, "");
+
 export async function POST(req: Request) {
-  const { phone } = await req.json().catch(() => ({ phone: "" }));
+  const { phone, purpose } = await req.json().catch(() => ({ phone: "" }));
   const p = normalizeThaiPhone(String(phone || ""));
   if (!/^0\d{8,9}$/.test(p)) return NextResponse.json({ ok: false, error: "invalid phone" }, { status: 400 });
 
@@ -21,6 +23,20 @@ export async function POST(req: Request) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const table = hasDb ? (n: string) => (createAdminClient() as any).from(n) : null;
   const today = new Date().toISOString().slice(0, 10);
+
+  // 🔒 รีเซ็ตรหัสผ่าน: ต้องมีบัญชีสำหรับเบอร์นี้ก่อน ถึงจะส่ง OTP
+  //    (กันคนสุ่มยิงขอ OTP รั่ว ๆ เปลืองค่า SMS + กันเบอร์ที่ไม่มีบัญชี)
+  //    เบอร์ที่ไม่พบ → บอกให้ติดต่อบริษัท (เผื่อจำเบอร์ที่ผูกไว้ไม่ได้)
+  if (purpose === "reset" && table) {
+    try {
+      const { data } = await table("profiles").select("id").or(`phone.eq.${toE164Bare(p)},phone.eq.${p}`).limit(1);
+      if (!data?.length) {
+        return NextResponse.json({ ok: false, notFound: true, error: "ไม่พบเบอร์นี้ในระบบ" }, { status: 404 });
+      }
+    } catch {
+      /* อ่านไม่ได้ → ปล่อยผ่าน (best-effort) ดีกว่าบล็อกการรีเซ็ต */
+    }
+  }
 
   if (table) {
     try {
