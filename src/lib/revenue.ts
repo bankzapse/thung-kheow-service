@@ -64,6 +64,8 @@ export function revenueShare(revenueTotal: number, cabinetCount: number): Revenu
     contractRecovered: round(contractRecovered),
     contractRemaining,
     phase,
-    progressPct: contractTotal > 0 ? Math.min(1, contractRecovered / contractTotal) : 1,
+    // ไม่มีสัญญา (0 ตู้) = ยังไม่เริ่มผ่อน → 0% ไม่ใช่ 100%
+    // (เดิมคืน 1 ทำให้แฟรนไชส์เปิดใหม่ค่า ฿0/฿0 แต่แถบเต็มสีส้ม)
+    progressPct: contractTotal > 0 ? Math.min(1, contractRecovered / contractTotal) : 0,
   };
 }

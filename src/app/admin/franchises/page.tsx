@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui";
 import { AddressPicker } from "@/components/AddressPicker";
 import { franchisesWithStats, franchiseRevenue, cabinetsWithCounts, cabinetsForFranchise, type FranchiseWithStats } from "@/lib/selectors";
 import { cabinetFullCode, displayCabinetCode } from "@/lib/types";
+import { isValidUsername } from "@/lib/username";
 import { formatBaht, thaiDate } from "@/lib/utils";
 import { RevenueExport } from "@/components/RevenueExport";
 import { Store, Plus, Box, PackageOpen, Coins, Phone, User, Truck, Building2, Wallet, AlertTriangle, FileSignature, Printer, QrCode, MapPin, Pencil, Trash2, KeyRound } from "lucide-react";
@@ -40,17 +41,20 @@ export default function AdminFranchisesPage() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [ownerName, setOwnerName] = useState("");
+  const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
 
   // อักษรย่อแฟรนไชส์สร้างอัตโนมัติ ขึ้นต้น TH เสมอ (TH01, TH02, …) — ไม่ต้องกรอก
   const nextTh = "TH" + String(db.franchises.map((f) => Number(/^TH0*(\d+)$/.exec(f.code)?.[1] ?? 0)).reduce((a, b) => Math.max(a, b), 0) + 1).padStart(2, "0");
-  const canSaveFr = !!name.trim() && /^0\d{8,9}$/.test(phone) && password.length >= 4;
+  // เข้าระบบด้วยชื่อผู้ใช้ (เบอร์ = ติดต่อ ไม่บังคับ) · เบอร์ถ้ากรอกต้องถูกรูปแบบ
+  const phoneOk = !phone || /^0\d{8,9}$/.test(phone);
+  const canSaveFr = !!name.trim() && isValidUsername(username) && password.length >= 4 && phoneOk;
 
   const save = () => {
     if (!canSaveFr) return;
-    addFranchise({ code: nextTh, name, ownerName, phone, password });
-    setName(""); setOwnerName(""); setPhone(""); setPassword(""); setOpen(false);
+    addFranchise({ code: nextTh, name, ownerName, username, phone, password });
+    setName(""); setOwnerName(""); setUsername(""); setPhone(""); setPassword(""); setOpen(false);
   };
 
   // แก้ไข / ลบ แฟรนไชส์
@@ -183,6 +187,22 @@ export default function AdminFranchisesPage() {
               <span className="chip bg-neutral-100 text-neutral-600"><PackageOpen className="h-3.5 w-3.5" /> {f.bagCount} ถุง</span>
               <span className="chip bg-brand-50 text-brand-700"><Coins className="h-3.5 w-3.5" /> {formatBaht(f.pointsIssued)} คะแนน</span>
             </div>
+            {/* เลขตู้ TK ของแฟรนไชส์ — ให้บริษัทรู้ว่าแฟรนไชส์นี้มีตู้ใดบ้าง */}
+            {(() => {
+              const cabs = cabinetsForFranchise(db, f.id);
+              return cabs.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs text-neutral-400">ตู้:</span>
+                  {cabs.map((c) => (
+                    <span key={c.id} className="rounded-md bg-brand-50 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-brand-700" title={c.name}>
+                      {displayCabinetCode(c.code)}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-neutral-300">ยังไม่มีตู้</p>
+              );
+            })()}
             {(() => {
               const rev = franchiseRevenue(db, f.id);
               return (
@@ -242,15 +262,22 @@ export default function AdminFranchisesPage() {
               <input className="input" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="คุณเอกชัย" />
             </div>
             <div>
-              <label className="label">เบอร์โทร (ใช้เข้าระบบ)</label>
+              <label className="label">เบอร์ติดต่อ <span className="text-neutral-400">(ไม่บังคับ)</span></label>
               <input className="input" inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} placeholder="08x-xxx-xxxx" />
             </div>
           </div>
-          <div>
-            <label className="label">รหัสผ่านเจ้าของแฟรนไชส์</label>
-            <input className="input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="อย่างน้อย 4 ตัวอักษร" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">ชื่อผู้ใช้ (เข้าระบบ) *</label>
+              <input className="input" value={username} onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9._-]/g, "").toLowerCase())} placeholder="เช่น eakchai" autoCapitalize="none" />
+            </div>
+            <div>
+              <label className="label">รหัสผ่าน *</label>
+              <input className="input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="อย่างน้อย 4 ตัวอักษร" />
+            </div>
           </div>
-          <p className="rounded-xl bg-brand-50 px-3 py-2 text-xs text-brand-700">สร้างบัญชีเข้าระบบให้เจ้าของแฟรนไชส์ด้วย — เข้าที่ <span className="font-mono">/login/franchise</span> ด้วยเบอร์ + รหัสผ่านนี้</p>
+          {username && !isValidUsername(username) && <p className="text-xs text-amber-600">ชื่อผู้ใช้ต้องเป็น a–z, 0–9, จุด _ - ยาว 3–32 ตัว</p>}
+          <p className="rounded-xl bg-brand-50 px-3 py-2 text-xs text-brand-700">สร้างบัญชีเข้าระบบให้เจ้าของแฟรนไชส์ด้วย — เข้าที่ <span className="font-mono">/login/franchise</span> ด้วย <b>ชื่อผู้ใช้ + รหัสผ่าน</b> นี้ (เบอร์ใช้สำหรับติดต่อ)</p>
           <p className="text-xs text-neutral-400">รหัสตู้ของแฟรนไชส์กำหนดอัตโนมัติเป็น <span className="font-mono">TK-01, TK-02, …</span> (บริษัทเป็นผู้เพิ่มตู้ตามสัญญาเช่าซื้อ)</p>
         </div>
       </Modal>
@@ -277,7 +304,7 @@ export default function AdminFranchisesPage() {
             <input className="input" value={ef.ownerName} onChange={(e) => setEf({ ...ef, ownerName: e.target.value })} placeholder="คุณ…" />
           </div>
           <div>
-            <label className="label">เบอร์โทร (ใช้เข้าระบบ)</label>
+            <label className="label">เบอร์ติดต่อ</label>
             <input className="input" inputMode="numeric" maxLength={10} value={ef.phone} onChange={(e) => setEf({ ...ef, phone: e.target.value.replace(/\D/g, "") })} placeholder="08x-xxx-xxxx" />
           </div>
           <div>

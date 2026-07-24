@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { usernameToEmail } from "@/lib/username";
 
 export const runtime = "nodejs";
 
@@ -52,15 +53,28 @@ export async function POST(req: Request) {
   try {
     switch (action) {
       case "createFranchise": {
-        const { code, name, ownerName, phone, password } = body;
-        if (!code?.trim() || !/^0\d{8,9}$/.test(String(phone || "").trim()) || String(password || "").length < 4) return bad("ข้อมูลไม่ครบ");
+        // เข้าระบบด้วย "ชื่อผู้ใช้" (username → email ภายใน) · เบอร์เป็นแค่ข้อมูลติดต่อ
+        const { code, name, ownerName, username, phone, password } = body;
+        const uname = String(username || "").trim().toLowerCase();
+        const email = usernameToEmail(uname);
+        const contact = String(phone || "").trim();
+        if (!code?.trim() || !email || String(password || "").length < 4) return bad("ข้อมูลไม่ครบ (ชื่อผู้ใช้ 3–32 ตัว + รหัสผ่าน ≥4)");
+        if (contact && !/^0\d{8,9}$/.test(contact)) return bad("เบอร์ติดต่อไม่ถูกต้อง (10 หลัก ขึ้นต้น 0)");
+        // กันชื่อผู้ใช้ซ้ำ (unique index อยู่ที่ lower(username) แล้ว แต่เช็คก่อนให้ error อ่านง่าย)
+        const { data: dup } = await table("profiles").select("id").eq("username", uname).maybeSingle();
+        if (dup) return bad("ชื่อผู้ใช้นี้มีแล้ว");
         const frName = String(name || code).trim();
         const owner = String(ownerName || frName).trim();
-        const { data: fr, error: eF } = await table("franchises").insert({ code: String(code).toUpperCase(), name: frName, owner_name: owner, phone: String(phone).trim() }).select("id").single();
+        const { data: fr, error: eF } = await table("franchises").insert({ code: String(code).toUpperCase(), name: frName, owner_name: owner, phone: contact || null }).select("id").single();
         if (eF || !fr) return bad(/duplicate|unique/i.test(eF?.message ?? "") ? "อักษรย่อแฟรนไชส์นี้มีแล้ว" : (eF?.message ?? "สร้างแฟรนไชส์ไม่สำเร็จ"));
-        const { data: created, error } = await admin.auth.admin.createUser({ phone: toE164(phone), password, phone_confirm: true, user_metadata: { name: owner, role: "franchise" } });
-        if (error || !created?.user) { await table("franchises").delete().eq("id", fr.id); return bad(error?.message ?? "สร้างบัญชีเจ้าของไม่สำเร็จ"); }
-        const { error: eP } = await table("profiles").update({ role: "franchise", name: owner, franchise_id: fr.id }).eq("id", created.user.id);
+        const { data: created, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { name: owner, role: "franchise" } });
+        if (error || !created?.user) {
+          await table("franchises").delete().eq("id", fr.id);
+          return bad(/registered|duplicate|exists/i.test(error?.message ?? "") ? "ชื่อผู้ใช้นี้มีแล้ว" : (error?.message ?? "สร้างบัญชีเจ้าของไม่สำเร็จ"));
+        }
+        const { error: eP } = await table("profiles")
+          .update({ role: "franchise", name: owner, franchise_id: fr.id, username: uname, ...(contact ? { phone: contact } : {}) })
+          .eq("id", created.user.id);
         if (eP) { await admin.auth.admin.deleteUser(created.user.id).catch(() => {}); await table("franchises").delete().eq("id", fr.id); return bad("ตั้งค่าบัญชีเจ้าของไม่สำเร็จ"); }
         return NextResponse.json({ ok: true, id: fr.id });
       }

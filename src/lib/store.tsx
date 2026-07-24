@@ -157,7 +157,7 @@ interface StoreValue {
   rejectRedemption: (id: string) => void;
   addCabinet: (input: { code?: string; name: string; address: string; province?: string; district?: string; subdistrict?: string; franchiseId: string; franchiseCode: string; lat?: number; lng?: number }) => void;
   editCabinet: (id: string, patch: { name?: string; address?: string; province?: string; district?: string; subdistrict?: string }) => void;
-  addFranchise: (input: { code: string; name: string; ownerName: string; phone: string; password?: string }) => void;
+  addFranchise: (input: { code: string; name: string; ownerName: string; username: string; phone?: string; password?: string }) => void;
   editFranchise: (id: string, patch: { name?: string; ownerName?: string; phone?: string; password?: string }) => void;
   removeFranchise: (id: string) => void;
 }
@@ -1349,21 +1349,27 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const addFranchise = useCallback(
-    (input: { code: string; name: string; ownerName: string; phone: string; password?: string }) => {
+    (input: { code: string; name: string; ownerName: string; username: string; phone?: string; password?: string }) => {
       const code = input.code.trim().toUpperCase();
       if (!code) { pushToast("กรุณาระบุอักษรย่อแฟรนไชส์", "info"); return; }
+      const uname = (input.username ?? "").trim().toLowerCase();
+      const contact = (input.phone ?? "").trim();
+      // เข้าระบบด้วยชื่อผู้ใช้ (เบอร์เป็นแค่ข้อมูลติดต่อ)
+      if (!usernameToEmail(uname) || (input.password ?? "").length < 4) { pushToast("กรอกชื่อผู้ใช้ (3–32 ตัว) + รหัสผ่าน (≥4) ให้ครบ", "info"); return; }
+      if (contact && !/^0\d{8,9}$/.test(contact)) { pushToast("เบอร์ติดต่อไม่ถูกต้อง (10 หลัก)", "info"); return; }
       if (supabaseConfigured) {
         // สร้างแฟรนไชส์ + บัญชีเข้าระบบเจ้าของแฟรนไชส์ (role=franchise) ผ่าน service-role
-        if (!/^0\d{8,9}$/.test(input.phone.trim()) || (input.password ?? "").length < 4) { pushToast("กรอกเบอร์เจ้าของ (10 หลัก) + รหัสผ่าน (≥4) ให้ครบ", "info"); return; }
-        adminUsersApi("createFranchise", { code, name: input.name.trim() || code, ownerName: input.ownerName.trim(), phone: input.phone.trim(), password: input.password }, `เพิ่มแฟรนไชส์ ${code} + บัญชีเจ้าของแล้ว`);
+        adminUsersApi("createFranchise", { code, name: input.name.trim() || code, ownerName: input.ownerName.trim(), username: uname, phone: contact, password: input.password }, `เพิ่มแฟรนไชส์ ${code} + บัญชีเจ้าของแล้ว`);
         return;
       }
       if (db.franchises.some((f) => f.code === code)) { pushToast(`มีแฟรนไชส์ ${code} อยู่แล้ว`, "info"); return; }
-      const f: Franchise = { id: uid("fr-"), code, name: input.name.trim() || code, ownerName: input.ownerName.trim(), phone: input.phone.trim(), createdAt: todayISO() };
-      setDb((d) => ({ ...d, franchises: [...d.franchises, f] }));
+      if (db.users.some((u) => u.username?.toLowerCase() === uname)) { pushToast(`ชื่อผู้ใช้ ${uname} มีแล้ว`, "info"); return; }
+      const f: Franchise = { id: uid("fr-"), code, name: input.name.trim() || code, ownerName: input.ownerName.trim(), phone: contact, createdAt: todayISO() };
+      const owner: User = { id: uid("u-fr-"), role: "franchise", name: input.ownerName.trim() || f.name, username: uname, phone: contact, password: input.password, franchiseId: f.id, lineConnected: false, createdAt: todayISO() };
+      setDb((d) => ({ ...d, franchises: [...d.franchises, f], users: [...d.users, owner] }));
       pushToast(`เพิ่มแฟรนไชส์ ${code} แล้ว`, "success");
     },
-    [db.franchises, pushToast, adminUsersApi],
+    [db.franchises, db.users, pushToast, adminUsersApi],
   );
 
   // แก้ไขแฟรนไชส์ (ชื่อ/เจ้าของ/เบอร์/รหัสผ่านเข้าระบบ) — บริษัทเท่านั้น
