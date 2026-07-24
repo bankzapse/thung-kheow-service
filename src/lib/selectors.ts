@@ -474,8 +474,13 @@ export function recentCreditedBags(db: DB, limit = 8): MeshBag[] {
 export function franchiseById(db: DB, id: string): Franchise | undefined {
   return (db.franchises ?? []).find((f) => f.id === id);
 }
+/** เลขในรหัส เช่น TK01 → 1, TH02 → 2 (ใช้เรียงลำดับ) */
+export const codeNum = (code: string) => Number(/(\d+)/.exec(code ?? "")?.[1] ?? 0);
+
 export function cabinetsForFranchise(db: DB, franchiseId: string): CabinetWithCounts[] {
-  return cabinetsWithCounts(db).filter((c) => c.franchiseId === franchiseId);
+  return cabinetsWithCounts(db)
+    .filter((c) => c.franchiseId === franchiseId)
+    .sort((a, b) => codeNum(a.code) - codeNum(b.code)); // เรียงตาม TK 1,2,3,…
 }
 /** ประวัติเงินเข้า (บริษัทโอนส่วนแบ่งให้แฟรนไชส์) — ล่าสุดก่อน */
 export function franchisePayoutsFor(db: DB, franchiseId: string) {
@@ -542,10 +547,12 @@ export interface FranchiseWithStats extends Franchise {
   pointsIssued: number;
 }
 export function franchisesWithStats(db: DB): FranchiseWithStats[] {
-  return (db.franchises ?? []).map((f) => {
-    const s = franchiseSummary(db, f.id);
-    return { ...f, cabinetCount: s.cabinetCount, bagCount: s.bagCount, pointsIssued: s.pointsIssued };
-  });
+  return (db.franchises ?? [])
+    .map((f) => {
+      const s = franchiseSummary(db, f.id);
+      return { ...f, cabinetCount: s.cabinetCount, bagCount: s.bagCount, pointsIssued: s.pointsIssued };
+    })
+    .sort((a, b) => codeNum(a.code) - codeNum(b.code)); // เรียงตาม TH 1,2,3,…
 }
 
 /** รายได้แบ่งของแฟรนไชส์ (รายได้ = มูลค่ารีไซเคิลถุงที่คัดแยกแล้ว) */

@@ -12,7 +12,7 @@ import { cabinetFullCode, displayCabinetCode } from "@/lib/types";
 import { isValidUsername } from "@/lib/username";
 import { formatBaht, thaiDate } from "@/lib/utils";
 import { RevenueExport } from "@/components/RevenueExport";
-import { Store, Plus, Box, PackageOpen, Coins, Phone, User, Truck, Building2, Wallet, AlertTriangle, FileSignature, Printer, QrCode, MapPin, Pencil, Trash2, KeyRound } from "lucide-react";
+import { Store, Plus, Box, PackageOpen, Coins, Phone, User, Truck, Building2, Wallet, AlertTriangle, FileSignature, Printer, QrCode, MapPin, Pencil, Trash2, KeyRound, Search, X } from "lucide-react";
 
 const NEAR_FULL = 30; // ถุงค้าง ≥ 30 = ใกล้เต็ม (เข้าเก็บ)
 const FULL = 40; // ≥ 40 = เต็ม
@@ -22,13 +22,26 @@ const EMPTY_CAB: CabForm = { name: "", address: "", province: "", district: "", 
 
 export default function AdminFranchisesPage() {
   const { db, addFranchise, addCabinet, editFranchise, removeFranchise, setCabinetLocation } = useStore();
-  const franchises = franchisesWithStats(db);
+  const allFranchises = franchisesWithStats(db);
   const nearFull = cabinetsWithCounts(db)
     .filter((c) => c.pending >= NEAR_FULL)
     .sort((a, b) => b.pending - a.pending);
 
-  // รวมผ่อนค่าสัญญา/ส่วนแบ่งทั้งหมดทุกแฟรนไชส์
-  const totals = franchises.reduce(
+  // ค้นหา (ชื่อ/เจ้าของ/เบอร์/รหัส) + กรองตามจังหวัด (จังหวัดของตู้ในแฟรนไชส์)
+  const [q, setQ] = useState("");
+  const [prov, setProv] = useState("");
+  const provinces = [...new Set((db.cabinets ?? []).map((c) => c.province).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, "th"));
+  const provincesOf = (fid: string) => new Set(db.cabinets.filter((c) => c.franchiseId === fid).map((c) => c.province).filter(Boolean));
+  const ownerPhoneRaw = (fid: string) => db.users.find((u) => u.role === "franchise" && u.franchiseId === fid)?.phone || "";
+  const franchises = allFranchises.filter((f) => {
+    const kw = q.trim().toLowerCase();
+    const matchQ = !kw || [f.name, f.ownerName, f.code, ownerPhoneRaw(f.id), f.phone].some((v) => (v ?? "").toLowerCase().includes(kw));
+    const matchProv = !prov || provincesOf(f.id).has(prov);
+    return matchQ && matchProv;
+  });
+
+  // รวมผ่อนค่าสัญญา/ส่วนแบ่งทั้งหมดทุกแฟรนไชส์ (ทุกเจ้า ไม่ขึ้นกับการค้นหา/กรอง)
+  const totals = allFranchises.reduce(
     (acc, f) => {
       const r = franchiseRevenue(db, f.id);
       acc.contractRecovered += r.contractRecovered;
@@ -170,7 +183,22 @@ export default function AdminFranchisesPage() {
         <p className="mt-2 text-[11px] text-neutral-400">บริษัทเข้าเก็บของเก่าจากตู้ให้แฟรนไชส์ · เกณฑ์ ≥ {NEAR_FULL} ถุง = ใกล้เต็ม, ≥ {FULL} = เต็ม</p>
       </div>
 
-      <h2 className="flex items-center gap-1.5 pt-1 font-bold text-neutral-800"><Store className="h-4 w-4 text-brand-600" /> แฟรนไชส์ทั้งหมด</h2>
+      <div className="flex flex-wrap items-center gap-2 pt-1">
+        <h2 className="flex items-center gap-1.5 font-bold text-neutral-800"><Store className="h-4 w-4 text-brand-600" /> แฟรนไชส์ทั้งหมด</h2>
+        <span className="text-sm text-neutral-400">({franchises.length}{franchises.length !== allFranchises.length ? ` / ${allFranchises.length}` : ""})</span>
+      </div>
+      {/* ค้นหา + กรองจังหวัด */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[200px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+          <input className="input pl-9" value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา ชื่อ · เจ้าของ · เบอร์ · รหัส" />
+          {q && <button onClick={() => setQ("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-neutral-400 hover:bg-neutral-100"><X className="h-4 w-4" /></button>}
+        </div>
+        <select className="input w-auto min-w-[150px]" value={prov} onChange={(e) => setProv(e.target.value)}>
+          <option value="">ทุกจังหวัด</option>
+          {provinces.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {franchises.map((f) => (
           <div key={f.id} className="card flex flex-col gap-3">
@@ -237,7 +265,11 @@ export default function AdminFranchisesPage() {
         ))}
         {franchises.length === 0 && (
           <div className="card col-span-full flex flex-col items-center gap-2 py-12 text-center text-neutral-400">
-            <Store className="h-8 w-8" /> ยังไม่มีแฟรนไชส์ — กด “เพิ่มแฟรนไชส์”
+            {allFranchises.length === 0 ? (
+              <><Store className="h-8 w-8" /> ยังไม่มีแฟรนไชส์ — กด “เพิ่มแฟรนไชส์”</>
+            ) : (
+              <><Search className="h-8 w-8" /> ไม่พบแฟรนไชส์ที่ตรงกับเงื่อนไข{(q || prov) && <button onClick={() => { setQ(""); setProv(""); }} className="mt-1 text-sm font-semibold text-brand-600">ล้างตัวกรอง</button>}</>
+            )}
           </div>
         )}
       </div>
@@ -400,8 +432,8 @@ export default function AdminFranchisesPage() {
                 <div key={c.id} className="flex items-center gap-3 rounded-xl bg-neutral-50 p-3 ring-1 ring-neutral-100">
                   <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-100 text-brand-700"><Box className="h-4 w-4" /></span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-neutral-800">{c.name} <span className="font-mono font-normal text-brand-700">{displayCabinetCode(c.code)}</span></p>
-                    <p className="flex items-center gap-1 truncate text-xs text-neutral-400"><MapPin className="h-3 w-3 shrink-0" /> {c.location.address}{area && ` · ${area}`}</p>
+                    <p className="text-sm font-semibold text-neutral-800">{c.name} <span className="whitespace-nowrap font-mono font-normal text-brand-700">{displayCabinetCode(c.code)}</span></p>
+                    <p className="flex items-start gap-1 text-xs text-neutral-400"><MapPin className="mt-0.5 h-3 w-3 shrink-0" /> <span>{c.location.address}{area && ` · ${area}`}</span></p>
                     {!hasGeo(c.location.lat, c.location.lng) && <p className="mt-0.5 text-[11px] font-medium text-amber-600">⚠ ยังไม่ปักหมุด — ไม่ขึ้นบนแผนที่</p>}
                   </div>
                   <button
