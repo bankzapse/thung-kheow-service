@@ -4,7 +4,8 @@ import { useStore } from "@/lib/store";
 import { dropGoSummary, recentCreditedBags, pendingRedemptions } from "@/lib/selectors";
 import { formatBaht, thaiDateTime } from "@/lib/utils";
 import { POINTS_PER_BAHT, cabinetFullCode } from "@/lib/types";
-import { Box, PackageOpen, Coins, Banknote, Recycle, Trophy, Clock, PackageCheck } from "lucide-react";
+import { CabinetMap, type CabinetPin } from "@/components/CabinetMap";
+import { Box, PackageOpen, Coins, Banknote, Recycle, Trophy, Clock, PackageCheck, MapPin } from "lucide-react";
 
 export default function AdminDropGoPage() {
   const { db } = useStore();
@@ -13,6 +14,18 @@ export default function AdminDropGoPage() {
   const pendingRedeem = pendingRedemptions(db);
   const pendingCabs = s.cabinets.filter((c) => c.pending > 0); // เฉพาะตู้ที่มีถุงรอคัดแยก
   const maxCab = Math.max(1, ...pendingCabs.map((c) => c.pending));
+
+  // หมุดตู้บนแผนที่ — ตัวเลข = ถุงที่หย่อนแล้วรอเก็บไปคัดแยก (อยู่ที่ตู้ตอนนี้)
+  const pins: CabinetPin[] = s.cabinets.map((c) => ({
+    id: c.id,
+    lat: c.location.lat,
+    lng: c.location.lng,
+    name: c.name,
+    code: cabinetFullCode(c.franchiseCode, c.code),
+    address: c.location.address,
+    badge: c.dropped,
+    badgeLabel: c.dropped > 0 ? `${c.dropped} ถุงรอเก็บ` : "ไม่มีถุงค้าง",
+  }));
 
   return (
     <div className="space-y-6">
@@ -28,6 +41,13 @@ export default function AdminDropGoPage() {
         <Stat icon={<PackageCheck className="h-5 w-5" />} label="ถุงคัดแยกแล้ว" value={`${s.creditedBags}`} sub="ให้คะแนนแล้ว" tone="brand" />
         <Stat icon={<Coins className="h-5 w-5" />} label="คะแนนจ่ายรวม" value={formatBaht(s.pointsIssued)} sub={`คงเหลือในระบบ ${formatBaht(s.pointsOutstanding)}`} tone="gold" />
         <Stat icon={<Banknote className="h-5 w-5" />} label="จ่ายเงินแลกแล้ว" value={`฿${formatBaht(s.redeemPaidBaht)}`} sub={`รอโอน ${s.redeemPending} · ฿${formatBaht(s.redeemPendingBaht)}`} tone={s.redeemPending > 0 ? "amber" : "brand"} />
+      </div>
+
+      {/* แผนที่ตู้ทั้งหมด */}
+      <div className="card">
+        <h2 className="mb-3 flex items-center gap-1.5 font-bold text-neutral-800"><MapPin className="h-4 w-4 text-brand-600" /> แผนที่ตู้ทั้งหมด ({s.cabinetCount} ตู้)</h2>
+        <CabinetMap pins={pins} height={400} />
+        <p className="mt-2 text-xs text-neutral-400">ตัวเลขบนหมุด = ถุงที่หย่อนแล้วรอเก็บไปคัดแยก (อยู่ที่ตู้ตอนนี้) · หมุดเทา = ตู้ว่าง · แตะหมุดเพื่อดูรายละเอียด/นำทาง</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

@@ -19,8 +19,13 @@ import {
   creditOf,
   pointsOf,
   dropStats,
+  cabinetsWithCounts,
+  type CabinetWithCounts,
 } from "@/lib/selectors";
-import { RADIUS_KM, DEFAULT_BASE } from "@/lib/geo";
+import { RADIUS_KM, DEFAULT_BASE, distanceKm, formatDistance } from "@/lib/geo";
+import { displayCabinetCode } from "@/lib/types";
+import { CabinetMap, type CabinetPin } from "@/components/CabinetMap";
+import { directionsUrl } from "@/lib/googleMaps";
 import { MIN_CREDIT } from "@/lib/fees";
 import { PICKUP_ENABLED } from "@/lib/features";
 import { formatBaht, thaiDate } from "@/lib/utils";
@@ -38,6 +43,9 @@ import {
   PackageCheck,
   CheckCircle2,
   AlertTriangle,
+  MapPin,
+  Navigation,
+  Box,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -58,6 +66,14 @@ export default function HomePage() {
   const openCount = isSeller ? 0 : availableJobsNear(db, base.lat, base.lng, RADIUS_KM).length;
   const activeCount = activeJobs(isSeller ? sellerJobs : buyerJobs).length;
   const priceOf = (id: string) => buyerPrice(db, u.id, id);
+
+  // ตู้ใกล้ผู้ขาย — เรียงตามระยะจากตำแหน่งฐาน (ตัดตู้ที่ปิดซ่อม)
+  const nearbyCabs = isSeller
+    ? cabinetsWithCounts(db)
+        .filter((c) => c.status !== "maintenance")
+        .map((c) => ({ c, km: distanceKm(base.lat, base.lng, c.location.lat, c.location.lng) }))
+        .sort((a, b) => a.km - b.km)
+    : [];
 
   return (
     <div>
@@ -146,6 +162,9 @@ export default function HomePage() {
           </div>
         )}
 
+        {/* ตู้ใกล้ฉัน (seller) */}
+        {isSeller && nearbyCabs.length > 0 && <NearbyCabinets rows={nearbyCabs} base={base} />}
+
         {/* LINE OA banner (seller) */}
         {isSeller && !u.lineConnected && <LineBanner />}
 
@@ -174,6 +193,60 @@ export default function HomePage() {
         <p className="mb-2 text-xs text-neutral-400">อัปเดต {thaiDate(db.pricesUpdatedAt)} · ราคาอาจเปลี่ยนแปลงตามหน้างาน</p>
         <PriceList />
       </Sheet>
+    </div>
+  );
+}
+
+function NearbyCabinets({
+  rows,
+  base,
+}: {
+  rows: { c: CabinetWithCounts; km: number }[];
+  base: { lat: number; lng: number };
+}) {
+  const pins: CabinetPin[] = rows.map(({ c, km }) => ({
+    id: c.id,
+    lat: c.location.lat,
+    lng: c.location.lng,
+    name: c.name,
+    code: displayCabinetCode(c.code),
+    address: c.location.address,
+    distanceLabel: formatDistance(km),
+  }));
+  const nearest = rows.slice(0, 3);
+
+  return (
+    <div className="card">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="flex items-center gap-1.5 font-bold text-neutral-800">
+          <MapPin className="h-4 w-4 text-brand-600" /> ตู้หย่อนถุงใกล้คุณ
+        </h2>
+        <span className="text-xs text-neutral-400">{rows.length} ตู้</span>
+      </div>
+      <CabinetMap pins={pins} user={base} height={300} />
+      <div className="mt-3 space-y-2">
+        {nearest.map(({ c, km }) => (
+          <a
+            key={c.id}
+            href={directionsUrl(c.location.lat, c.location.lng, c.name)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 rounded-xl bg-neutral-50 px-3 py-2 ring-1 ring-neutral-100 transition active:scale-[0.99]"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-700">
+              <Box className="h-4.5 w-4.5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-neutral-800">{c.name}</p>
+              <p className="truncate text-xs text-neutral-400">{c.location.address}</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700">
+              {formatDistance(km)}
+            </span>
+            <Navigation className="h-4 w-4 shrink-0 text-neutral-300" />
+          </a>
+        ))}
+      </div>
     </div>
   );
 }

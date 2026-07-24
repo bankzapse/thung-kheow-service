@@ -378,7 +378,8 @@ export function bagsForCabinet(db: DB, cabinetId: string): MeshBag[] {
     .sort((a, b) => +new Date(b.droppedAt) - +new Date(a.droppedAt));
 }
 export interface CabinetWithCounts extends Cabinet {
-  pending: number; // ถุงที่ยังไม่ได้ให้คะแนน
+  dropped: number; // ถุงที่ "อยู่ที่ตู้ตอนนี้" — หย่อนแล้วยังไม่ถูกเก็บไปคัดแยก
+  pending: number; // ถุงที่ยังไม่ได้ให้คะแนน (dropped + sorting)
   credited: number; // ถุงที่คัดแยก+ให้คะแนนแล้ว
   total: number;
 }
@@ -387,6 +388,7 @@ export function cabinetsWithCounts(db: DB): CabinetWithCounts[] {
     const bags = (db.bags ?? []).filter((b) => b.cabinetId === c.id);
     return {
       ...c,
+      dropped: bags.filter((b) => b.status === "dropped").length,
       pending: bags.filter((b) => b.status !== "credited").length,
       credited: bags.filter((b) => b.status === "credited").length,
       total: bags.length,
