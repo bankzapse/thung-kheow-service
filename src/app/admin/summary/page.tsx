@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { financialSummary } from "@/lib/selectors";
 import { formatBaht } from "@/lib/utils";
-import { TrendingUp, Wallet, Building2, Coins, Factory, HandCoins, Landmark, PiggyBank } from "lucide-react";
+import { TrendingUp, Wallet, Building2, Coins, Factory, HandCoins, Landmark, PiggyBank, Gift, Sparkles } from "lucide-react";
 
 type Period = "day" | "month" | "year" | "all";
 const PERIODS: [Period, string][] = [["day", "วันนี้"], ["month", "เดือนนี้"], ["year", "ปีนี้"], ["all", "ทั้งหมด"]];
@@ -52,6 +52,7 @@ export default function AdminSummaryPage() {
         <p className="mb-3 text-xs text-neutral-400">รายจ่ายในช่วงที่เลือก</p>
         <div className="divide-y divide-neutral-100">
           <Row icon={<Coins className="h-4 w-4" />} label="มูลค่ารับซื้อ (จ่ายผู้ขายเป็นคะแนน)" value={s.purchaseCost} hint="ต้นทุนของเข้า = คะแนนที่ตีให้ถุง" />
+          <Row icon={<Gift className="h-4 w-4" />} label="โบนัสภารกิจ/ขั้นบันได (แต้มที่แจก)" value={s.bonusPaid} hint="รางวัลที่บริษัทแจกเพิ่มเกินมูลค่าวัสดุ" />
           <Row icon={<Landmark className="h-4 w-4" />} label="โอนส่วนแบ่งให้แฟรนไชส์" value={s.franchisePaid} />
           <Row icon={<HandCoins className="h-4 w-4" />} label="จ่ายเงินแลก (ผู้ขายถอน)" value={s.redeemPaid} />
         </div>
@@ -59,6 +60,25 @@ export default function AdminSummaryPage() {
           <span className="text-sm font-semibold text-neutral-700">รวมเงินสดจ่ายออก (โอนแฟรนไชส์ + จ่ายแลก)</span>
           <span className="text-lg font-extrabold text-neutral-800">฿{formatBaht(cashOut)}</span>
         </div>
+      </div>
+
+      {/* กำไรสุทธิ = กำไรโรงงาน − โบนัส − ค่าถอน */}
+      <div className="card">
+        <h2 className="mb-1 flex items-center gap-1.5 font-bold text-neutral-800"><Sparkles className="h-4 w-4 text-brand-600" /> กำไรสุทธิ</h2>
+        <p className="mb-3 text-xs text-neutral-400">หักโบนัสที่แจก + เงินที่ผู้ขายถอนออกจากกำไรขายโรงงาน</p>
+        <div className="divide-y divide-neutral-100">
+          <CalcRow label="กำไรจากขายโรงงาน" value={s.factoryProfit} sign="+" />
+          <CalcRow label="โบนัสภารกิจ/ขั้นบันได" value={s.bonusPaid} sign="−" />
+          <CalcRow label="จ่ายเงินแลก (ผู้ขายถอน)" value={s.redeemPaid} sign="−" />
+        </div>
+        <div className={`mt-3 flex items-center justify-between rounded-xl px-3 py-3 ring-1 ${s.netProfit >= 0 ? "bg-brand-50 ring-brand-100" : "bg-red-50 ring-red-100"}`}>
+          <span className={`text-sm font-bold ${s.netProfit >= 0 ? "text-brand-700" : "text-red-700"}`}>กำไรสุทธิ</span>
+          <span className={`text-2xl font-extrabold ${s.netProfit >= 0 ? "text-brand-700" : "text-red-600"}`}>฿{formatBaht(s.netProfit)}</span>
+        </div>
+        <p className="mt-2 text-[11px] leading-relaxed text-neutral-400">
+          หมายเหตุ: “จ่ายเงินแลก” รวมทั้งคะแนนพื้นฐาน (ค่าวัสดุ) ซึ่งบางส่วนถูกนับเป็นต้นทุนใน “กำไรขายโรงงาน” แล้ว —
+          ตัวเลขนี้จึงเป็นมุมมองอนุรักษ์นิยม (ระวังต่ำ) · ยังไม่ได้หักส่วนแบ่งแฟรนไชส์
+        </p>
       </div>
 
       <div className="rounded-xl bg-brand-50 p-4 text-sm text-brand-800 ring-1 ring-brand-100">
@@ -83,6 +103,15 @@ function BigCard({ icon, label, value, sub, tone }: { icon: React.ReactNode; lab
         <p className="text-3xl font-extrabold leading-tight tracking-tight text-neutral-800">฿{formatBaht(value)}</p>
         {sub && <p className="mt-0.5 text-xs text-neutral-400">{sub}</p>}
       </div>
+    </div>
+  );
+}
+
+function CalcRow({ label, value, sign }: { label: string; value: number; sign: "+" | "−" }) {
+  return (
+    <div className="flex items-center justify-between py-2.5">
+      <span className="text-sm text-neutral-600">{label}</span>
+      <span className={`text-base font-bold tabular-nums ${sign === "−" ? "text-red-500" : "text-neutral-800"}`}>{sign} ฿{formatBaht(value)}</span>
     </div>
   );
 }

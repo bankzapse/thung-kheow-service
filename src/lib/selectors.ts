@@ -118,6 +118,8 @@ export interface FinancialSummary {
   purchaseCost: number; // มูลค่ารับซื้อ (จ่ายผู้ขายเป็นคะแนน)
   franchisePaid: number; // โอนส่วนแบ่งให้แฟรนไชส์
   redeemPaid: number; // จ่ายเงินแลกให้ผู้ขาย (เงินสดออก)
+  bonusPaid: number; // โบนัสภารกิจ/ขั้นบันไดที่แจก (แต้ม = บาท)
+  netProfit: number; // กำไรสุทธิ = กำไรโรงงาน − โบนัส − ค่าถอน
   saleCount: number;
 }
 export function financialSummary(db: DB, since?: Date): FinancialSummary {
@@ -125,14 +127,22 @@ export function financialSummary(db: DB, since?: Date): FinancialSummary {
   const after = (iso?: string) => !c || (!!iso && iso >= c);
   const fsales = (db.factorySales ?? []).filter((s) => after(s.soldAt));
   const cabs = (db.cabinets ?? []).filter((cb) => after(cb.createdAt));
+  const factoryProfit = fsales.reduce((s, x) => s + x.profit, 0);
+  // โบนัสที่บริษัทแจก (ปิดยอดโบนัสประจำเดือน) — pointTxn แบบ adjust โน้ต "โบนัสประจำเดือน…"
+  const bonusPaid = (db.pointTxns ?? [])
+    .filter((t) => t.type === "adjust" && (t.note ?? "").startsWith("โบนัสประจำเดือน") && after(t.date))
+    .reduce((s, t) => s + Math.max(0, t.points), 0);
+  const redeemPaid = (db.redemptions ?? []).filter((r) => r.status === "paid" && after(r.paidAt)).reduce((s, r) => s + r.amountBaht, 0);
   return {
     factoryRevenue: fsales.reduce((s, x) => s + x.revenue, 0),
-    factoryProfit: fsales.reduce((s, x) => s + x.profit, 0),
+    factoryProfit,
     cabinetInvest: cabs.length * CONTRACT_PER_CABINET,
     cabinetCount: cabs.length,
     purchaseCost: (db.bags ?? []).filter((b) => b.status === "credited" && after(b.creditedAt)).reduce((s, b) => s + (b.valueBaht ?? 0), 0),
     franchisePaid: (db.franchisePayouts ?? []).filter((p) => after(p.paidAt)).reduce((s, p) => s + p.amount, 0),
-    redeemPaid: (db.redemptions ?? []).filter((r) => r.status === "paid" && after(r.paidAt)).reduce((s, r) => s + r.amountBaht, 0),
+    redeemPaid,
+    bonusPaid,
+    netProfit: factoryProfit - bonusPaid - redeemPaid,
     saleCount: fsales.length,
   };
 }
