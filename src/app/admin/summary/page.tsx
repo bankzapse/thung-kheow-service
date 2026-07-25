@@ -65,19 +65,19 @@ export default function AdminSummaryPage() {
       {/* กำไรสุทธิ = กำไรโรงงาน − โบนัส − ค่าถอน */}
       <div className="card">
         <h2 className="mb-1 flex items-center gap-1.5 font-bold text-neutral-800"><Sparkles className="h-4 w-4 text-brand-600" /> กำไรสุทธิ</h2>
-        <p className="mb-3 text-xs text-neutral-400">หักโบนัสที่แจก + เงินที่ผู้ขายถอนออกจากกำไรขายโรงงาน</p>
+        <p className="mb-3 text-xs text-neutral-400">หักโบนัสที่แจก + ส่วนแบ่งแฟรนไชส์ ออกจากกำไรขายโรงงาน</p>
         <div className="divide-y divide-neutral-100">
           <CalcRow label="กำไรจากขายโรงงาน" value={s.factoryProfit} sign="+" />
           <CalcRow label="โบนัสภารกิจ/ขั้นบันได" value={s.bonusPaid} sign="−" />
-          <CalcRow label="จ่ายเงินแลก (ผู้ขายถอน)" value={s.redeemPaid} sign="−" />
+          <CalcRow label="โอนส่วนแบ่งแฟรนไชส์" value={s.franchisePaid} sign="−" />
         </div>
         <div className={`mt-3 flex items-center justify-between rounded-xl px-3 py-3 ring-1 ${s.netProfit >= 0 ? "bg-brand-50 ring-brand-100" : "bg-red-50 ring-red-100"}`}>
           <span className={`text-sm font-bold ${s.netProfit >= 0 ? "text-brand-700" : "text-red-700"}`}>กำไรสุทธิ</span>
           <span className={`text-2xl font-extrabold ${s.netProfit >= 0 ? "text-brand-700" : "text-red-600"}`}>฿{formatBaht(s.netProfit)}</span>
         </div>
         <p className="mt-2 text-[11px] leading-relaxed text-neutral-400">
-          หมายเหตุ: “จ่ายเงินแลก” รวมทั้งคะแนนพื้นฐาน (ค่าวัสดุ) ซึ่งบางส่วนถูกนับเป็นต้นทุนใน “กำไรขายโรงงาน” แล้ว —
-          ตัวเลขนี้จึงเป็นมุมมองอนุรักษ์นิยม (ระวังต่ำ) · ยังไม่ได้หักส่วนแบ่งแฟรนไชส์
+          หมายเหตุ: ไม่หัก “จ่ายเงินแลก (ผู้ขายถอน)” เพราะต้นทุนค่าวัสดุถูกนับใน “กำไรขายโรงงาน” แล้ว —
+          ค่าถอนเป็นแค่การจ่ายเงินสดของคะแนนที่นับต้นทุนไปแล้ว (ดูได้ที่ตาราง “ต้นทุน & เงินจ่ายออก” ด้านบน)
         </p>
       </div>
 
