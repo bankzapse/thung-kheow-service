@@ -25,6 +25,7 @@ import {
 import { RADIUS_KM, NEARBY_CABINET_RADIUS_KM, DEFAULT_BASE, distanceKm, formatDistance, directionsUrl, hasGeo } from "@/lib/geo";
 import { displayCabinetCode } from "@/lib/types";
 import { CabinetMap, type CabinetPin } from "@/components/CabinetMap";
+import { SetLocationButton } from "@/components/SetLocationButton";
 import { MIN_CREDIT } from "@/lib/fees";
 import { PICKUP_ENABLED } from "@/lib/features";
 import { formatBaht, thaiDate } from "@/lib/utils";
@@ -224,6 +225,7 @@ function NearbyCabinets({
         </h2>
         <span className="text-xs text-neutral-400">ในรัศมี {NEARBY_CABINET_RADIUS_KM} กม.</span>
       </div>
+      <SetLocationButton className="mb-3" />
       {shown.length === 0 ? (
         <p className="py-6 text-center text-sm text-neutral-400">ยังไม่มีตู้ในรัศมี {NEARBY_CABINET_RADIUS_KM} กม. — กด “ดูตู้ทั้งหมด” เพื่อดูตู้อื่น</p>
       ) : (

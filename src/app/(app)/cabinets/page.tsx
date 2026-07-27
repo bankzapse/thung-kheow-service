@@ -7,6 +7,7 @@ import { cabinetsWithCounts } from "@/lib/selectors";
 import { DEFAULT_BASE, distanceKm, formatDistance, directionsUrl, hasGeo } from "@/lib/geo";
 import { displayCabinetCode } from "@/lib/types";
 import { CabinetMap, type CabinetPin } from "@/components/CabinetMap";
+import { SetLocationButton } from "@/components/SetLocationButton";
 import { MapPin, Box, Navigation } from "lucide-react";
 
 export default function AllCabinetsPage() {
@@ -35,6 +36,7 @@ export default function AllCabinetsPage() {
       <AppHeader title="ตู้หย่อนถุงทั้งหมด" subtitle={`${rows.length} ตู้ · เรียงตามระยะใกล้คุณ`} back />
 
       <div className="space-y-4 px-5 py-4">
+        <SetLocationButton />
         {rows.length === 0 ? (
           <div className="card"><EmptyState icon="📍" title="ยังไม่มีตู้ที่ปักหมุด" hint="ตู้จะขึ้นเมื่อบริษัทตั้งพิกัดแล้ว" /></div>
         ) : (
