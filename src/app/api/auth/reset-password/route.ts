@@ -52,6 +52,7 @@ export async function POST(req: Request) {
   const { error } = await admin.auth.admin.updateUserById(row.id, { password: String(password) });
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
+  await table("profiles").update({ phone_verified: true }).eq("id", row.id); // ผ่าน OTP = เบอร์ยืนยันแล้ว
   await table("otp_throttle").delete().eq("phone", p); // สำเร็จ → ล้างตัวนับ
   return NextResponse.json({ ok: true });
 }

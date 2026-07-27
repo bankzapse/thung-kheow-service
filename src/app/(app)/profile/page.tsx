@@ -11,10 +11,10 @@ import { monthlyRewards } from "@/lib/rewards";
 import { realEmail } from "@/lib/username";
 import { REDEEM_TIERS } from "@/lib/types";
 import { formatBaht, thaiMonthLabel } from "@/lib/utils";
-import { Coins, Phone, Mail, LogOut, Trash2, ShieldAlert, ChevronRight, FileText, ShieldCheck, Gift } from "lucide-react";
+import { Coins, Phone, Mail, LogOut, Trash2, ShieldAlert, ChevronRight, FileText, ShieldCheck, Gift, Pencil, CheckCircle2, AlertTriangle } from "lucide-react";
 
 export default function ProfilePage() {
-  const { db, currentUser, logout, deleteAccount } = useStore();
+  const { db, currentUser, logout, deleteAccount, setMyPhone } = useStore();
   const u = currentUser!;
   const points = pointsOf(db, u.id);
   const reward = monthlyRewards(db, u.id);
@@ -22,6 +22,16 @@ export default function ProfilePage() {
   const [delOpen, setDelOpen] = useState(false);
   const [delAck, setDelAck] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [phoneOpen, setPhoneOpen] = useState(false);
+  const [newPhone, setNewPhone] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
+  const savePhone = async () => {
+    if (savingPhone) return;
+    setSavingPhone(true);
+    const ok = await setMyPhone(newPhone);
+    setSavingPhone(false);
+    if (ok) setPhoneOpen(false);
+  };
 
   const doDelete = async () => {
     setDeleting(true);
@@ -46,7 +56,25 @@ export default function ProfilePage() {
 
         {/* info */}
         <div className="card divide-y divide-neutral-100 !py-1">
-          <InfoRow icon={<Phone className="h-4 w-4" />} label="เบอร์โทรศัพท์" value={u.phone || "—"} />
+          <div className="flex items-center gap-3 py-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-neutral-100 text-neutral-500"><Phone className="h-4 w-4" /></span>
+            <span className="text-sm text-neutral-500">เบอร์โทรศัพท์</span>
+            <div className="ml-auto flex items-center gap-2">
+              <div className="text-right">
+                <p className="text-sm font-semibold text-neutral-800">{u.phone || "—"}</p>
+                {u.phone && (
+                  u.phoneVerified ? (
+                    <span className="flex items-center justify-end gap-0.5 text-[11px] font-medium text-brand-600"><CheckCircle2 className="h-3 w-3" /> ยืนยันแล้ว</span>
+                  ) : (
+                    <span className="flex items-center justify-end gap-0.5 text-[11px] font-medium text-amber-600"><AlertTriangle className="h-3 w-3" /> ยังไม่ยืนยัน</span>
+                  )
+                )}
+              </div>
+              <button onClick={() => { setNewPhone(u.phone || ""); setPhoneOpen(true); }} className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-400 ring-1 ring-neutral-200 hover:bg-neutral-50" aria-label="แก้เบอร์">
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
           {/* อีเมลภายใน (line_xxx@line.local) ระบบสร้างเอง ผู้ใช้ไม่ได้กรอก — ซ่อนทั้งแถว */}
           {realEmail(u.email) && (
             <InfoRow icon={<Mail className="h-4 w-4" />} label="อีเมล" value={realEmail(u.email)!} />
@@ -83,6 +111,38 @@ export default function ProfilePage() {
           </button>
         </div>
       </div>
+
+      {/* แก้เบอร์โทรศัพท์ */}
+      <Modal
+        open={phoneOpen}
+        onClose={() => !savingPhone && setPhoneOpen(false)}
+        title="แก้เบอร์โทรศัพท์"
+        footer={
+          <>
+            <button className="btn-outline flex-1" disabled={savingPhone} onClick={() => setPhoneOpen(false)}>ยกเลิก</button>
+            <button className="btn-primary flex-1 disabled:opacity-50" disabled={savingPhone || !/^0\d{8,9}$/.test(newPhone.replace(/\D/g, ""))} onClick={savePhone}>
+              {savingPhone ? "กำลังบันทึก…" : "บันทึก"}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="label">เบอร์โทรศัพท์</label>
+            <input
+              className="input"
+              inputMode="numeric"
+              maxLength={10}
+              placeholder="08x-xxx-xxxx"
+              value={newPhone}
+              onChange={(e) => setNewPhone(e.target.value.replace(/\D/g, ""))}
+            />
+          </div>
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            เปลี่ยนเบอร์แล้วต้อง <b>ยืนยันเบอร์ใหม่ด้วย OTP ก่อนถอนเงินครั้งถัดไป</b> (เบอร์ใช้สำหรับโอนเงิน · ให้ทีมงานติดต่อ)
+          </p>
+        </div>
+      </Modal>
 
       <Modal
         open={delOpen}

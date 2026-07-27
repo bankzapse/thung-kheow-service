@@ -65,6 +65,7 @@ export async function POST(req: Request) {
       consent_at: new Date().toISOString(),
       consent_version: CONSENT_VERSION,
       consent_source: "register",
+      phone_verified: true, // สมัครผ่าน OTP = เบอร์ยืนยันแล้ว
     }).eq("id", created.user.id);
   }
 

@@ -27,6 +27,7 @@ function profileToUser(p: any): User {
     roles: Array.isArray(p.roles) ? p.roles : undefined,
     name: p.name,
     phone: (p.phone ?? "").replace(/\D/g, "").replace(/^66/, "0"),
+    phoneVerified: !!p.phone_verified,
     email: p.email ?? undefined,
     lineUserId: p.line_user_id ?? undefined,
     lineConnected: !!p.line_connected,
@@ -123,6 +124,7 @@ interface StoreValue {
   // buyer prices & location
   setBuyerPrice: (materialId: string, price: number) => void;
   setBaseLocation: (lat: number, lng: number) => void;
+  setMyPhone: (phone: string) => Promise<boolean>;
   // shop back-office
   createBill: (input: CreateBillInput) => Promise<Bill>;
   voidBill: (billId: string) => void;
@@ -352,6 +354,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
     },
     [refresh, pushToast, startPending, endPending],
+  );
+
+  // ผู้ใช้แก้เบอร์ตัวเอง → set phone_verified=false (ต้อง verify ก่อนถอน) · คืน true เมื่อสำเร็จ
+  const setMyPhone = useCallback(
+    async (phone: string): Promise<boolean> => {
+      const p = phone.replace(/\D/g, "");
+      if (!/^0\d{8,9}$/.test(p)) { pushToast("เบอร์ไม่ถูกต้อง", "info"); return false; }
+      if (!supabaseConfigured) {
+        if (db.users.some((x) => x.id !== currentUserId && x.phone === p)) { pushToast("เบอร์นี้มีบัญชีอื่นใช้อยู่แล้ว", "info"); return false; }
+        setDb((d) => ({ ...d, users: d.users.map((x) => (x.id === currentUserId ? { ...x, phone: p, phoneVerified: false } : x)) }));
+        pushToast("บันทึกเบอร์แล้ว", "success");
+        return true;
+      }
+      startPending();
+      try {
+        const r = await fetch("/api/profile/phone", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: p }) });
+        const j = await r.json().catch(() => ({ ok: false }));
+        if (!r.ok || j.ok === false) { pushToast(friendlyError(j.error, "แก้เบอร์ไม่สำเร็จ"), "info"); return false; }
+        await refresh();
+        pushToast("บันทึกเบอร์แล้ว", "success");
+        return true;
+      } catch (e) {
+        pushToast(friendlyError(e, "เชื่อมต่อไม่สำเร็จ"), "info");
+        return false;
+      } finally {
+        endPending();
+      }
+    },
+    [db, currentUserId, refresh, pushToast, startPending, endPending],
   );
 
   // ---- auth ----
@@ -1515,6 +1546,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     removeSlot,
     setBuyerPrice,
     setBaseLocation,
+    setMyPhone,
     createBill,
     voidBill,
     addExpense,

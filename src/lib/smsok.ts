@@ -7,12 +7,14 @@
  *
  * ตั้งค่าใน env (อย่า commit ค่า secret):
  *   SMSOK_API_KEY, SMSOK_API_SECRET, SMSOK_SENDER (ดีฟอลต์ "MindFull"), SMSOK_API_URL (ออปชัน)
+ *   ⚠️ SMSOK_SENDER ต้องเป็นชื่อผู้ส่งที่ลงทะเบียนแบบ Transactional/OTP กับ SMS OK
+ *      ไม่งั้นค่ายจะกรองเป็น SMS โฆษณา (เบอร์ที่ตั้ง anti-spam จะไม่ได้รับ OTP)
  */
 
 const API_URL = process.env.SMSOK_API_URL || "https://api.smsok.co";
 const API_KEY = process.env.SMSOK_API_KEY;
 const API_SECRET = process.env.SMSOK_API_SECRET;
-const SENDER = process.env.SMSOK_SENDER || "Chao-Dee";
+const SENDER = process.env.SMSOK_SENDER || "MindFull";
 
 /** ตั้งค่า SMS OK ครบหรือยัง (มี key + secret) */
 export const smsokConfigured = Boolean(API_KEY && API_SECRET);
