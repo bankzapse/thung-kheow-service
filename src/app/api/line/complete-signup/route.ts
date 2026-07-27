@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { verifyOtp } from "@/lib/otp";
 import { normalizeThaiPhone } from "@/lib/smsok";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyLineAccessToken, fetchLineProfile } from "@/lib/line";
@@ -9,18 +8,20 @@ export const runtime = "nodejs";
 
 const toE164 = (p: string) => "+66" + p.replace(/^0/, "");
 const toBare = (p: string) => "66" + p.replace(/^0/, "");
-const MAX_FAILS = 5;
-const LOCK_MS = 15 * 60 * 1000;
 
 /**
  * POST /api/line/complete-signup
- * body: { accessToken, phone, code, token, consent, name? }
+ * body: { accessToken, phone, consent, name? }
  *
- * ปิดจ๊อบการเข้าใช้ครั้งแรกด้วย LINE — ทำ 3 อย่างในคำขอเดียว:
- *  1) ยืนยันเบอร์ด้วย OTP (จำเป็น: ใช้โอนเงิน · ติดต่อ · กู้บัญชีตอน LINE หาย)
- *  2) เบอร์ตรงกับบัญชีเดิม → ผูก LINE เข้าบัญชีนั้น (กันคะแนนแตกเป็น 2 ก้อน)
- *     ไม่ตรง → สร้างบัญชีใหม่
+ * เข้าใช้ครั้งแรกด้วย LINE (ไม่ต้องใช้ OTP SMS) — ทำในคำขอเดียว:
+ *  1) เก็บเบอร์ไว้ (ยังไม่ยืนยัน — ใช้ติดต่อ/โอนเงินตอนแลกคะแนน)
+ *  2) สร้างบัญชีใหม่ (ผูกกับ LINE)
  *  3) บันทึกคำยินยอม PDPA (เวลา + เวอร์ชันนโยบาย + ช่องทาง)
+ *
+ * 🔒 ความปลอดภัย: ไม่ผูกเข้าบัญชีเดิมโดยดูจากเบอร์เพียงอย่างเดียว เพราะไม่มี OTP
+ *    พิสูจน์ว่าเป็นเจ้าของเบอร์จริง (กันยึดบัญชีคนอื่นด้วยการพิมพ์เบอร์เขา) →
+ *    ถ้าเบอร์ตรงบัญชีเดิม ให้เข้าด้วยเบอร์+รหัสผ่าน แล้วผูก LINE ในหน้าโปรไฟล์
+ *    (/api/line/link ซึ่งต้องล็อกอินก่อน = ทางผูกที่ปลอดภัย)
  *
  * 🔒 ไม่เชื่อ userId ที่ client ส่งมา — verify access token กับ LINE ใหม่ทุกครั้ง
  */
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return NextResponse.json({ ok: false, error: "ระบบยังไม่พร้อม" }, { status: 404 });
   }
-  const { accessToken, phone, code, token, consent, name } = await req.json().catch(() => ({}));
+  const { accessToken, phone, consent, name } = await req.json().catch(() => ({}));
 
   if (consent !== true) {
     return NextResponse.json({ ok: false, error: "ต้องยอมรับข้อกำหนดและนโยบายความเป็นส่วนตัวก่อน" }, { status: 400 });
@@ -53,20 +54,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "บัญชี LINE นี้ผูกไว้แล้ว — กดเข้าสู่ระบบด้วย LINE ได้เลย" }, { status: 409 });
   }
 
-  // ── ยืนยัน OTP (นับครั้งผิดร่วมตารางเดียวกับ register/reset) ──
-  const { data: th } = await table("otp_throttle").select("fails, locked_until").eq("phone", p).maybeSingle();
-  if (th?.locked_until && new Date(th.locked_until).getTime() > Date.now()) {
-    return NextResponse.json({ ok: false, error: "พยายามหลายครั้งเกินไป — ลองใหม่ในอีก 15 นาที" }, { status: 429 });
-  }
-  const ok = verifyOtp(p, String(code || "").trim(), String(token || ""));
-  if (!ok.ok) {
-    const fails = (th?.fails ?? 0) + 1;
-    const locked = fails >= MAX_FAILS ? new Date(Date.now() + LOCK_MS).toISOString() : null;
-    await table("otp_throttle").upsert({ phone: p, fails, locked_until: locked, updated_at: new Date().toISOString() });
-    return NextResponse.json({ ok: false, error: ok.error ?? "รหัส OTP ไม่ถูกต้องหรือหมดอายุ" }, { status: 400 });
-  }
-  await table("otp_throttle").delete().eq("phone", p);
-
   const consentPatch = {
     consent_at: new Date().toISOString(),
     consent_version: CONSENT_VERSION,
@@ -74,49 +61,24 @@ export async function POST(req: Request) {
   };
   const lineEmail = `line_${profile.userId}@line.local`;
 
-  // ── มีบัญชีเบอร์นี้อยู่แล้วไหม ──
+  // ── เบอร์นี้มีบัญชีอยู่แล้วไหม ──
+  // 🔒 ไม่มี OTP พิสูจน์ความเป็นเจ้าของเบอร์ → ไม่ผูกเข้าบัญชีเดิมอัตโนมัติ (กันยึดบัญชี)
+  //    ให้เจ้าของบัญชีเข้าด้วยเบอร์+รหัสผ่าน แล้วผูก LINE เองในหน้าโปรไฟล์
   const { data: found } = await table("profiles")
-    .select("id, line_user_id, role, status")
+    .select("id")
     .or(`phone.eq.${toBare(p)},phone.eq.${p}`)
     .limit(1);
-  const row = (found as { id: string; line_user_id?: string | null; role?: string; status?: string }[] | null)?.[0];
-
-  if (row?.id) {
-    // ── ผูก LINE เข้าบัญชีเดิม ──
-    if (row.line_user_id) {
-      return NextResponse.json(
-        { ok: false, error: "เบอร์นี้ผูกกับบัญชี LINE อื่นอยู่แล้ว — ติดต่อผู้ดูแลระบบ" },
-        { status: 409 },
-      );
-    }
-    if (row.status === "suspended") {
-      return NextResponse.json({ ok: false, error: "บัญชีถูกระงับการใช้งาน" }, { status: 403 });
-    }
-    // 🔒 ผูกได้เฉพาะบัญชีผู้ขาย — กันคนยึดบัญชีแอดมิน/ศูนย์คัดแยกผ่านช่องทางนี้
-    if (row.role && row.role !== "seller") {
-      return NextResponse.json(
-        { ok: false, error: "บัญชีนี้เข้าผ่าน LINE ไม่ได้ — ใช้เบอร์และรหัสผ่าน" },
-        { status: 403 },
-      );
-    }
-
-    const { data: au } = await admin.auth.admin.getUserById(row.id);
-    if (!au?.user?.email) {
-      const { error: eMail } = await admin.auth.admin.updateUserById(row.id, { email: lineEmail, email_confirm: true });
-      if (eMail) return NextResponse.json({ ok: false, error: eMail.message }, { status: 500 });
-    }
-    const { error: eUpd } = await table("profiles")
-      .update({ line_user_id: profile.userId, line_connected: true, ...consentPatch })
-      .eq("id", row.id);
-    if (eUpd) return NextResponse.json({ ok: false, error: eUpd.message }, { status: 500 });
-
-    return NextResponse.json({ ok: true, linked: true, email: au?.user?.email ?? lineEmail });
+  if ((found as { id: string }[] | null)?.length) {
+    return NextResponse.json(
+      { ok: false, error: "เบอร์นี้มีบัญชีอยู่แล้ว — เข้าสู่ระบบด้วยเบอร์และรหัสผ่าน แล้วผูก LINE ที่หน้าโปรไฟล์ (ถ้าเข้าไม่ได้ ติดต่อผู้ดูแล)" },
+      { status: 409 },
+    );
   }
 
-  // ── สร้างบัญชีใหม่ (เบอร์ยืนยันแล้ว + ยินยอมแล้ว) ──
+  // ── สร้างบัญชีใหม่ (เก็บเบอร์ไว้ แต่ยังไม่ยืนยัน — ไม่ได้ใช้ OTP + ยินยอมแล้ว) ──
   const { data: created, error: eCreate } = await admin.auth.admin.createUser({
     phone: toE164(p),
-    phone_confirm: true,
+    phone_confirm: false,
     email: lineEmail,
     email_confirm: true,
     user_metadata: { name: String(name || profile.displayName || "").trim() || "ผู้ใช้ LINE", role: "seller", line_user_id: profile.userId },
