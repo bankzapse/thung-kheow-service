@@ -52,6 +52,16 @@ export async function POST(req: Request) {
 
   try {
     switch (action) {
+      case "verifySellerPhone": {
+        // แอดมินยืนยันเบอร์ให้ผู้ขาย (fallback เคส OTP ส่งไม่ถึง เช่น เบอร์ตั้ง anti-spam)
+        const { userId } = body;
+        if (!userId) return bad("missing userId");
+        const { data: prof } = await table("profiles").select("role").eq("id", userId).maybeSingle();
+        if (!prof || prof.role !== "seller") return bad("ยืนยันได้เฉพาะบัญชีผู้ขาย");
+        const { error } = await table("profiles").update({ phone_verified: true }).eq("id", userId);
+        if (error) return bad(error.message ?? "ยืนยันเบอร์ไม่สำเร็จ");
+        return NextResponse.json({ ok: true });
+      }
       case "closeMonthlyBonus": {
         // ปิดยอดโบนัสประจำเดือน — เครดิตแต้มโบนัสให้ผู้ขายทีเดียว (points ถูก guard → ใช้ service-role)
         // กันจ่ายซ้ำด้วยโน้ต "โบนัสประจำเดือน YYYY-MM" (ถ้ามีแล้ว = ปิดยอดไปแล้ว)

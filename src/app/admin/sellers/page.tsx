@@ -5,10 +5,10 @@ import { useStore } from "@/lib/store";
 import { Modal } from "@/components/ui";
 import { formatBaht } from "@/lib/utils";
 import type { User } from "@/lib/types";
-import { Users, Phone, Coins, Trash2, KeyRound, Search, AlertTriangle } from "lucide-react";
+import { Users, Phone, Coins, Trash2, KeyRound, Search, AlertTriangle, ShieldCheck, BadgeCheck } from "lucide-react";
 
 export default function AdminSellersPage() {
-  const { db, removeSeller, resetSellerPassword } = useStore();
+  const { db, removeSeller, resetSellerPassword, verifySellerPhone } = useStore();
   const [q, setQ] = useState("");
 
   const sellers = useMemo(() => {
@@ -52,13 +52,23 @@ export default function AdminSellersPage() {
                 <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-100 text-lg font-bold text-brand-700">{u.name.charAt(0)}</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold text-neutral-800">{u.name}</p>
-                  <p className="flex items-center gap-1 text-xs text-neutral-400"><Phone className="h-3 w-3" /> {u.phone || "—"}</p>
+                  <p className="flex flex-wrap items-center gap-1 text-xs text-neutral-400">
+                    <Phone className="h-3 w-3" /> {u.phone || "—"}
+                    {u.phone && (u.phoneVerified
+                      ? <span className="inline-flex items-center gap-0.5 text-brand-600"><BadgeCheck className="h-3 w-3" /> ยืนยันแล้ว</span>
+                      : <span className="text-amber-600">· ยังไม่ยืนยัน</span>)}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 rounded-xl bg-neutral-50 px-3 py-2 text-sm ring-1 ring-neutral-100">
                 <Coins className="h-4 w-4 text-gold-dark" /> <span className="text-neutral-500">คะแนนสะสม</span>
                 <span className="ml-auto font-semibold text-neutral-800">{formatBaht(u.points ?? 0)}</span>
               </div>
+              {!u.phoneVerified && u.phone && (
+                <button onClick={() => verifySellerPhone(u.id)} className="flex items-center justify-center gap-1.5 rounded-xl bg-brand-50 py-2 text-sm font-semibold text-brand-700 ring-1 ring-brand-100 hover:bg-brand-100">
+                  <ShieldCheck className="h-4 w-4" /> ยืนยันเบอร์ให้ (แทน OTP)
+                </button>
+              )}
               <div className="flex gap-2">
                 <button onClick={() => { setNewPw(""); setPw(u); }} className="btn-outline flex-1 !py-2 text-sm"><KeyRound className="h-4 w-4" /> ตั้งรหัสใหม่</button>
                 <button onClick={() => setDel(u)} className="flex items-center justify-center rounded-xl px-3 py-2 text-red-500 ring-1 ring-red-100 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>

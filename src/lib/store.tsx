@@ -125,6 +125,8 @@ interface StoreValue {
   setBuyerPrice: (materialId: string, price: number) => void;
   setBaseLocation: (lat: number, lng: number) => void;
   setMyPhone: (phone: string) => Promise<boolean>;
+  verifyMyPhone: (phone: string, code: string, token: string) => Promise<boolean>;
+  verifySellerPhone: (userId: string) => void;
   // shop back-office
   createBill: (input: CreateBillInput) => Promise<Bill>;
   voidBill: (billId: string) => void;
@@ -383,6 +385,42 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
     },
     [db, currentUserId, refresh, pushToast, startPending, endPending],
+  );
+
+  // ผู้ใช้ยืนยันเบอร์ตัวเองด้วย OTP → phone_verified=true (ด่านก่อนถอน) · คืน true เมื่อสำเร็จ
+  const verifyMyPhone = useCallback(
+    async (phone: string, code: string, token: string): Promise<boolean> => {
+      if (!supabaseConfigured) {
+        setDb((d) => ({ ...d, users: d.users.map((x) => (x.id === currentUserId ? { ...x, phoneVerified: true } : x)) }));
+        pushToast("ยืนยันเบอร์แล้ว ✓", "success");
+        return true;
+      }
+      startPending();
+      try {
+        const r = await fetch("/api/profile/verify-phone", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: phone.replace(/\D/g, ""), code, token }) });
+        const j = await r.json().catch(() => ({ ok: false }));
+        if (!r.ok || j.ok === false) { pushToast(friendlyError(j.error, "ยืนยันเบอร์ไม่สำเร็จ"), "info"); return false; }
+        await refresh();
+        pushToast("ยืนยันเบอร์แล้ว ✓", "success");
+        return true;
+      } catch (e) {
+        pushToast(friendlyError(e, "เชื่อมต่อไม่สำเร็จ"), "info");
+        return false;
+      } finally {
+        endPending();
+      }
+    },
+    [currentUserId, refresh, pushToast, startPending, endPending],
+  );
+
+  // แอดมินยืนยันเบอร์ให้ผู้ขาย (fallback เคส OTP ส่งไม่ถึง)
+  const verifySellerPhone = useCallback(
+    (userId: string) => {
+      if (supabaseConfigured) return adminUsersApi("verifySellerPhone", { userId }, "ยืนยันเบอร์ให้ผู้ขายแล้ว");
+      setDb((d) => ({ ...d, users: d.users.map((x) => (x.id === userId ? { ...x, phoneVerified: true } : x)) }));
+      pushToast("ยืนยันเบอร์ให้ผู้ขายแล้ว", "success");
+    },
+    [adminUsersApi, pushToast],
   );
 
   // ---- auth ----
@@ -1136,6 +1174,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     async (amountBaht: number, points: number, method: "promptpay" | "bank", account: string): Promise<boolean> => {
       if (!currentUser) return false;
       if (currentUser.payout?.status !== "approved") { pushToast("ต้องยืนยันบัญชีรับเงิน (รอบริษัทอนุมัติ) ก่อนแลกเงิน", "info"); return false; }
+      if (!currentUser.phoneVerified) { pushToast("ต้องยืนยันเบอร์โทรก่อนถอนเงินครั้งแรก", "info"); return false; }
       if ((currentUser.points ?? 0) < points) { pushToast("คะแนนไม่พอสำหรับตัวเลือกนี้", "info"); return false; }
       if (!account.trim()) { pushToast("กรุณากรอกพร้อมเพย์/เลขบัญชีรับเงิน", "info"); return false; }
       if (supabaseConfigured) return sbWrite((sb) => repo.redeemPoints(sb, amountBaht, points, method, account.trim()), `ส่งคำขอแลกเงิน ฿${amountBaht}`, "success");
@@ -1547,6 +1586,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setBuyerPrice,
     setBaseLocation,
     setMyPhone,
+    verifyMyPhone,
+    verifySellerPhone,
     createBill,
     voidBill,
     addExpense,

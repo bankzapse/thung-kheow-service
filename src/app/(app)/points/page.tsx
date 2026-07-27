@@ -6,11 +6,12 @@ import { AppHeader } from "@/components/AppHeader";
 import { Modal, EmptyState, Spinner } from "@/components/ui";
 import { pointsOf, pointsLedger, redemptionsForUser } from "@/lib/selectors";
 import { MonthlyRewards } from "@/components/MonthlyRewards";
+import { VerifyPhoneModal } from "@/components/VerifyPhoneModal";
 import { REDEEM_TIERS, POINTS_PER_BAHT } from "@/lib/types";
 import type { PointTxn, Redemption } from "@/lib/types";
 import { formatBaht, thaiDateTime } from "@/lib/utils";
 import Link from "next/link";
-import { RefreshCw, Banknote, ArrowUpCircle, ArrowDownCircle, SlidersHorizontal, Info, Clock, CheckCircle2, XCircle, Landmark, ChevronRight } from "lucide-react";
+import { RefreshCw, Banknote, ArrowUpCircle, ArrowDownCircle, SlidersHorizontal, Info, Clock, CheckCircle2, XCircle, Landmark, ChevronRight, ShieldAlert } from "lucide-react";
 
 export default function PointsPage() {
   const { db, currentUser, redeemPoints } = useStore();
@@ -19,10 +20,12 @@ export default function PointsPage() {
   const ledger = pointsLedger(db, u.id);
   const redemptions = redemptionsForUser(db, u.id);
   const approved = u.payout?.status === "approved";
+  const phoneVerified = !!u.phoneVerified;
 
   const [tier, setTier] = useState<(typeof REDEEM_TIERS)[number] | null>(null);
   const [account, setAccount] = useState(u.phone);
   const [tab, setTab] = useState<"redeem" | "redemptions" | "points">("redeem");
+  const [verifyOpen, setVerifyOpen] = useState(false);
 
   const [redeeming, setRedeeming] = useState(false);
   const doRedeem = async () => {
@@ -71,10 +74,20 @@ export default function PointsPage() {
                 <ChevronRight className="mt-0.5 h-4 w-4 shrink-0" />
               </Link>
             )}
+            {!phoneVerified && (
+              <button onClick={() => setVerifyOpen(true)} className="flex w-full items-start gap-2.5 rounded-2xl bg-amber-50 p-3.5 text-left text-sm text-amber-800 ring-1 ring-amber-100 transition active:scale-[0.99]">
+                <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+                <div className="flex-1">
+                  <p className="font-semibold">ต้องยืนยันเบอร์โทรก่อนถอนเงินครั้งแรก</p>
+                  <p className="text-xs text-amber-700/80">แตะเพื่อยืนยันเบอร์ {u.phone || "—"} ด้วย OTP · OTP ไม่เข้า? แจ้งแอดมิน</p>
+                </div>
+                <ChevronRight className="mt-0.5 h-4 w-4 shrink-0" />
+              </button>
+            )}
             <div className="grid grid-cols-2 gap-3">
               {REDEEM_TIERS.map((t) => {
                 const enough = points >= t.points;
-                const usable = enough && approved;
+                const usable = enough && approved && phoneVerified;
                 return (
                   <button
                     key={t.amountBaht}
@@ -153,6 +166,8 @@ export default function PointsPage() {
           </div>
         )}
       </Modal>
+
+      <VerifyPhoneModal phone={u.phone} open={verifyOpen} onClose={() => setVerifyOpen(false)} onVerified={() => setVerifyOpen(false)} />
     </div>
   );
 }
