@@ -6,7 +6,9 @@
  */
 import crypto from "crypto";
 
-const RAW_SECRET = process.env.OTP_SECRET || process.env.SMSOK_API_SECRET;
+// 🔒 กุญแจเซ็นโทเคน OTP ต้องเป็นของตัวเอง — ห้ามยืมจาก SMSOK_API_SECRET
+//    (ถ้ายืม: วันหมุน SMSOK credential โทเคน OTP ที่ค้างอยู่ตายหมด + blast radius ปนกัน)
+const RAW_SECRET = process.env.OTP_SECRET;
 const SECRET = RAW_SECRET || "dev-otp-secret-change-me";
 // 🔒 fail-closed: ห้ามใช้ secret ค่าเริ่มต้นใน production (ไม่งั้น token ปลอมได้)
 const INSECURE = !RAW_SECRET && process.env.NODE_ENV === "production";
