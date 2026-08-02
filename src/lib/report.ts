@@ -10,6 +10,7 @@
 import type { DB } from "./seed";
 import type { MeshBag } from "./types";
 import { revenueShare, type RevenueShare } from "./revenue";
+import { csvCell } from "./_core/csv";
 
 export interface ReportOptions {
   franchiseId?: string; // ระบุ = เฉพาะแฟรนไชส์นี้ · undefined = ทุกแฟรนไชส์ (บริษัท)
@@ -129,10 +130,7 @@ const PHASE_LABEL: Record<RevenueShare["phase"], string> = {
   active: "ครบสัญญาแล้ว",
 };
 
-function csvCell(v: string | number): string {
-  const s = String(v ?? "");
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
+// csvCell ย้ายไปที่ @platform/core (src/lib/_core/csv.ts) — โค้ดเดิมที่นี่เหมือนกันทุกไบต์
 const row = (cells: (string | number)[]) => cells.map(csvCell).join(",");
 
 /** แปลงรายงานเป็น CSV (มี BOM ให้ Excel อ่านภาษาไทยถูก) */
