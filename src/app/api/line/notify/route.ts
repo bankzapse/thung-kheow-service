@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { pushText, statusMessage, lineConfigured } from "@/lib/line";
+import { statusMessage } from "@/lib/line";
+import { notify, notifyReady, notifyViaService } from "@/lib/notify";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -25,6 +26,6 @@ export async function POST(req: Request) {
   const text = message ?? (code && status ? statusMessage(code, status, buyerName) : null);
   if (!text) return NextResponse.json({ error: "missing message or (code+status)" }, { status: 400 });
 
-  const result = await pushText(to, text);
-  return NextResponse.json({ configured: lineConfigured, result });
+  const result = await notify({ channels: ["line"], to: { lineUserId: to }, text });
+  return NextResponse.json({ configured: notifyReady, viaService: notifyViaService, result });
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { verifyWebhookSignature, pushText, lineConfigured } from "@/lib/line";
+import { verifyWebhookSignature } from "@/lib/line";
+import { notify, notifyReady } from "@/lib/notify";
 import { SITE_URL } from "@/lib/site";
 
 export const runtime = "nodejs";
@@ -43,9 +44,14 @@ export async function POST(req: Request) {
   }
 
   for (const ev of body.events ?? []) {
-    if (ev.type !== "follow" || !ev.source?.userId || !lineConfigured) continue;
+    if (ev.type !== "follow" || !ev.source?.userId || !notifyReady) continue;
     // ล้มเหลวก็ข้าม ไม่ให้ทั้ง batch พัง (ถ้าเราตอบ error LINE จะ retry ซ้ำ)
-    await pushText(ev.source.userId, WELCOME).catch(() => {});
+    // notify() ไม่ throw อยู่แล้ว — .catch ไว้กันเหนียวเฉย ๆ
+    await notify({
+      channels: ["line"],
+      to: { lineUserId: ev.source.userId },
+      text: WELCOME,
+    }).catch(() => {});
   }
 
   return NextResponse.json({ ok: true });
