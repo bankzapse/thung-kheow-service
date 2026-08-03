@@ -240,6 +240,10 @@ create policy "profiles update" on profiles for update using (auth.uid() = id or
 -- SECURITY DEFINER function ทุกตัวรันในสิทธิ์ owner (current_user เปลี่ยน) จึงไม่โดนตรึง — ดู migration round5
 -- ⚠️ ต้องเป็น SECURITY INVOKER (ห้ามใส่ security definer) ไม่งั้น current_user ในตัว trigger
 -- จะเป็น owner เสมอ → เงื่อนไขไม่มีวันเป็นจริง = ไม่กันอะไรเลย
+-- ⚠️ รายการคอลัมน์ด้านล่างเป็น "เวอร์ชัน base" (10 คอลัมน์) — ยังไม่ครบ!
+--    migration ล่าสุด (20260803000002_profiles_guard_all_columns) ตรึงครบ 17 คอลัมน์
+--    (เพิ่ม line_user_id, line_connected, consent_*, phone, phone_verified)
+--    fresh setup ต้องรัน migrations ต่อจาก schema.sql เสมอ (ดู README) ไม่งั้น guard จะอ่อนกว่าจริง
 create or replace function profiles_guard()
 returns trigger language plpgsql set search_path = public as $$
 begin
