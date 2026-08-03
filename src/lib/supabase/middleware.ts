@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./database.types";
+import { safeNextPath } from "@/lib/safe-path";
 
 const homeFor = (role?: string) => (role === "admin" ? "/admin" : "/home");
 
@@ -30,18 +31,13 @@ const isPublic = (path: string) =>
  * แล้วค่อยพาไปหน้าจริง ถ้าปล่อยให้ redirect ฝั่ง client ผู้ใช้จะเห็นหน้าการตลาด
  * แวบหนึ่ง (ต้องรอโหลด HTML + JS + hydrate ก่อน) → ดักที่ middleware แทน ไม่มีแวบ
  *
- * เขียนตัวกรองไว้ตรงนี้เอง ไม่ import จาก lib/utils เพื่อไม่ให้ middleware bundle
- * ต้องลาก clsx/tailwind-merge ติดมาด้วย
+ * ใช้ safeNextPath จาก lib/safe-path (dep-free — ไม่ลาก clsx/tailwind-merge ติด bundle)
+ * เป็นแหล่งความจริงเดียวกับฝั่ง client (เดิมเขียนซ้ำที่นี่ ตรรกะอ่อนกว่า: ไม่กัน control char)
  */
 function liffTarget(request: NextRequest): string | null {
   if (request.nextUrl.pathname !== "/") return null;
-  const raw = request.nextUrl.searchParams.get("liff.state");
-  if (!raw) return null;
-  const s = raw.trim();
-  // 🔒 กัน open redirect: "//evil.com" กับ "/\evil.com" เบราว์เซอร์อ่านเป็นโดเมนภายนอก
-  if (!s.startsWith("/") || s.startsWith("//") || s.startsWith("/\\")) return null;
-  if (s === "/" || /^\/(login|register|forgot-password|auth)(\/|\?|$)/.test(s)) return null;
-  return s;
+  const s = safeNextPath(request.nextUrl.searchParams.get("liff.state"));
+  return s === "/" ? null : s; // liff.state = "/" ไม่ต้อง redirect (อยู่ที่ root อยู่แล้ว)
 }
 
 export async function updateSession(request: NextRequest) {
