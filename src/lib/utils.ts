@@ -1,5 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { safeNextPath } from "./safe-path"; // ย้ายมาจากไฟล์นี้ (dep-free ให้ middleware ใช้ร่วม)
+export { safeNextPath };
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -103,16 +105,6 @@ export function thaiMonthLabel(month: string) {
  * (protocol-relative) ถ้าปล่อยผ่านจะพาผู้ใช้ออกไปหน้าปลอมได้หลังล็อกอิน
  * และตัดหน้าล็อกอิน/เลือกพอร์ทัลออก กันเด้งวนกลับที่เดิม
  */
-export function safeNextPath(raw: string | null | undefined): string | null {
-  if (!raw) return null;
-  const s = raw.trim();
-  if (!s.startsWith("/")) return null;
-  if (s.startsWith("//") || s.startsWith("/\\")) return null;
-  // eslint-disable-next-line no-control-regex
-  if (/[\x00-\x1f]/.test(s)) return null; // control char (เลี่ยงการ bypass ด้วย \t \n)
-  if (s === "/app" || /^\/(login|register|forgot-password|auth)(\/|\?|$)/.test(s)) return null;
-  return s;
-}
 
 /** path + query ปัจจุบัน (ใช้ตอนเด้งไปล็อกอิน เพื่อกลับมาที่เดิมได้) — client เท่านั้น */
 export function currentPathForNext(pathname: string): string {
