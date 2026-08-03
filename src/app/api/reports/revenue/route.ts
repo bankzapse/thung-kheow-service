@@ -25,7 +25,7 @@ export async function GET(req: Request) {
   }
 
   // ต้องเป็นแอดมินเท่านั้น
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- @supabase/ssr client ไม่ส่ง generic Database เข้า .from() (type เป็น never) ต่างจาก admin client
   const { data: profile } = await (supabase as any).from("profiles").select("role").eq("id", user.id).single();
   if (profile?.role !== "admin") {
     return NextResponse.json({ error: "forbidden — admin only" }, { status: 403 });

@@ -3,6 +3,7 @@ import { verifyOtp } from "@/lib/otp";
 import { normalizeThaiPhone } from "@/lib/smsok";
 import { phoneOrFilter } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/database.types";
 
 export const runtime = "nodejs";
 
@@ -23,8 +24,7 @@ export async function POST(req: Request) {
   if (String(password || "").length < 6) return NextResponse.json({ ok: false, error: "รหัสผ่านอย่างน้อย 6 ตัวอักษร" }, { status: 400 });
 
   const admin = createAdminClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const table = (n: string) => (admin as any).from(n);
+  const table = <T extends keyof Database["public"]["Tables"]>(n: T) => admin.from(n);
 
   // 1) กัน brute-force: ถ้าถูกล็อกอยู่ → ปฏิเสธ
   const { data: th } = await table("otp_throttle").select("fails, locked_until").eq("phone", p).maybeSingle();

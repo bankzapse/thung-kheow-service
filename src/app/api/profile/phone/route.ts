@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/database.types";
 import { normalizeThaiPhone } from "@/lib/smsok";
 import { phoneOrFilter } from "@/lib/phone";
 
@@ -32,8 +33,7 @@ export async function POST(req: Request) {
   if (!/^0\d{8,9}$/.test(p)) return NextResponse.json({ ok: false, error: "เบอร์ไม่ถูกต้อง" }, { status: 400 });
 
   const admin = createAdminClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const table = (n: string) => (admin as any).from(n);
+  const table = <T extends keyof Database["public"]["Tables"]>(n: T) => admin.from(n);
 
   // 1) กันเบอร์ซ้ำ (บัญชีอื่น)
   const { data: dup } = await table("profiles")

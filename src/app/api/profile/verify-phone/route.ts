@@ -3,6 +3,7 @@ import { verifyOtp } from "@/lib/otp";
 import { normalizeThaiPhone } from "@/lib/smsok";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/database.types";
 
 export const runtime = "nodejs";
 
@@ -30,8 +31,7 @@ export async function POST(req: Request) {
   if (!/^0\d{8,9}$/.test(p)) return NextResponse.json({ ok: false, error: "เบอร์ไม่ถูกต้อง" }, { status: 400 });
 
   const admin = createAdminClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const table = (n: string) => (admin as any).from(n);
+  const table = <T extends keyof Database["public"]["Tables"]>(n: T) => admin.from(n);
 
   // นับครั้งผิดร่วมตาราง otp_throttle เดียวกับ register/reset
   const { data: th } = await table("otp_throttle").select("fails, locked_until").eq("phone", p).maybeSingle();

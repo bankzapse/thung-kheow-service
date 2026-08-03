@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/database.types";
 import { verifyLineAccessToken, fetchLineProfile } from "@/lib/line";
 
 export const runtime = "nodejs";
@@ -30,8 +31,7 @@ export async function POST(req: Request) {
   if (!profile) return NextResponse.json({ ok: false, error: "อ่านโปรไฟล์ LINE ไม่สำเร็จ" }, { status: 502 });
 
   const admin = createAdminClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const table = (n: string) => (admin as any).from(n);
+  const table = <T extends keyof Database["public"]["Tables"]>(n: T) => admin.from(n);
 
   // LINE บัญชีนี้ถูกผูกกับ user อื่นไปแล้วหรือยัง
   const { data: taken } = await table("profiles").select("id").eq("line_user_id", profile.userId).maybeSingle();
