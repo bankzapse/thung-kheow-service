@@ -366,3 +366,26 @@ export interface Redemption {
   requestedAt: string;
   paidAt?: string;
 }
+
+/** อินพุตตอนผู้ขายส่งงานรับซื้อ (ใช้ร่วมกัน store ↔ repo) */
+export interface CreateJobInput {
+  items: Job["items"];
+  location: Job["location"];
+  houseNo: string;
+  landmark: string;
+  contactName: string;
+  contactPhone: string;
+  scheduledDate: string;
+  note?: string;
+  slotId?: string;
+}
+
+/** อินพุตตอนออกบิล/ปิดงาน (ใช้ร่วมกัน store ↔ repo) */
+export interface CreateBillInput {
+  source: "app_job" | "walk_in";
+  jobId?: string;
+  sellerName: string;
+  sellerPhone: string;
+  items: BillItem[];
+  paymentMethod: "cash" | "transfer" | "promptpay";
+}
