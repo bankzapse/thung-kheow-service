@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { issueOtp } from "@/lib/otp";
 import { sendSms, smsokConfigured, normalizeThaiPhone } from "@/lib/smsok";
+import { phoneOrFilter } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -8,7 +9,6 @@ export const runtime = "nodejs";
 const COOLDOWN_MS = 30 * 1000; // ขอซ้ำได้ทุก 30 วิ
 const DAILY_CAP = 15; // ส่งได้ไม่เกิน 15 ครั้ง/เบอร์/วัน
 
-const toE164Bare = (p: string) => "66" + p.replace(/^0/, "");
 
 export async function POST(req: Request) {
   const { phone, purpose } = await req.json().catch(() => ({ phone: "" }));
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   //    เบอร์ที่ไม่พบ → บอกให้ติดต่อบริษัท (เผื่อจำเบอร์ที่ผูกไว้ไม่ได้)
   if (purpose === "reset" && table) {
     try {
-      const { data } = await table("profiles").select("id").or(`phone.eq.${toE164Bare(p)},phone.eq.${p}`).limit(1);
+      const { data } = await table("profiles").select("id").or(phoneOrFilter(p)).limit(1);
       if (!data?.length) {
         return NextResponse.json({ ok: false, notFound: true, error: "ไม่พบเบอร์นี้ในระบบ" }, { status: 404 });
       }
