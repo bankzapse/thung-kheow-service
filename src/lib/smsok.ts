@@ -33,7 +33,9 @@ export type SendSmsResult = { ok: true; balance?: number; price?: number } | { o
 export async function sendSms(to: string, text: string): Promise<SendSmsResult> {
   if (!smsokConfigured) return { ok: false, error: "SMSOK not configured" };
   const destination = normalizeThaiPhone(to);
-  if (!/^0\d{8,9}$/.test(destination)) return { ok: false, error: "invalid phone" };
+  // OTP ส่งได้เฉพาะมือถือ 10 หลัก (06/08/09) — เดิม /^0\d{8,9}$/ รับเบอร์บ้าน 9 หลักด้วย
+  // แล้วยิงไปเบอร์ที่รับ SMS ไม่ได้ → ผู้ใช้รอโค้ดที่ไม่มีวันมา
+  if (!/^0[689]\d{8}$/.test(destination)) return { ok: false, error: "ต้องเป็นเบอร์มือถือ 10 หลัก (06/08/09)" };
 
   const auth = Buffer.from(`${API_KEY}:${API_SECRET}`).toString("base64");
   try {
