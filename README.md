@@ -63,7 +63,9 @@ PLAN.md                         # แผน MVP + roadmap
 
 ### 1) Supabase (backend จริง)
 1. สร้างโปรเจกต์ที่ [supabase.com](https://supabase.com)
-2. รัน [`supabase/schema.sql`](supabase/schema.sql) ใน SQL Editor (สร้างตาราง + RLS + ราคากลาง)
+2. รัน [`supabase/schema.sql`](supabase/schema.sql) ใน SQL Editor (สร้างตาราง + RLS + ราคากลาง — Phase 1 base)
+   จากนั้น **รันไฟล์ใน `supabase/migrations/` ทั้งหมด "เรียงตามชื่อ (วันที่)"** ต่อ — schema.sql เป็นแค่ base
+   ยังไม่มีคอลัมน์/guard ที่ migration เพิ่มทีหลัง (เช่น consent, phone_verified, guard 17 คอลัมน์)
 3. ใส่ `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` ใน `.env.local`
 4. ย้าย logic ใน `src/lib/store.tsx` ไปเรียก Supabase (client อยู่ที่ `src/lib/supabase/`)
    - Auth: `supabase.auth.signInWithOtp({ phone })` (เบอร์ OTP), `signInWithPassword` (อีเมล)
