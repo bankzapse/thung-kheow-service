@@ -10,6 +10,24 @@ const nextConfig: NextConfig = {
       // images.unsplash.com เอาออกแล้ว — รูป landing เก็บไว้ใน public/img เอง
     ],
   },
+  // HTTP security headers ทุก route
+  // ⚠️ ตั้งใจไม่ใส่ X-Frame-Options / frame-ancestors — LIFF ต้องฝังแอปใน webview ของ LINE
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          // บังคับ HTTPS 1 ปี (กัน downgrade/SSL strip) — โดเมนขึ้น HTTPS อยู่แล้ว
+          { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
+          // ห้ามเบราว์เซอร์เดา MIME (กัน XSS จากไฟล์ที่ถูกตีความผิดชนิด)
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // ส่ง referrer เฉพาะ origin เมื่อข้ามโดเมน (กัน path/query รั่ว)
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-DNS-Prefetch-Control", value: "on" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
