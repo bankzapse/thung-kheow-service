@@ -6,6 +6,7 @@
  *  1) Messaging API (OA)   → push แจ้งเตือนสถานะงานให้ผู้ขาย
  *  2) LINE Login (OAuth)   → เชื่อมบัญชีผู้ใช้กับ LINE userId
  */
+import "server-only";
 import crypto from "crypto";
 import type { JobStatus } from "./types";
 

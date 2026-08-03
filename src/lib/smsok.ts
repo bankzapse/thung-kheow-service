@@ -11,6 +11,8 @@
  *      ไม่งั้นค่ายจะกรองเป็น SMS โฆษณา (เบอร์ที่ตั้ง anti-spam จะไม่ได้รับ OTP)
  */
 
+import "server-only";
+
 const API_URL = process.env.SMSOK_API_URL || "https://api.smsok.co";
 const API_KEY = process.env.SMSOK_API_KEY;
 const API_SECRET = process.env.SMSOK_API_SECRET;

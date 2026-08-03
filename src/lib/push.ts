@@ -4,6 +4,7 @@
  *   (Firebase Console → Project Settings → Service accounts → Generate new private key)
  * FCM ส่งได้ทั้ง Android (FCM) และ iOS (ผ่าน APNs ที่ผูกใน Firebase)
  */
+import "server-only";
 import crypto from "crypto";
 import { createAdminClient } from "./supabase/admin";
 
