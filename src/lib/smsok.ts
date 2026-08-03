@@ -35,6 +35,10 @@ export async function sendSms(to: string, text: string): Promise<SendSmsResult> 
   const destination = normalizeThaiPhone(to);
   if (!/^0\d{8,9}$/.test(destination)) return { ok: false, error: "invalid phone" };
 
+  // 🔑 HTTP Basic auth: ยิงจริงทดสอบแล้ว (2026-08-03) — api.smsok.co ยืนยันตัวด้วย API_KEY อย่างเดียว
+  //    ทั้ง base64("KEY:SECRET") และ base64("KEY:") ตอบ 201 NO_ERROR เหมือนกัน (secret ในช่อง password
+  //    ไม่ถูกใช้ auth) → โหมด KEY:SECRET ของ repo นี้ถูกต้อง ใช้ได้ · ถ้าวันไหน SMS OK เริ่มบังคับ
+  //    secret ในช่อง password โหมดนี้จะยังผ่าน (repo พี่น้องที่ส่ง KEY: ต่างหากที่จะพัง)
   const auth = Buffer.from(`${API_KEY}:${API_SECRET}`).toString("base64");
   try {
     const res = await fetch(`${API_URL}/s`, {
