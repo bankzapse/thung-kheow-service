@@ -18,9 +18,16 @@ function crc16(data: string): string {
   return crc.toString(16).toUpperCase().padStart(4, "0");
 }
 
-/** phone 08x → 0066..., เลขบัตร ปชช. 13 หลัก → tag 02 */
+/**
+ * phone 08x → 0066..., เลขบัตร ปชช. 13 หลัก → tag 02, e-Wallet 15 หลัก → tag 03
+ *
+ * ⚠️ ลำดับ if สำคัญ: ต้องเช็ค 15 ก่อน 13 ไม่งั้น e-Wallet จะตกไปสาขา mobile
+ * (ก่อนแก้: 15 หลักตกลงมาที่ tag 01 แล้ว padStart(13) ไม่ทำงาน → ค่า 17 ตัวอักษร
+ *  = QR ที่แอปธนาคารสแกนไม่ผ่าน โดยไม่มี error ให้เห็น)
+ */
 function formatTarget(target: string): { tag: string; value: string } {
   const digits = target.replace(/\D/g, "");
+  if (digits.length === 15) return { tag: "03", value: digits }; // e-Wallet
   if (digits.length === 13) return { tag: "02", value: digits }; // national id
   return { tag: "01", value: ("66" + digits.replace(/^0/, "")).padStart(13, "0") }; // mobile
 }
