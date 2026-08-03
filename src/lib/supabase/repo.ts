@@ -1,11 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Data repository — โหลด/เขียนผ่าน Supabase แล้ว map เป็นรูป DB เดิมของแอป
  * เพื่อให้ selectors + ทุก component ทำงานเหมือนเดิม (ไม่ต้องแก้)
  * ใช้เมื่อ supabaseConfigured = true เท่านั้น
  */
 import type { DB } from "../seed";
-import type { Bill, Expense, Job, RewardDraw, RewardTicket, ScheduleSlot, User, WalletTxn, Cabinet, MeshBag, BagItem, PointTxn, Redemption, Franchise, Mission } from "../types";
+import type { Database, Json } from "./database.types";
+type Row<T extends keyof Database["public"]["Tables"]> = Database["public"]["Tables"][T]["Row"];
+import type { Bill, Expense, Job, RewardDraw, RewardTicket, ScheduleSlot, User, WalletTxn, Cabinet, MeshBag, BagItem, PointTxn, Redemption, Franchise, Mission, CreateJobInput, CreateBillInput, FactorySaleItem } from "../types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { MATERIALS } from "../materials";
 import { jobCode, ticketNumber, todayISO } from "../utils";
 
@@ -16,62 +18,62 @@ function toLocalPhone(p?: string | null): string {
   if (d.startsWith("66")) return "0" + d.slice(2);
   return d.startsWith("0") || d === "" ? d : "0" + d;
 }
-function toUser(p: any): User {
+function toUser(p: Row<"profiles">): User {
   return {
     id: p.id, role: p.role, name: p.name, phone: toLocalPhone(p.phone), username: p.username ?? undefined,
     email: p.email ?? undefined, lineUserId: p.line_user_id ?? undefined,
     lineConnected: !!p.line_connected, baseLat: p.base_lat ?? undefined, baseLng: p.base_lng ?? undefined,
-    status: p.status ?? "active", credit: p.credit != null ? Number(p.credit) : 0, partner: !!p.partner,
+    status: (p.status ?? "active") as User["status"], credit: p.credit != null ? Number(p.credit) : 0, partner: !!p.partner,
     points: p.points != null ? Number(p.points) : 0,
     owner: !!p.owner, permissions: p.permissions ?? undefined, franchiseId: p.franchise_id ?? undefined,
-    payout: p.payout ?? undefined,
+    payout: (p.payout ?? undefined) as User["payout"],
     address: p.address ?? undefined, province: p.province ?? undefined, district: p.district ?? undefined, subdistrict: p.subdistrict ?? undefined,
     createdAt: p.created_at,
   };
 }
-function toFranchise(f: any): Franchise {
+function toFranchise(f: Row<"franchises">): Franchise {
   return { id: f.id, code: f.code, name: f.name, ownerName: f.owner_name ?? "", phone: f.phone ?? "", createdAt: f.created_at };
 }
-function toCabinet(c: any): Cabinet {
-  return { id: c.id, code: c.code, franchiseId: c.franchise_id ?? "", franchiseCode: c.franchise_code ?? "", name: c.name, location: { lat: c.lat ?? 0, lng: c.lng ?? 0, address: c.address ?? "" }, province: c.province ?? undefined, district: c.district ?? undefined, subdistrict: c.subdistrict ?? undefined, status: c.status ?? "active", createdAt: c.created_at };
+function toCabinet(c: Row<"cabinets">): Cabinet {
+  return { id: c.id, code: c.code, franchiseId: c.franchise_id ?? "", franchiseCode: c.franchise_code ?? "", name: c.name, location: { lat: c.lat ?? 0, lng: c.lng ?? 0, address: c.address ?? "" }, province: c.province ?? undefined, district: c.district ?? undefined, subdistrict: c.subdistrict ?? undefined, status: (c.status ?? "active") as Cabinet["status"], createdAt: c.created_at };
 }
-function toBag(b: any, nameById: Map<string, string>, itemsByBag: Map<string, BagItem[]>): MeshBag {
+function toBag(b: Row<"mesh_bags">, nameById: Map<string, string>, itemsByBag: Map<string, BagItem[]>): MeshBag {
   return {
     id: b.id, code: b.code, qr: b.qr, cabinetId: b.cabinet_id ?? "", cabinetCode: b.cabinet_code ?? "",
-    userId: b.user_id, userName: nameById.get(b.user_id) ?? "", status: b.status,
+    userId: b.user_id, userName: nameById.get(b.user_id) ?? "", status: b.status as MeshBag["status"],
     items: itemsByBag.get(b.id), valueBaht: b.value_baht != null ? Number(b.value_baht) : undefined,
     points: b.points != null ? Number(b.points) : undefined, note: b.note ?? undefined,
     droppedAt: b.dropped_at, creditedAt: b.credited_at ?? undefined,
   };
 }
-function toPointTxn(t: any): PointTxn {
-  return { id: t.id, userId: t.user_id, type: t.type, points: Number(t.points), balanceAfter: Number(t.balance_after ?? 0), note: t.note ?? undefined, bagId: t.bag_id ?? undefined, redemptionId: t.redemption_id ?? undefined, date: t.created_at };
+function toPointTxn(t: Row<"point_transactions">): PointTxn {
+  return { id: t.id, userId: t.user_id, type: t.type as PointTxn["type"], points: Number(t.points), balanceAfter: Number(t.balance_after ?? 0), note: t.note ?? undefined, bagId: t.bag_id ?? undefined, redemptionId: t.redemption_id ?? undefined, date: t.created_at };
 }
-function toRedemption(r: any, nameById: Map<string, string>): Redemption {
-  return { id: r.id, code: r.code, userId: r.user_id, userName: nameById.get(r.user_id) ?? "", amountBaht: Number(r.amount_baht), points: Number(r.points), method: r.method, account: r.account ?? "", status: r.status, requestedAt: r.requested_at, paidAt: r.paid_at ?? undefined };
+function toRedemption(r: Row<"redemptions">, nameById: Map<string, string>): Redemption {
+  return { id: r.id, code: r.code, userId: r.user_id, userName: nameById.get(r.user_id) ?? "", amountBaht: Number(r.amount_baht), points: Number(r.points), method: r.method as Redemption["method"], account: r.account ?? "", status: r.status as Redemption["status"], requestedAt: r.requested_at, paidAt: r.paid_at ?? undefined };
 }
-function toWallet(w: any): WalletTxn {
-  return { id: w.id, buyerId: w.buyer_id, type: w.type, amount: Number(w.amount), balanceAfter: Number(w.balance_after ?? 0), note: w.note ?? undefined, jobId: w.job_id ?? undefined, date: w.created_at };
+function toWallet(w: Row<"wallet_transactions">): WalletTxn {
+  return { id: w.id, buyerId: w.buyer_id, type: w.type as WalletTxn["type"], amount: Number(w.amount), balanceAfter: Number(w.balance_after ?? 0), note: w.note ?? undefined, jobId: w.job_id ?? undefined, date: w.created_at };
 }
-function toDraw(d: any): RewardDraw {
+function toDraw(d: Row<"reward_draws">): RewardDraw {
   return {
     month: d.month, prizeName: d.prize_name, prizeValue: Number(d.prize_value ?? 0),
     winningNumber: d.winning_number ?? "", winnerName: d.winner_name ?? undefined,
-    announcedAt: d.announced_at ?? undefined, status: d.status,
+    announcedAt: d.announced_at ?? undefined, status: d.status as RewardDraw["status"],
   };
 }
-function toTicket(t: any): RewardTicket {
+function toTicket(t: Row<"reward_tickets">): RewardTicket {
   return { id: t.id, number: t.number, userId: t.user_id, month: t.month, fromJobId: t.from_job_id ?? undefined };
 }
-function toSlot(s: any, nameById: Map<string, string>): ScheduleSlot {
+function toSlot(s: Row<"schedule_slots">, nameById: Map<string, string>): ScheduleSlot {
   return { id: s.id, buyerId: s.buyer_id, buyerName: nameById.get(s.buyer_id) ?? "", date: s.date, area: s.area ?? "", capacity: s.capacity, booked: s.booked };
 }
-function toExpense(e: any): Expense {
+function toExpense(e: Row<"expenses">): Expense {
   return { id: e.id, buyerId: e.buyer_id, category: e.category, amount: Number(e.amount), date: e.date, note: e.note ?? undefined, createdAt: e.created_at };
 }
 
 /** โหลดข้อมูลทั้งหมดที่ user เห็น (RLS คัดกรองให้) → รูป DB */
-export async function loadAll(sb: any): Promise<DB> {
+export async function loadAll(sb: SupabaseClient<Database>): Promise<DB> {
   const [users, prices, bprices, slots, jobs, jobItems, jobHist, bills, billItems, expenses, tickets, draws, wallet, cabs, meshBags, bagItems, pointTxns, redemptions, franchises, franchisePayoutsRes, factorySalesRes, publicProfilesRes, appConfigRes] =
     await Promise.all([
       sb.from("profiles").select("*"),
@@ -99,34 +101,34 @@ export async function loadAll(sb: any): Promise<DB> {
       sb.from("app_config").select("*"), // คอนฟิกกลาง (ภารกิจ ฯลฯ) — ตารางอาจยังไม่มีถ้ายังไม่รัน migration
     ]);
 
-  const userRows: any[] = users.data ?? [];
+  const userRows = users.data ?? [];
   // map ชื่อจาก view (มีชื่อทุกคน) — ถ้า view ยังไม่มี (ก่อนรัน migration) fallback เป็น userRows
-  const nameRows: any[] = (publicProfilesRes?.data && publicProfilesRes.data.length) ? publicProfilesRes.data : userRows;
-  const nameById = new Map<string, string>(nameRows.map((u) => [u.id, u.name]));
+  const nameRows: { id: string | null; name: string | null }[] = (publicProfilesRes?.data && publicProfilesRes.data.length) ? publicProfilesRes.data : userRows;
+  const nameById = new Map<string, string>(nameRows.map((u) => [u.id, u.name ?? ""] as [string, string]));
 
   // central prices + factory sell prices
   const centralPrices: Record<string, number> = {};
   const factoryPrices: Record<string, number> = {};
-  (prices.data ?? []).forEach((p: any) => {
+  (prices.data ?? []).forEach((p) => {
     centralPrices[p.id] = Number(p.price_per_unit);
     if (p.factory_price_per_unit != null) factoryPrices[p.id] = Number(p.factory_price_per_unit);
   });
 
   // buyer prices
   const buyerPrices: Record<string, Record<string, number>> = {};
-  (bprices.data ?? []).forEach((r: any) => {
+  (bprices.data ?? []).forEach((r) => {
     (buyerPrices[r.buyer_id] ??= {})[r.material_id] = Number(r.price);
   });
 
   // jobs assemble
-  const itemsByJob = new Map<string, any[]>();
-  (jobItems.data ?? []).forEach((it: any) => (itemsByJob.get(it.job_id) ?? itemsByJob.set(it.job_id, []).get(it.job_id))!.push(it));
-  const histByJob = new Map<string, any[]>();
-  (jobHist.data ?? []).forEach((h: any) => (histByJob.get(h.job_id) ?? histByJob.set(h.job_id, []).get(h.job_id))!.push(h));
-  const jobsOut: Job[] = (jobs.data ?? []).map((j: any) => ({
+  const itemsByJob = new Map<string, Row<"job_items">[]>();
+  (jobItems.data ?? []).forEach((it) => (itemsByJob.get(it.job_id) ?? itemsByJob.set(it.job_id, []).get(it.job_id))!.push(it));
+  const histByJob = new Map<string, Row<"job_status_history">[]>();
+  (jobHist.data ?? []).forEach((h) => (histByJob.get(h.job_id) ?? histByJob.set(h.job_id, []).get(h.job_id))!.push(h));
+  const jobsOut: Job[] = (jobs.data ?? []).map((j) => ({
     id: j.id, code: j.code, sellerId: j.seller_id, sellerName: nameById.get(j.seller_id) ?? "",
     buyerId: j.buyer_id ?? undefined, buyerName: j.buyer_id ? nameById.get(j.buyer_id) : undefined,
-    items: (itemsByJob.get(j.id) ?? []).map((it) => ({ materialId: it.material_id, name: it.name, unit: it.unit, pricePerUnit: Number(it.price_per_unit), qty: Number(it.qty) })),
+    items: (itemsByJob.get(j.id) ?? []).map((it) => ({ materialId: it.material_id, name: it.name, unit: it.unit ?? "", pricePerUnit: Number(it.price_per_unit), qty: Number(it.qty) })),
     estimatedTotal: Number(j.estimated_total ?? 0),
     location: { lat: j.lat ?? 0, lng: j.lng ?? 0, address: j.address ?? "" },
     houseNo: j.house_no ?? "", landmark: j.landmark ?? "", contactName: j.contact_name ?? "", contactPhone: j.contact_phone ?? "",
@@ -137,20 +139,20 @@ export async function loadAll(sb: any): Promise<DB> {
   }));
 
   // bills assemble
-  const itemsByBill = new Map<string, any[]>();
-  (billItems.data ?? []).forEach((it: any) => (itemsByBill.get(it.bill_id) ?? itemsByBill.set(it.bill_id, []).get(it.bill_id))!.push(it));
-  const billsOut: Bill[] = (bills.data ?? []).map((b: any) => ({
-    id: b.id, code: b.code, buyerId: b.buyer_id, source: b.source, jobId: b.job_id ?? undefined,
+  const itemsByBill = new Map<string, Row<"bill_items">[]>();
+  (billItems.data ?? []).forEach((it) => (itemsByBill.get(it.bill_id) ?? itemsByBill.set(it.bill_id, []).get(it.bill_id))!.push(it));
+  const billsOut: Bill[] = (bills.data ?? []).map((b) => ({
+    id: b.id, code: b.code, buyerId: b.buyer_id, source: b.source as Bill["source"], jobId: b.job_id ?? undefined,
     sellerName: b.seller_name ?? "", sellerPhone: b.seller_phone ?? "", date: b.created_at,
-    items: (itemsByBill.get(b.id) ?? []).map((it) => ({ materialId: it.material_id, name: it.name, unit: it.unit ?? "", qty: Number(it.qty), pricePerUnit: Number(it.price_per_unit), subtotal: Number(it.subtotal) })),
+    items: (itemsByBill.get(b.id) ?? []).map((it) => ({ materialId: it.material_id ?? "", name: it.name, unit: it.unit ?? "", qty: Number(it.qty), pricePerUnit: Number(it.price_per_unit), subtotal: Number(it.subtotal) })),
     goodsTotal: Number(b.goods_total), fee: Number(b.fee), netPaid: Number(b.net_paid),
-    paymentMethod: b.payment_method, status: b.status, createdAt: b.created_at,
+    paymentMethod: b.payment_method as Bill["paymentMethod"], status: b.status as Bill["status"], createdAt: b.created_at,
   }));
 
   return {
     users: userRows.map(toUser),
     jobs: jobsOut,
-    slots: (slots.data ?? []).map((s: any) => toSlot(s, nameById)),
+    slots: (slots.data ?? []).map((s) => toSlot(s, nameById)),
     tickets: (tickets.data ?? []).map(toTicket),
     draws: (draws.data ?? []).map(toDraw),
     bills: billsOut,
@@ -158,10 +160,10 @@ export async function loadAll(sb: any): Promise<DB> {
     buyerPrices,
     centralPrices,
     factoryPrices,
-    factorySales: (factorySalesRes.data ?? []).map((r: any) => ({
-      id: r.id, soldBy: r.sold_by ?? "", soldByName: nameById.get(r.sold_by) ?? "",
+    factorySales: (factorySalesRes.data ?? []).map((r) => ({
+      id: r.id, soldBy: r.sold_by ?? "", soldByName: nameById.get(r.sold_by ?? "") ?? "",
       factoryName: r.factory_name ?? undefined, note: r.note ?? undefined,
-      items: Array.isArray(r.items) ? r.items : [],
+      items: (Array.isArray(r.items) ? r.items : []) as unknown as FactorySaleItem[],
       revenue: Number(r.revenue), cost: Number(r.cost), profit: Number(r.profit), soldAt: r.sold_at,
     })),
     wallet: (wallet.data ?? []).map(toWallet),
@@ -170,27 +172,27 @@ export async function loadAll(sb: any): Promise<DB> {
     cabinets: (cabs.data ?? []).map(toCabinet),
     bags: (() => {
       const itemsByBag = new Map<string, BagItem[]>();
-      (bagItems.data ?? []).forEach((it: any) => {
+      (bagItems.data ?? []).forEach((it) => {
         const arr = itemsByBag.get(it.bag_id) ?? [];
-        arr.push({ materialId: it.material_id, name: it.name, qty: Number(it.qty), pricePerUnit: Number(it.price_per_unit), subtotal: Number(it.subtotal) });
+        arr.push({ materialId: it.material_id ?? "", name: it.name ?? "", qty: Number(it.qty), pricePerUnit: Number(it.price_per_unit), subtotal: Number(it.subtotal) });
         itemsByBag.set(it.bag_id, arr);
       });
-      return (meshBags.data ?? []).map((b: any) => toBag(b, nameById, itemsByBag));
+      return (meshBags.data ?? []).map((b) => toBag(b, nameById, itemsByBag));
     })(),
     pointTxns: (pointTxns.data ?? []).map(toPointTxn),
-    redemptions: (redemptions.data ?? []).map((r: any) => toRedemption(r, nameById)),
-    franchisePayouts: (franchisePayoutsRes.data ?? []).map((r: any) => ({ id: r.id, franchiseId: r.franchise_id ?? "", franchiseName: r.franchise_name ?? "", amount: Number(r.amount), note: r.note ?? undefined, paidAt: r.paid_at })),
+    redemptions: (redemptions.data ?? []).map((r) => toRedemption(r, nameById)),
+    franchisePayouts: (franchisePayoutsRes.data ?? []).map((r) => ({ id: r.id, franchiseId: r.franchise_id ?? "", franchiseName: r.franchise_name ?? "", amount: Number(r.amount), note: r.note ?? undefined, paidAt: r.paid_at })),
     missions: (() => {
-      const row = (appConfigRes?.data ?? []).find((c: any) => c.key === "missions");
-      return Array.isArray(row?.value) && row.value.length ? (row.value as Mission[]) : null;
+      const row = (appConfigRes?.data ?? []).find((c) => c.key === "missions");
+      return Array.isArray(row?.value) && row.value.length ? (row.value as unknown as Mission[]) : null;
     })(),
     pricesUpdatedAt: todayISO(),
   };
 }
 
 /* ---------------- writes ---------------- */
-export async function createJob(sb: any, me: User, input: any, slotBuyerId?: string) {
-  const est = input.items.reduce((s: number, i: any) => s + i.pricePerUnit * i.qty, 0);
+export async function createJob(sb: SupabaseClient<Database>, me: User, input: CreateJobInput, slotBuyerId?: string) {
+  const est = input.items.reduce((s, i) => s + i.pricePerUnit * i.qty, 0);
   const { data: job, error } = await sb.from("jobs").insert({
     code: jobCode(), seller_id: me.id, buyer_id: slotBuyerId ?? null, slot_id: input.slotId ?? null,
     status: "submitted", lat: input.location.lat, lng: input.location.lng, address: input.location.address,
@@ -199,67 +201,67 @@ export async function createJob(sb: any, me: User, input: any, slotBuyerId?: str
   }).select("id").single();
   if (error) throw error;
   if (input.items.length) {
-    await sb.from("job_items").insert(input.items.map((it: any) => ({ job_id: job.id, material_id: it.materialId, name: it.name, unit: it.unit, price_per_unit: it.pricePerUnit, qty: it.qty })));
+    await sb.from("job_items").insert(input.items.map((it) => ({ job_id: job.id, material_id: it.materialId, name: it.name, unit: it.unit, price_per_unit: it.pricePerUnit, qty: it.qty })));
   }
   await sb.from("job_status_history").insert({ job_id: job.id, status: "submitted" });
   return job.id as string;
 }
-export async function updateJobStatus(sb: any, jobId: string, status: string, patch: any, note?: string) {
-  await sb.from("jobs").update({ status, ...patch }).eq("id", jobId);
-  await sb.from("job_status_history").insert({ job_id: jobId, status, note: note ?? null });
+export async function updateJobStatus(sb: SupabaseClient<Database>, jobId: string, status: string, patch: Partial<Database["public"]["Tables"]["jobs"]["Update"]>, note?: string) {
+  await sb.from("jobs").update({ status: status as Row<"jobs">["status"], ...patch }).eq("id", jobId);
+  await sb.from("job_status_history").insert({ job_id: jobId, status: status as Row<"job_status_history">["status"], note: note ?? null });
 }
-export async function claimJob(sb: any, me: User, jobId: string) {
+export async function claimJob(sb: SupabaseClient<Database>, me: User, jobId: string) {
   await sb.from("jobs").update({ status: "confirmed", buyer_id: me.id }).eq("id", jobId);
   await sb.from("job_status_history").insert({ job_id: jobId, status: "confirmed", note: "ผู้ซื้อรับงาน" });
 }
 
 /** 🔒 ปิดงาน/ออกบิล/สิทธิ์ ผ่าน RPC (server-side) */
-export async function settleBill(sb: any, input: any) {
+export async function settleBill(sb: SupabaseClient<Database>, input: CreateBillInput) {
   const { data, error } = await sb.rpc("settle_bill", {
     p_source: input.source, p_job_id: input.jobId ?? null,
     p_seller_name: input.sellerName, p_seller_phone: input.sellerPhone,
-    p_items: input.items.map((i: any) => ({ material_id: i.materialId, name: i.name, unit: i.unit, qty: i.qty, price_per_unit: i.pricePerUnit })),
+    p_items: input.items.map((i) => ({ material_id: i.materialId, name: i.name, unit: i.unit, qty: i.qty, price_per_unit: i.pricePerUnit })),
     p_payment: input.paymentMethod,
   });
   if (error) throw error;
   return data as string;
 }
-export const voidBill = (sb: any, id: string) => sb.from("bills").update({ status: "void" }).eq("id", id);
-export const addExpense = (sb: any, me: User, i: any) => sb.from("expenses").insert({ buyer_id: me.id, category: i.category, amount: i.amount, date: i.date, note: i.note ?? null });
-export const removeExpense = (sb: any, id: string) => sb.from("expenses").delete().eq("id", id);
-export const addSlot = (sb: any, me: User, i: any) => sb.from("schedule_slots").insert({ buyer_id: me.id, date: i.date, area: i.area, capacity: i.capacity, booked: 0 });
-export const removeSlot = (sb: any, id: string) => sb.from("schedule_slots").delete().eq("id", id);
-export const setBuyerPrice = (sb: any, me: User, materialId: string, price: number) => sb.from("buyer_prices").upsert({ buyer_id: me.id, material_id: materialId, price });
-export const setBaseLocation = (sb: any, me: User, lat: number, lng: number) => sb.from("profiles").update({ base_lat: lat, base_lng: lng }).eq("id", me.id);
+export const voidBill = (sb: SupabaseClient<Database>, id: string) => sb.from("bills").update({ status: "void" }).eq("id", id);
+export const addExpense = (sb: SupabaseClient<Database>, me: User, i: { category: string; amount: number; date: string; note?: string }) => sb.from("expenses").insert({ buyer_id: me.id, category: i.category, amount: i.amount, date: i.date, note: i.note ?? null });
+export const removeExpense = (sb: SupabaseClient<Database>, id: string) => sb.from("expenses").delete().eq("id", id);
+export const addSlot = (sb: SupabaseClient<Database>, me: User, i: { date: string; area: string; capacity: number }) => sb.from("schedule_slots").insert({ buyer_id: me.id, date: i.date, area: i.area, capacity: i.capacity, booked: 0 });
+export const removeSlot = (sb: SupabaseClient<Database>, id: string) => sb.from("schedule_slots").delete().eq("id", id);
+export const setBuyerPrice = (sb: SupabaseClient<Database>, me: User, materialId: string, price: number) => sb.from("buyer_prices").upsert({ buyer_id: me.id, material_id: materialId, price });
+export const setBaseLocation = (sb: SupabaseClient<Database>, me: User, lat: number, lng: number) => sb.from("profiles").update({ base_lat: lat, base_lng: lng }).eq("id", me.id);
 // connectLine เอาออกแล้ว — เดิมเขียน line_user_id เป็นเลขสุ่มปลอม ทำให้ผูกกับ LINE จริงไม่ได้
 // ตอนนี้ผูกผ่าน POST /api/line/link (ตรวจ access token กับ LINE ก่อน แล้วเขียนด้วย service-role)
-export const setUserStatus = (sb: any, userId: string, status: string) => sb.rpc("set_user_status", { p_user: userId, p_status: status });
-export const setCentralPrice = (sb: any, materialId: string, price: number) => {
+export const setUserStatus = (sb: SupabaseClient<Database>, userId: string, status: string) => sb.rpc("set_user_status", { p_user: userId, p_status: status });
+export const setCentralPrice = (sb: SupabaseClient<Database>, materialId: string, price: number) => {
   const m = MATERIALS.find((x) => x.id === materialId);
   return sb.from("material_prices").upsert({ id: materialId, name: m?.name ?? materialId, unit: m?.unit ?? "กก.", price_per_unit: price, emoji: m?.emoji, category: m?.category });
 };
 /** บริษัทตั้งภารกิจ (เก็บเป็น jsonb ใน app_config key='missions') — RLS is_admin() */
-export const setMissions = (sb: any, missions: Mission[]) =>
-  sb.from("app_config").upsert({ key: "missions", value: missions, updated_at: new Date().toISOString() });
-export const setDrawPrize = (sb: any, month: string, prizeName: string, prizeValue: number) =>
+export const setMissions = (sb: SupabaseClient<Database>, missions: Mission[]) =>
+  sb.from("app_config").upsert({ key: "missions", value: missions as unknown as Json, updated_at: new Date().toISOString() });
+export const setDrawPrize = (sb: SupabaseClient<Database>, month: string, prizeName: string, prizeValue: number) =>
   sb.from("reward_draws").upsert({ month, prize_name: prizeName, prize_value: prizeValue });
-export const drawWinner = (sb: any, month: string) => sb.rpc("draw_reward_winner", { p_month: month });
-export const adjustCredit = (sb: any, userId: string, amount: number, note?: string) => sb.rpc("adjust_credit", { p_user: userId, p_amount: amount, p_note: note ?? null });
+export const drawWinner = (sb: SupabaseClient<Database>, month: string) => sb.rpc("draw_reward_winner", { p_month: month });
+export const adjustCredit = (sb: SupabaseClient<Database>, userId: string, amount: number, note?: string) => sb.rpc("adjust_credit", { p_user: userId, p_amount: amount, p_note: note ?? null });
 
 /* ---------------- Drop & Go ---------------- */
-export const dropBags = (sb: any, franchiseCode: string, cabinetCode: string, bagCodes: string[]) =>
+export const dropBags = (sb: SupabaseClient<Database>, franchiseCode: string, cabinetCode: string, bagCodes: string[]) =>
   sb.rpc("drop_bags", { p_franchise_code: franchiseCode, p_cabinet_code: cabinetCode, p_bag_codes: bagCodes });
-export const valueBag = (sb: any, bagId: string, items: BagItem[]) =>
+export const valueBag = (sb: SupabaseClient<Database>, bagId: string, items: BagItem[]) =>
   sb.rpc("value_bag", { p_bag_id: bagId, p_items: items.map((i) => ({ material_id: i.materialId, name: i.name, qty: i.qty, price_per_unit: i.pricePerUnit, subtotal: i.subtotal })) });
-export const redeemPoints = (sb: any, amountBaht: number, points: number, method: string, account: string) =>
+export const redeemPoints = (sb: SupabaseClient<Database>, amountBaht: number, points: number, method: string, account: string) =>
   sb.rpc("redeem_points", { p_amount: amountBaht, p_points: points, p_method: method, p_account: account });
-export const setRedemptionStatus = (sb: any, id: string, status: string) =>
+export const setRedemptionStatus = (sb: SupabaseClient<Database>, id: string, status: string) =>
   sb.rpc("set_redemption_status", { p_id: id, p_status: status });
-export const recordFactorySale = (sb: any, items: unknown[], factoryName?: string, note?: string) =>
+export const recordFactorySale = (sb: SupabaseClient<Database>, items: unknown[], factoryName?: string, note?: string) =>
   sb.rpc("record_factory_sale", { p_items: items, p_factory_name: factoryName ?? null, p_note: note ?? null });
-export const setFactoryPrice = (sb: any, materialId: string, price: number) =>
+export const setFactoryPrice = (sb: SupabaseClient<Database>, materialId: string, price: number) =>
   sb.rpc("set_factory_price", { p_material_id: materialId, p_price: price });
-export const addCabinet = async (sb: any, input: { code: string; name: string; address: string; franchiseCode: string; province?: string; district?: string; subdistrict?: string; lat?: number; lng?: number }) => {
+export const addCabinet = async (sb: SupabaseClient<Database>, input: { code: string; name: string; address: string; franchiseCode: string; province?: string; district?: string; subdistrict?: string; lat?: number; lng?: number }) => {
   const { data, error } = await sb.rpc("add_cabinet", { p_franchise_code: input.franchiseCode, p_code: input.code, p_name: input.name, p_address: input.address, p_lat: input.lat ?? null, p_lng: input.lng ?? null });
   if (error) throw error;
   const id = data as string;
@@ -268,7 +270,7 @@ export const addCabinet = async (sb: any, input: { code: string; name: string; a
   }
   return id;
 };
-export const editCabinet = (sb: any, id: string, patch: { name?: string; address?: string; province?: string; district?: string; subdistrict?: string }) =>
+export const editCabinet = (sb: SupabaseClient<Database>, id: string, patch: { name?: string; address?: string; province?: string; district?: string; subdistrict?: string }) =>
   sb.from("cabinets").update({
     ...(patch.name != null ? { name: patch.name } : {}),
     ...(patch.address != null ? { address: patch.address } : {}),
@@ -276,14 +278,14 @@ export const editCabinet = (sb: any, id: string, patch: { name?: string; address
     ...(patch.district != null ? { district: patch.district } : {}),
     ...(patch.subdistrict != null ? { subdistrict: patch.subdistrict } : {}),
   }).eq("id", id);
-export const addFranchise = (sb: any, input: { code: string; name: string; ownerName: string; phone: string }) =>
+export const addFranchise = (sb: SupabaseClient<Database>, input: { code: string; name: string; ownerName: string; phone: string }) =>
   sb.rpc("add_franchise", { p_code: input.code, p_name: input.name, p_owner: input.ownerName, p_phone: input.phone });
 
 /* ---------------- franchise payout ---------------- */
-export const submitPayout = (sb: any, payout: Record<string, unknown>) => sb.rpc("submit_payout", { p_payout: payout });
-export const reviewPayout = (sb: any, userId: string, approve: boolean, note?: string) =>
+export const submitPayout = (sb: SupabaseClient<Database>, payout: Record<string, unknown>) => sb.rpc("submit_payout", { p_payout: payout });
+export const reviewPayout = (sb: SupabaseClient<Database>, userId: string, approve: boolean, note?: string) =>
   sb.rpc("review_payout", { p_user: userId, p_approve: approve, p_note: note ?? null });
-export const payFranchise = (sb: any, franchiseId: string, amount: number, note?: string) =>
+export const payFranchise = (sb: SupabaseClient<Database>, franchiseId: string, amount: number, note?: string) =>
   sb.rpc("pay_franchise", { p_franchise_id: franchiseId, p_amount: amount, p_note: note ?? null });
 
 // อ้างอิงเพื่อกัน unused ในบางเส้นทาง

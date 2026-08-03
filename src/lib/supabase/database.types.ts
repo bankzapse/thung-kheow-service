@@ -1,8 +1,8 @@
 /**
- * Database types สำหรับ Supabase client (type-safe)
- * สร้างจาก PostgREST OpenAPI ของ live DB (introspection) — ครบ 24 ตาราง
- * ⚠️ Insert แบบ permissive (ทุก field optional) เพราะ introspection อ่าน default ของคอลัมน์ไม่ได้
- *    ถ้าต้องการเป๊ะ ให้ regen ด้วย: npx supabase gen types typescript --project-id <id>
+ * Database types — สร้างจาก PostgREST OpenAPI ของ live DB (introspection)
+ * ⚠️ Insert permissive (ทุก field optional), Functions.Args permissive (Record<string,unknown>)
+ *    เพราะ introspection อ่าน column default + rpc arg types ไม่ได้
+ *    ต้องการเป๊ะ: npx supabase gen types typescript --project-id <id>
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -158,12 +158,31 @@ export interface Database {
       };
     };
     Views: {
-      public_profiles: {
-        Row: { id: string | null; name: string | null; role: UserRole | null };
-        Relationships: [];
-      };
+      public_profiles: { Row: { id: string | null; name: string | null; role: UserRole | null }; Relationships: [] };
     };
-    Functions: Record<string, never>;
+    Functions: {
+      add_cabinet: { Args: Record<string, unknown>; Returns: unknown };
+      add_franchise: { Args: Record<string, unknown>; Returns: unknown };
+      adjust_credit: { Args: Record<string, unknown>; Returns: unknown };
+      draw_reward_winner: { Args: Record<string, unknown>; Returns: unknown };
+      drop_bags: { Args: Record<string, unknown>; Returns: unknown };
+      grant_roles: { Args: Record<string, unknown>; Returns: unknown };
+      is_admin: { Args: Record<string, unknown>; Returns: unknown };
+      is_operator: { Args: Record<string, unknown>; Returns: unknown };
+      owns_cabinet: { Args: Record<string, unknown>; Returns: unknown };
+      pay_franchise: { Args: Record<string, unknown>; Returns: unknown };
+      record_factory_sale: { Args: Record<string, unknown>; Returns: unknown };
+      redeem_points: { Args: Record<string, unknown>; Returns: unknown };
+      review_payout: { Args: Record<string, unknown>; Returns: unknown };
+      set_active_role: { Args: Record<string, unknown>; Returns: unknown };
+      set_factory_price: { Args: Record<string, unknown>; Returns: unknown };
+      set_redemption_status: { Args: Record<string, unknown>; Returns: unknown };
+      set_user_status: { Args: Record<string, unknown>; Returns: unknown };
+      settle_bill: { Args: Record<string, unknown>; Returns: unknown };
+      submit_payout: { Args: Record<string, unknown>; Returns: unknown };
+      topup_credit: { Args: Record<string, unknown>; Returns: unknown };
+      value_bag: { Args: Record<string, unknown>; Returns: unknown };
+    };
     Enums: { user_role: UserRole; job_status: JobStatus };
     CompositeTypes: Record<string, never>;
   };

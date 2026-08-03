@@ -14,8 +14,7 @@ export async function POST(req: Request) {
   const { token, platform } = await req.json().catch(() => ({}));
   if (!token || typeof token !== "string") return NextResponse.json({ ok: false, error: "missing token" }, { status: 400 });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- @supabase/ssr client ไม่ส่ง generic Database เข้า .from() (type เป็น never) ต่างจาก admin client
-  const { error } = await (supabase as any).from("device_tokens").upsert({ token, user_id: user.id, platform: platform ?? null, updated_at: new Date().toISOString() });
+  const { error } = await supabase.from("device_tokens").upsert({ token, user_id: user.id, platform: platform ?? null, updated_at: new Date().toISOString() });
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

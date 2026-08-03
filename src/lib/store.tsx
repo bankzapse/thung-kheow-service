@@ -2,7 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { isMonthBonusClosed, sellerBonuses, bonusTxnNote } from "./rewards";
-import type { Bill, BillItem, Expense, Job, JobStatus, Role, ScheduleSlot, User, WalletTxn, MeshBag, BagItem, PointTxn, Redemption, Cabinet, Franchise, PayoutAccount, FranchisePayout, FactorySale, FactorySaleItem, Mission } from "./types";
+import type { Bill, BillItem, Expense, Job, JobStatus, Role, ScheduleSlot, User, WalletTxn, MeshBag, BagItem, PointTxn, Redemption, Cabinet, Franchise, PayoutAccount, FranchisePayout, FactorySale, FactorySaleItem, Mission, CreateJobInput, CreateBillInput } from "./types";
 import { POINTS_PER_BAHT, bagQr } from "./types";
 import { createInitialDB, emptyDB, type DB } from "./seed";
 import { billCode, jobCode, ticketNumber, todayISO, uid, currentMonth } from "./utils";
@@ -10,6 +10,8 @@ import { computeSettlement, MAX_TICKETS_PER_MONTH, MIN_CREDIT } from "./fees";
 import { supabaseConfigured } from "./supabase/config";
 import { createClient } from "./supabase/client";
 import * as repo from "./supabase/repo";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "./supabase/database.types";
 import { friendlyError } from "./authError";
 import { liffConfigured, getLiffAccessToken } from "./liff";
 import { looksLikePhone, usernameToEmail } from "./username";
@@ -63,32 +65,11 @@ function withTimeout<T>(p: PromiseLike<T>, ms = 15000, label = "หมดเว�
 
 type Toast = { id: string; text: string; kind: "success" | "info" | "line" };
 
-interface CreateJobInput {
-  items: Job["items"];
-  location: Job["location"];
-  houseNo: string;
-  landmark: string;
-  contactName: string;
-  contactPhone: string;
-  scheduledDate: string;
-  note?: string;
-  slotId?: string;
-}
-
 interface RegisterInput {
   name: string;
   phone: string;
   email?: string;
   role: Role;
-}
-
-interface CreateBillInput {
-  source: "app_job" | "walk_in";
-  jobId?: string;
-  sellerName: string;
-  sellerPhone: string;
-  items: BillItem[];
-  paymentMethod: "cash" | "transfer" | "promptpay";
 }
 
 interface StoreValue {
@@ -322,12 +303,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
   const sbWrite = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (fn: (sb: any) => Promise<any>, msg?: string, kind?: Toast["kind"]): Promise<boolean> => {
+    (fn: (sb: SupabaseClient<Database>) => PromiseLike<unknown>, msg?: string, kind?: Toast["kind"]): Promise<boolean> => {
       const sb = sbRef.current;
       if (!sb) { pushToast("ระบบยังไม่พร้อม ลองใหม่อีกครั้ง", "info"); return Promise.resolve(false); }
       startPending();
-      return fn(sb)
+      return Promise.resolve(fn(sb))
         .then(() => {
           scheduleReload(); // โหลดใหม่แบบ debounce (รวมกับ realtime ของ write เดียวกัน) — โชว์ toast ทันที ไม่รอโหลด
           if (msg) pushToast(msg, kind ?? "success");
