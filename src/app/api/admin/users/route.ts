@@ -118,7 +118,7 @@ export async function POST(req: Request) {
         const uname = String(username || "").trim().toLowerCase();
         const email = usernameToEmail(uname);
         const contact = String(phone || "").trim();
-        if (!code?.trim() || !email || String(password || "").length < 4) return bad("ข้อมูลไม่ครบ (ชื่อผู้ใช้ 3–32 ตัว + รหัสผ่าน ≥4)");
+        if (!code?.trim() || !email || String(password || "").length < 8) return bad("ข้อมูลไม่ครบ (ชื่อผู้ใช้ 3–32 ตัว + รหัสผ่าน ≥8)");
         if (contact && !/^0\d{8,9}$/.test(contact)) return bad("เบอร์ติดต่อไม่ถูกต้อง (10 หลัก ขึ้นต้น 0)");
         // กันชื่อผู้ใช้ซ้ำ (unique index อยู่ที่ lower(username) แล้ว แต่เช็คก่อนให้ error อ่านง่าย)
         const { data: dup } = await table("profiles").select("id").eq("username", uname).maybeSingle();
@@ -143,7 +143,7 @@ export async function POST(req: Request) {
         if (!franchiseId) return bad("missing franchiseId");
         const newPhone = body.phone != null && body.phone !== "" ? String(body.phone).trim() : "";
         if (newPhone && !/^0\d{8,9}$/.test(newPhone)) return bad("เบอร์ไม่ถูกต้อง (10 หลัก)");
-        if (password != null && password !== "" && String(password).length < 4) return bad("รหัสผ่านอย่างน้อย 4 ตัวอักษร");
+        if (password != null && password !== "" && String(password).length < 8) return bad("รหัสผ่านอย่างน้อย 8 ตัวอักษร");
         // 1) แก้ข้อมูลแฟรนไชส์ (ชื่อ/เจ้าของ/เบอร์ติดต่อ)
         const frPatch: Record<string, unknown> = {};
         if (name != null) frPatch.name = String(name).trim();
@@ -203,7 +203,7 @@ export async function POST(req: Request) {
       }
       case "createCenter": {
         const { name, phone, password, address, province, district, subdistrict } = body;
-        if (!name?.trim() || !/^0\d{8,9}$/.test(String(phone || "").trim()) || String(password || "").length < 4) return bad("ข้อมูลไม่ครบ");
+        if (!name?.trim() || !/^0\d{8,9}$/.test(String(phone || "").trim()) || String(password || "").length < 8) return bad("ข้อมูลไม่ครบ (รหัสผ่าน ≥8)");
         const { data: created, error } = await admin.auth.admin.createUser({ phone: toE164(phone), password, phone_confirm: true, user_metadata: { name: name.trim(), role: "buyer" } });
         if (error || !created?.user) return bad(error?.message ?? "สร้างบัญชีไม่สำเร็จ");
         const { error: ePc } = await table("profiles").update({ role: "buyer", name: name.trim(), partner: true, address: address ?? null, province: province ?? null, district: district ?? null, subdistrict: subdistrict ?? null }).eq("id", created.user.id);
@@ -221,7 +221,7 @@ export async function POST(req: Request) {
         const newPhone = body.phone != null && body.phone !== "" ? String(body.phone).trim() : "";
         const password = body.password;
         if (newPhone && !/^0\d{8,9}$/.test(newPhone)) return bad("เบอร์ไม่ถูกต้อง (10 หลัก)");
-        if (password != null && password !== "" && String(password).length < 4) return bad("รหัสผ่านอย่างน้อย 4 ตัวอักษร");
+        if (password != null && password !== "" && String(password).length < 8) return bad("รหัสผ่านอย่างน้อย 8 ตัวอักษร");
         await table("profiles").update({
           ...(name != null ? { name: String(name).trim() } : {}),
           ...(newPhone ? { phone: newPhone } : {}),
@@ -263,7 +263,7 @@ export async function POST(req: Request) {
       case "resetSellerPassword": {
         const { userId, password } = body;
         if (!userId) return bad("missing userId");
-        if (String(password || "").length < 4) return bad("รหัสผ่านอย่างน้อย 4 ตัวอักษร");
+        if (String(password || "").length < 8) return bad("รหัสผ่านอย่างน้อย 8 ตัวอักษร");
         const { data: t } = await table("profiles").select("role").eq("id", userId).single();
         if ((t as { role?: string } | null)?.role !== "seller") return bad("ตั้งรหัสได้เฉพาะบัญชีผู้ขาย");
         const { error } = await admin.auth.admin.updateUserById(userId, { password: String(password) });
@@ -273,7 +273,7 @@ export async function POST(req: Request) {
       case "createAdmin": {
         if (!isOwner) return bad("owner only", 403);
         const { name, phone, password, permissions } = body;
-        if (!name?.trim() || !/^0\d{8,9}$/.test(String(phone || "").trim()) || String(password || "").length < 4) return bad("ข้อมูลไม่ครบ");
+        if (!name?.trim() || !/^0\d{8,9}$/.test(String(phone || "").trim()) || String(password || "").length < 8) return bad("ข้อมูลไม่ครบ (รหัสผ่าน ≥8)");
         const { data: created, error } = await admin.auth.admin.createUser({ phone: toE164(phone), password, phone_confirm: true, user_metadata: { name: name.trim(), role: "admin" } });
         if (error || !created?.user) return bad(error?.message ?? "สร้างบัญชีไม่สำเร็จ");
         const { error: ePa } = await table("profiles").update({ role: "admin", name: name.trim(), owner: false, permissions: Array.isArray(permissions) ? permissions : [] }).eq("id", created.user.id);
