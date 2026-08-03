@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { verifyOtp } from "@/lib/otp";
 import { normalizeThaiPhone } from "@/lib/smsok";
+import { phoneOrFilter } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CONSENT_VERSION } from "@/lib/consent";
 
 export const runtime = "nodejs";
 
 const toE164 = (p: string) => "+66" + p.replace(/^0/, "");
-const toBare = (p: string) => "66" + p.replace(/^0/, "");
 const MAX_FAILS = 5;
 const LOCK_MS = 15 * 60 * 1000;
 
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
   }
 
   // กันเบอร์ซ้ำ
-  const { data: dup } = await table("profiles").select("id").or(`phone.eq.${toBare(p)},phone.eq.${p}`).limit(1);
+  const { data: dup } = await table("profiles").select("id").or(phoneOrFilter(p)).limit(1);
   if ((dup as unknown[] | null)?.length) return NextResponse.json({ ok: false, error: "เบอร์นี้มีบัญชีอยู่แล้ว — เข้าสู่ระบบได้เลย" }, { status: 409 });
 
   const { data: created, error } = await admin.auth.admin.createUser({

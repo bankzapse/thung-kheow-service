@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { normalizeThaiPhone } from "@/lib/smsok";
+import { phoneOrFilter } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyLineAccessToken, fetchLineProfile } from "@/lib/line";
 import { CONSENT_VERSION } from "@/lib/consent";
@@ -7,7 +8,6 @@ import { CONSENT_VERSION } from "@/lib/consent";
 export const runtime = "nodejs";
 
 const toE164 = (p: string) => "+66" + p.replace(/^0/, "");
-const toBare = (p: string) => "66" + p.replace(/^0/, "");
 
 /**
  * POST /api/line/complete-signup
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
   //    ให้เจ้าของบัญชีเข้าด้วยเบอร์+รหัสผ่าน แล้วผูก LINE เองในหน้าโปรไฟล์
   const { data: found } = await table("profiles")
     .select("id")
-    .or(`phone.eq.${toBare(p)},phone.eq.${p}`)
+    .or(phoneOrFilter(p))
     .limit(1);
   if ((found as { id: string }[] | null)?.length) {
     return NextResponse.json(

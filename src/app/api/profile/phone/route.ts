@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeThaiPhone } from "@/lib/smsok";
+import { phoneOrFilter } from "@/lib/phone";
 
 export const runtime = "nodejs";
 
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
   // 1) กันเบอร์ซ้ำ (บัญชีอื่น)
   const { data: dup } = await table("profiles")
     .select("id")
-    .or(`phone.eq.${toBare(p)},phone.eq.${p}`)
+    .or(phoneOrFilter(p))
     .neq("id", caller.id)
     .limit(1);
   if ((dup as { id: string }[] | null)?.length) {

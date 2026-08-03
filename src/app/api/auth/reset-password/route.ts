@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { verifyOtp } from "@/lib/otp";
 import { normalizeThaiPhone } from "@/lib/smsok";
+import { phoneOrFilter } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
-const toE164Bare = (p: string) => "66" + p.replace(/^0/, "");
 const MAX_FAILS = 5;
 const LOCK_MS = 15 * 60 * 1000;
 
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   }
 
   // 3) หาบัญชีจากเบอร์ + ห้ามรีเซ็ตบัญชีผู้ดูแล/เจ้าของระบบผ่านช่องทางนี้
-  const { data } = await table("profiles").select("id, role, owner").or(`phone.eq.${toE164Bare(p)},phone.eq.${p}`).limit(1);
+  const { data } = await table("profiles").select("id, role, owner").or(phoneOrFilter(p)).limit(1);
   const row = (data as { id: string; role?: string; owner?: boolean }[] | null)?.[0];
   if (!row?.id) return NextResponse.json({ ok: false, error: "ไม่พบบัญชีสำหรับเบอร์นี้" }, { status: 404 });
   if (row.owner === true || row.role === "admin") {
