@@ -282,9 +282,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Persist db (demo)
+  // Persist db (เฉพาะโหมดเดโม) — บน Supabase ห้ามแคชทั้ง db ลง localStorage
+  // (ข้อมูลจริง/ส่วนบุคคลไม่ควรค้างฝั่ง client + กัน state เก่าค้าง) · ล้างของเก่าที่เคยเขียนไว้ด้วย
   useEffect(() => {
-    if (storageReady) localStorage.setItem(DB_KEY, JSON.stringify(db));
+    if (!storageReady) return;
+    if (supabaseConfigured) { localStorage.removeItem(DB_KEY); return; }
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
   }, [db, storageReady]);
   // Persist current user (demo only)
   useEffect(() => {
