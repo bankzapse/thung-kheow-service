@@ -3,6 +3,7 @@ import { issueOtp } from "@/lib/otp";
 import { sendSms, smsokConfigured, normalizeThaiPhone } from "@/lib/smsok";
 import { phoneOrFilter } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/database.types";
 
 export const runtime = "nodejs";
 
@@ -20,8 +21,7 @@ export async function POST(req: Request) {
 
   // กันสแปมแบบ shared (ตาราง otp_throttle) แทน in-memory ที่ bypass บน serverless ได้
   const hasDb = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const table = hasDb ? (n: string) => (createAdminClient() as any).from(n) : null;
+  const table = hasDb ? <T extends keyof Database["public"]["Tables"]>(n: T) => createAdminClient().from(n) : null;
   const today = new Date().toISOString().slice(0, 10);
 
   // 🔒 รีเซ็ตรหัสผ่าน: ต้องมีบัญชีสำหรับเบอร์นี้ก่อน ถึงจะส่ง OTP

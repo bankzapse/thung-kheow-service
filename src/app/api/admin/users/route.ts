@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/database.types";
 import { usernameToEmail } from "@/lib/username";
 
 export const runtime = "nodejs";
@@ -20,9 +21,8 @@ const bad = (msg: string, status = 400) => NextResponse.json({ ok: false, error:
  * ใช้ก่อนเรียก admin.auth.admin.* ซึ่ง bypass RLS และไม่มี scope ของตัวเอง
  * คืน NextResponse เมื่อไม่ผ่าน (ให้ caller return ต่อ) · คืน null เมื่อผ่าน
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function assertBuyerTarget(table: (n: string) => any, userId: string) {
-  const { data } = await table("profiles").select("role, owner").eq("id", userId).single();
+async function assertBuyerTarget(admin: ReturnType<typeof createAdminClient>, userId: string) {
+  const { data } = await admin.from("profiles").select("role, owner").eq("id", userId).single();
   const t = data as { role?: string; owner?: boolean } | null;
   if (!t) return bad("ไม่พบบัญชีนี้", 404);
   if (t.owner === true) return bad("แก้ไข/ลบบัญชีเจ้าของระบบไม่ได้", 403);
@@ -47,8 +47,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const action = body?.action as string;
   const admin = createAdminClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const table = (name: string) => (admin as any).from(name);
+  const table = <T extends keyof Database["public"]["Tables"]>(n: T) => admin.from(n);
 
   try {
     switch (action) {
@@ -98,7 +97,7 @@ export async function POST(req: Request) {
         if (district != null) patch.district = String(district).trim() || null;
         if (subdistrict != null) patch.subdistrict = String(subdistrict).trim() || null;
         if (!Object.keys(patch).length) return NextResponse.json({ ok: true });
-        const { error } = await table("cabinets").update(patch).eq("id", cabinetId);
+        const { error } = await table("cabinets").update(patch as Database["public"]["Tables"]["cabinets"]["Update"]).eq("id", cabinetId);
         if (error) return bad(error.message ?? "บันทึกข้อมูลตู้ไม่สำเร็จ");
         return NextResponse.json({ ok: true });
       }
@@ -149,7 +148,7 @@ export async function POST(req: Request) {
         if (name != null) frPatch.name = String(name).trim();
         if (ownerName != null) frPatch.owner_name = String(ownerName).trim();
         if (newPhone) frPatch.phone = newPhone;
-        if (Object.keys(frPatch).length) await table("franchises").update(frPatch).eq("id", franchiseId);
+        if (Object.keys(frPatch).length) await table("franchises").update(frPatch as Database["public"]["Tables"]["franchises"]["Update"]).eq("id", franchiseId);
         // 2) แก้บัญชีเข้าระบบของเจ้าของแฟรนไชส์ (role=franchise ที่ผูกกับแฟรนไชส์นี้)
         const { data: owners } = await table("profiles").select("id").eq("franchise_id", franchiseId).eq("role", "franchise");
         const ownerId = (owners as { id: string }[] | null)?.[0]?.id;
@@ -216,7 +215,7 @@ export async function POST(req: Request) {
         // 🔒 ต้องยืนยันว่าเป้าหมายเป็นบัญชีศูนย์คัดแยกจริง (และไม่ใช่เจ้าของระบบ) ก่อนแตะ auth
         // เดิม .eq("role","buyer") คุมแค่ตาราง profiles แต่ updateUserById ด้านล่างไม่ได้คุม
         // → admin ธรรมดาส่ง userId ของ owner มาเปลี่ยนรหัสผ่าน = ยึดบัญชีเจ้าของได้
-        const tgt = await assertBuyerTarget(table, userId);
+        const tgt = await assertBuyerTarget(admin, userId);
         if (tgt) return tgt;
         const newPhone = body.phone != null && body.phone !== "" ? String(body.phone).trim() : "";
         const password = body.password;
@@ -246,7 +245,7 @@ export async function POST(req: Request) {
       case "removeCenter": {
         if (!body.userId) return bad("missing userId");
         // 🔒 เดิมไม่เช็ค role เลย → admin ธรรมดาลบบัญชีเจ้าของระบบได้ (removeSeller เช็คถูกอยู่แล้ว)
-        const tgt = await assertBuyerTarget(table, body.userId);
+        const tgt = await assertBuyerTarget(admin, body.userId);
         if (tgt) return tgt;
         const { error } = await admin.auth.admin.deleteUser(body.userId);
         if (error) return bad(error.message, 500);

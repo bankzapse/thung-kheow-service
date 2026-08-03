@@ -12,6 +12,12 @@ type JobStatus = "submitted" | "confirmed" | "en_route" | "completed" | "cancell
 export interface Database {
   public: {
     Tables: {
+      device_tokens: {
+        Row: { token: string; user_id: string | null; platform: string | null; updated_at: string };
+        Insert: { token?: string; user_id?: string | null; platform?: string | null; updated_at?: string };
+        Update: Partial<Database["public"]["Tables"]["device_tokens"]["Insert"]>;
+        Relationships: [];
+      };
       app_config: {
         Row: { key: string; value: Json; updated_at: string };
         Insert: { key?: string; value?: Json; updated_at?: string };

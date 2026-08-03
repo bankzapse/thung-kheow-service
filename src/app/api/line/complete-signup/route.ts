@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { normalizeThaiPhone } from "@/lib/smsok";
 import { phoneOrFilter } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/database.types";
 import { verifyLineAccessToken, fetchLineProfile } from "@/lib/line";
 import { CONSENT_VERSION } from "@/lib/consent";
 
@@ -45,8 +46,7 @@ export async function POST(req: Request) {
   if (!profile) return NextResponse.json({ ok: false, error: "อ่านโปรไฟล์ LINE ไม่สำเร็จ" }, { status: 502 });
 
   const admin = createAdminClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const table = (n: string) => (admin as any).from(n);
+  const table = <T extends keyof Database["public"]["Tables"]>(n: T) => admin.from(n);
 
   // LINE นี้ถูกผูกไปแล้ว → ไม่ต้องทำซ้ำ (กันกดย้อน/ยิงซ้ำ)
   const { data: already } = await table("profiles").select("id").eq("line_user_id", profile.userId).maybeSingle();

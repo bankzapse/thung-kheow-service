@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyOtp } from "@/lib/otp";
 import { normalizeThaiPhone } from "@/lib/smsok";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/database.types";
 
 export const runtime = "nodejs";
 
@@ -22,8 +23,7 @@ export async function POST(req: Request) {
   if (!/^0\d{8,9}$/.test(p)) return NextResponse.json({ ok: false, error: "invalid phone" }, { status: 400 });
 
   const hasDb = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const table = hasDb ? (n: string) => (createAdminClient() as any).from(n) : null;
+  const table = hasDb ? <T extends keyof Database["public"]["Tables"]>(n: T) => createAdminClient().from(n) : null;
 
   if (table) {
     const { data: th } = await table("otp_throttle").select("fails, locked_until").eq("phone", p).maybeSingle();
