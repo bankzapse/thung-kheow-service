@@ -3,6 +3,7 @@ import { verifyOtp } from "@/lib/otp";
 import { normalizeThaiPhone } from "@/lib/smsok";
 import { phoneOrFilter } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/database.types";
 import { CONSENT_VERSION } from "@/lib/consent";
 
 export const runtime = "nodejs";
@@ -32,8 +33,7 @@ export async function POST(req: Request) {
   if (email && !/^\S+@\S+\.\S+$/.test(String(email).trim())) return NextResponse.json({ ok: false, error: "อีเมลไม่ถูกต้อง" }, { status: 400 });
 
   const admin = createAdminClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const table = (n: string) => (admin as any).from(n);
+  const table = <T extends keyof Database["public"]["Tables"]>(n: T) => admin.from(n);
 
   // กัน brute-force OTP (ใช้ตารางร่วมกับ reset)
   const { data: th } = await table("otp_throttle").select("fails, locked_until").eq("phone", p).maybeSingle();
