@@ -4,6 +4,7 @@
  * ฝั่ง verify ส่ง (เบอร์, โค้ด, โทเคน) กลับมา แล้วเซิร์ฟเวอร์คำนวณลายเซ็นใหม่เทียบ
  * โค้ดจริงไม่เคยถูกเก็บ/ส่งกลับหา client — กันปลอมได้เพราะลายเซ็นผูกกับโค้ด
  */
+import "server-only";
 import crypto from "crypto";
 
 const RAW_SECRET = process.env.OTP_SECRET || process.env.SMSOK_API_SECRET;

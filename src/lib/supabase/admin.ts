@@ -1,3 +1,4 @@
+import "server-only"; // 🔒 build error ถ้าถูก import จากฝั่ง client (ถือ service_role key ห้ามหลุด)
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 
