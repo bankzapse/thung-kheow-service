@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
 import { billsForBuyer, expensesForBuyer, centralPrice } from "@/lib/selectors";
 import { formatBaht, thaiMonthLabel, thaiDate, currentMonth } from "@/lib/utils";
+import { csvCell } from "@/lib/report";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2, Download, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 
@@ -55,7 +56,8 @@ export default function AccountingPage() {
   const exportCSV = () => {
     const head = ["เลขบิล", "วันที่", "ผู้ขาย", "ยอดรับซื้อ", "ค่าคอมบริษัท", "จ่ายผู้ขาย", "ชำระ"];
     const rows = monthBills.map((b) => [b.code, thaiDate(b.date), b.sellerName, b.goodsTotal, b.fee, b.netPaid, b.paymentMethod]);
-    const csv = [head, ...rows].map((r) => r.join(",")).join("\n");
+    // escape ทีละช่อง — เดิม join(",") ดิบ ๆ ทำให้ชื่อผู้ขายที่มีลูกน้ำทำ CSV เพี้ยนทั้งแถว
+    const csv = [head, ...rows].map((r) => r.map(csvCell).join(",")).join("\n");
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

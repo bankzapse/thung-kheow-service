@@ -129,7 +129,8 @@ const PHASE_LABEL: Record<RevenueShare["phase"], string> = {
   active: "ครบสัญญาแล้ว",
 };
 
-function csvCell(v: string | number): string {
+/** escape ค่าหนึ่งช่องตามกติกา CSV — export ไว้ให้หน้าอื่นที่ทำ CSV เองใช้ร่วม */
+export function csvCell(v: string | number): string {
   const s = String(v ?? "");
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
