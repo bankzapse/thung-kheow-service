@@ -1142,6 +1142,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const startSorting = useCallback((bagId: string) => {
+    // 'sorting' เป็นสถานะ UI ชั่วคราวของโหมดเดโมเท่านั้น — ฝั่ง Supabase ไม่มี transition นี้
+    // (RPC value_bag ข้าม dropped → credited ตรง ๆ + mesh_bags ไม่มี RLS ให้ client อัปเดต status)
+    // จึง no-op บน prod ไม่งั้นจะเขียนสถานะปลอมลง React state/localStorage ที่ไม่ตรงกับ DB
+    if (supabaseConfigured) return;
     setDb((d) => ({ ...d, bags: d.bags.map((b) => (b.id === bagId && b.status === "dropped" ? { ...b, status: "sorting" } : b)) }));
   }, []);
 
