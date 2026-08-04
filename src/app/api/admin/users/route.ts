@@ -29,6 +29,7 @@ const AUDITABLE: Record<string, (b: Record<string, unknown>) => AuditMeta> = {
   createAdmin: (b) => ({ targetType: "profile", summary: `สร้างบัญชีผู้ดูแล ${str(b.name) ?? ""}` }),
   setAdminPermissions: (b) => ({ targetType: "profile", targetId: str(b.userId), summary: "ตั้งสิทธิ์ผู้ดูแล" }),
   removeAdmin: (b) => ({ targetType: "profile", targetId: str(b.userId), summary: "ลบบัญชีผู้ดูแล" }),
+  restoreAccount: (b) => ({ targetType: "profile", targetId: str(b.userId), summary: "กู้คืนบัญชีที่ถูกลบ (soft-delete)" }),
 };
 
 /**
@@ -318,6 +319,28 @@ export async function POST(req: Request) {
         const t = target as { role?: string; owner?: boolean } | null;
         if (!t || t.role !== "admin" || t.owner) return bad("ลบบัญชีนี้ไม่ได้");
         const { error } = await admin.auth.admin.deleteUser(body.userId);
+        if (error) return bad(error.message, 500);
+        return NextResponse.json({ ok: true });
+      }
+      case "listDeleted": {
+        // รายชื่อบัญชีที่ soft-delete แล้ว (สำหรับหน้ากู้คืน)
+        const { data, error } = await table("profiles")
+          .select("id, name, phone, role, deleted_at")
+          .not("deleted_at", "is", null)
+          .order("deleted_at", { ascending: false })
+          .limit(200);
+        if (error) return bad(error.message, 500);
+        return NextResponse.json({ ok: true, accounts: data ?? [] });
+      }
+      case "restoreAccount": {
+        // กู้คืนบัญชีที่ถูกลบ: unban + เคลียร์ deleted_at
+        const { userId } = body;
+        if (!userId) return bad("missing userId");
+        const { data: t } = await table("profiles").select("deleted_at").eq("id", userId).maybeSingle();
+        if (!t?.deleted_at) return bad("บัญชีนี้ไม่ได้อยู่ในสถานะถูกลบ");
+        const { error: unbanErr } = await admin.auth.admin.updateUserById(userId, { ban_duration: "none" });
+        if (unbanErr) return bad(unbanErr.message, 500);
+        const { error } = await table("profiles").update({ deleted_at: null }).eq("id", userId);
         if (error) return bad(error.message, 500);
         return NextResponse.json({ ok: true });
       }
