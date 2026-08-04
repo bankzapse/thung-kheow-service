@@ -6,18 +6,26 @@ export const runtime = "nodejs";
 
 /**
  * ลบบัญชีที่ soft-delete แล้วแบบถาวร หลังพ้นช่วง grace (default 30 วัน)
- *   · ใช้สำหรับ Vercel Cron / เรียกมือ (ไม่ตั้ง secret = ปิด)
  *   · ลบผ่าน GoTrue admin API (วิธีที่ถูกต้อง) → cascade ลบ profile + ข้อมูลทั้งหมด
- *   เรียกด้วย: POST /api/account/purge  header: x-purge-secret: <ACCOUNT_PURGE_SECRET>
- *   ปรับ grace ได้: ?days=30  (ขั้นต่ำ 7 กันลบเร็วเกิน)
+ *
+ * เรียกได้ 2 ทาง:
+ *   · Vercel Cron (GET) — auth อัตโนมัติด้วย header  Authorization: Bearer <CRON_SECRET>
+ *   · เรียกมือ (GET/POST) — header  x-purge-secret: <ACCOUNT_PURGE_SECRET>
+ *   ไม่ตั้ง secret ทั้งคู่ = ปิด (401)
+ *   ปรับ grace: ?days=30 (ขั้นต่ำ 7)
  */
 const MAX_BATCH = 200;
 
-export async function POST(req: Request) {
-  const secret = process.env.ACCOUNT_PURGE_SECRET;
-  if (!secret || req.headers.get("x-purge-secret") !== secret) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
+function authorized(req: Request): boolean {
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && req.headers.get("authorization") === `Bearer ${cronSecret}`) return true; // Vercel Cron
+  const purgeSecret = process.env.ACCOUNT_PURGE_SECRET;
+  if (purgeSecret && req.headers.get("x-purge-secret") === purgeSecret) return true; // เรียกมือ
+  return false;
+}
+
+async function handle(req: Request) {
+  if (!authorized(req)) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return NextResponse.json({ ok: false, error: "not enabled" }, { status: 404 });
 
   const url = new URL(req.url);
@@ -40,7 +48,6 @@ export async function POST(req: Request) {
     const { error: delErr } = await admin.auth.admin.deleteUser(t.id);
     if (delErr) { failed.push(t.id); continue; }
     purged++;
-    // audit: auth user ถูกลบแล้ว → actor_id = null, เก็บ id ใน target_id
     await logAudit(admin, {
       actorId: null,
       actorRole: "system",
@@ -54,3 +61,7 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true, purged, failed: failed.length, batchCapped: targets.length === MAX_BATCH });
 }
+
+// Vercel Cron ยิงแบบ GET · เรียกมือได้ทั้ง GET/POST
+export const GET = handle;
+export const POST = handle;
