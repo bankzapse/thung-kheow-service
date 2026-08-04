@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logAudit } from "@/lib/supabase/audit";
 
 /**
  * ลบบัญชีตัวเอง (in-app account deletion) — บังคับโดย App Store / Play
@@ -19,10 +20,23 @@ export async function POST() {
   }
 
   const admin = createAdminClient();
+  // อ่านบทบาทก่อนลบ (หลังลบ profile จะหายไปตาม cascade)
+  const { data: prof } = await admin.from("profiles").select("role").eq("id", user.id).maybeSingle();
+
   const { error: delErr } = await admin.auth.admin.deleteUser(user.id);
   if (delErr) {
     return NextResponse.json({ error: delErr.message }, { status: 500 });
   }
+
+  // 📝 audit หลังลบสำเร็จ — actor_id = null (auth user ถูกลบแล้ว, กัน FK พัง) เก็บ id ไว้ใน target_id แทน
+  await logAudit(admin, {
+    actorId: null,
+    actorRole: prof?.role ?? null,
+    action: "account.delete_self",
+    targetType: "profile",
+    targetId: user.id,
+    summary: "ลบบัญชีตัวเอง (in-app account deletion)",
+  });
 
   await supabase.auth.signOut().catch(() => {});
   return NextResponse.json({ ok: true });

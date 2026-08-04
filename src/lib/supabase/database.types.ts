@@ -12,6 +12,12 @@ type JobStatus = "submitted" | "confirmed" | "en_route" | "completed" | "cancell
 export interface Database {
   public: {
     Tables: {
+      audit_logs: {
+        Row: { id: string; actor_id: string | null; actor_role: string | null; action: string; target_type: string | null; target_id: string | null; summary: string | null; metadata: Json | null; created_at: string };
+        Insert: { id?: string; actor_id?: string | null; actor_role?: string | null; action: string; target_type?: string | null; target_id?: string | null; summary?: string | null; metadata?: Json | null; created_at?: string };
+        Update: Partial<Database["public"]["Tables"]["audit_logs"]["Insert"]>;
+        Relationships: [];
+      };
       device_tokens: {
         Row: { token: string; user_id: string | null; platform: string | null; updated_at: string };
         Insert: { token?: string; user_id?: string | null; platform?: string | null; updated_at?: string };

@@ -1,10 +1,35 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logAudit } from "@/lib/supabase/audit";
 import type { Database } from "@/lib/supabase/database.types";
 import { usernameToEmail } from "@/lib/username";
 
 export const runtime = "nodejs";
+
+/**
+ * แผนที่ action → สรุป audit (เฉพาะที่อ่อนไหว) — บันทึกเมื่อ action สำเร็จเท่านั้น
+ * ⚠️ ห้ามใส่ PII อ่อนไหว (เบอร์/รหัสผ่าน) — เก็บแค่ตัวระบุ + สรุปสั้น
+ */
+type AuditMeta = { targetType?: string; targetId?: string; summary: string };
+const str = (v: unknown) => (v == null || v === "" ? undefined : String(v));
+const AUDITABLE: Record<string, (b: Record<string, unknown>) => AuditMeta> = {
+  verifySellerPhone: (b) => ({ targetType: "profile", targetId: str(b.userId), summary: "ยืนยันเบอร์ผู้ขาย" }),
+  closeMonthlyBonus: (b) => ({ targetType: "month", targetId: str(b.month), summary: `ปิดยอดโบนัสประจำเดือน ${str(b.month) ?? ""}` }),
+  updateCabinet: (b) => ({ targetType: "cabinet", targetId: str(b.cabinetId), summary: "แก้ข้อมูลตู้" }),
+  setCabinetLocation: (b) => ({ targetType: "cabinet", targetId: str(b.cabinetId), summary: "ปักพิกัดตู้" }),
+  createFranchise: (b) => ({ targetType: "franchise", targetId: str(b.code), summary: `สร้างแฟรนไชส์ ${str(b.code) ?? ""}` }),
+  updateFranchise: (b) => ({ targetType: "franchise", targetId: str(b.franchiseId), summary: "แก้ข้อมูลแฟรนไชส์" }),
+  removeFranchise: (b) => ({ targetType: "franchise", targetId: str(b.franchiseId), summary: "ลบแฟรนไชส์ (รวมตู้ + บัญชีเจ้าของ)" }),
+  createCenter: (b) => ({ targetType: "profile", summary: `สร้างบัญชีศูนย์คัดแยก ${str(b.name) ?? ""}` }),
+  updateCenter: (b) => ({ targetType: "profile", targetId: str(b.userId), summary: "แก้บัญชีศูนย์คัดแยก" }),
+  removeCenter: (b) => ({ targetType: "profile", targetId: str(b.userId), summary: "ลบบัญชีศูนย์คัดแยก" }),
+  removeSeller: (b) => ({ targetType: "profile", targetId: str(b.userId), summary: "ลบบัญชีผู้ขาย" }),
+  resetSellerPassword: (b) => ({ targetType: "profile", targetId: str(b.userId), summary: "รีเซ็ตรหัสผ่านผู้ขาย" }),
+  createAdmin: (b) => ({ targetType: "profile", summary: `สร้างบัญชีผู้ดูแล ${str(b.name) ?? ""}` }),
+  setAdminPermissions: (b) => ({ targetType: "profile", targetId: str(b.userId), summary: "ตั้งสิทธิ์ผู้ดูแล" }),
+  removeAdmin: (b) => ({ targetType: "profile", targetId: str(b.userId), summary: "ลบบัญชีผู้ดูแล" }),
+};
 
 /**
  * จัดการบัญชีศูนย์คัดแยก (buyer) + ผู้ดูแล (admin) ฝั่งบริษัท
@@ -49,7 +74,8 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   const table = <T extends keyof Database["public"]["Tables"]>(n: T) => admin.from(n);
 
-  try {
+  const run = async (): Promise<NextResponse> => {
+   try {
     switch (action) {
       case "verifySellerPhone": {
         // แอดมินยืนยันเบอร์ให้ผู้ขาย (fallback เคส OTP ส่งไม่ถึง เช่น เบอร์ตั้ง anti-spam)
@@ -298,7 +324,21 @@ export async function POST(req: Request) {
       default:
         return bad("unknown action");
     }
-  } catch (e) {
+   } catch (e) {
     return bad(e instanceof Error ? e.message : "server error", 500);
+   }
+  };
+
+  const res = await run();
+  // 📝 audit เฉพาะ action ที่สำเร็จ (2xx) — choke point เดียว ไม่แตะ logic ของแต่ละ case
+  const meta = res.ok ? AUDITABLE[action]?.(body) : undefined;
+  if (meta) {
+    await logAudit(admin, {
+      actorId: caller.id,
+      actorRole: meRow?.owner ? "owner" : meRow?.role ?? null,
+      action,
+      ...meta,
+    });
   }
+  return res;
 }
