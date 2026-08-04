@@ -389,6 +389,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const r = await fetch("/api/profile/verify-phone", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: phone.replace(/\D/g, ""), code, token }) });
         const j = await r.json().catch(() => ({ ok: false }));
         if (!r.ok || j.ok === false) { pushToast(friendlyError(j.error, "ยืนยันเบอร์ไม่สำเร็จ"), "info"); return false; }
+        // อัปเดต currentUser (=sbUser) ทันที — เดิม refresh() แตะแค่ db ทำให้ banner ยืนยันเบอร์ค้างจนปิด-เปิดแอปใหม่
+        setSbUser((prev) => (prev ? { ...prev, phoneVerified: true } : prev));
         await refresh();
         pushToast("ยืนยันเบอร์แล้ว ✓", "success");
         return true;

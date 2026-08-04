@@ -20,7 +20,8 @@ function toLocalPhone(p?: string | null): string {
 }
 function toUser(p: Row<"profiles">): User {
   return {
-    id: p.id, role: p.role, name: p.name, phone: toLocalPhone(p.phone), username: p.username ?? undefined,
+    id: p.id, role: p.role, roles: Array.isArray(p.roles) ? (p.roles as User["roles"]) : undefined,
+    name: p.name, phone: toLocalPhone(p.phone), username: p.username ?? undefined, phoneVerified: !!p.phone_verified,
     email: p.email ?? undefined, lineUserId: p.line_user_id ?? undefined,
     lineConnected: !!p.line_connected, baseLat: p.base_lat ?? undefined, baseLng: p.base_lng ?? undefined,
     status: (p.status ?? "active") as User["status"], credit: p.credit != null ? Number(p.credit) : 0, partner: !!p.partner,

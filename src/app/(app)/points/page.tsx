@@ -26,6 +26,7 @@ export default function PointsPage() {
   const [account, setAccount] = useState(u.phone);
   const [tab, setTab] = useState<"redeem" | "redemptions" | "points">("redeem");
   const [verifyOpen, setVerifyOpen] = useState(false);
+  const [justVerified, setJustVerified] = useState(false); // ยืนยันเสร็จแล้ว รอสถานะระบบอัปเดต → โชว์ "กำลังดำเนินการ"
 
   const [redeeming, setRedeeming] = useState(false);
   const doRedeem = async () => {
@@ -75,14 +76,24 @@ export default function PointsPage() {
               </Link>
             )}
             {!phoneVerified && (
-              <button onClick={() => setVerifyOpen(true)} className="flex w-full items-start gap-2.5 rounded-2xl bg-amber-50 p-3.5 text-left text-sm text-amber-800 ring-1 ring-amber-100 transition active:scale-[0.99]">
-                <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
-                <div className="flex-1">
-                  <p className="font-semibold">ต้องยืนยันเบอร์โทรก่อนถอนเงินครั้งแรก</p>
-                  <p className="text-xs text-amber-700/80">แตะเพื่อยืนยันเบอร์ {u.phone || "—"} ด้วย OTP · OTP ไม่เข้า? แจ้งแอดมิน</p>
+              justVerified ? (
+                <div className="flex w-full items-start gap-2.5 rounded-2xl bg-blue-50 p-3.5 text-sm text-blue-800 ring-1 ring-blue-100">
+                  <RefreshCw className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-blue-500" />
+                  <div className="flex-1">
+                    <p className="font-semibold">กำลังดำเนินการยืนยันเบอร์…</p>
+                    <p className="text-xs text-blue-700/80">ระบบกำลังอัปเดตสถานะ สักครู่จะถอนเงินได้</p>
+                  </div>
                 </div>
-                <ChevronRight className="mt-0.5 h-4 w-4 shrink-0" />
-              </button>
+              ) : (
+                <button onClick={() => setVerifyOpen(true)} className="flex w-full items-start gap-2.5 rounded-2xl bg-amber-50 p-3.5 text-left text-sm text-amber-800 ring-1 ring-amber-100 transition active:scale-[0.99]">
+                  <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+                  <div className="flex-1">
+                    <p className="font-semibold">ต้องยืนยันเบอร์โทรก่อนถอนเงินครั้งแรก</p>
+                    <p className="text-xs text-amber-700/80">แตะเพื่อยืนยันเบอร์ {u.phone || "—"} ด้วย OTP · OTP ไม่เข้า? แจ้งแอดมิน</p>
+                  </div>
+                  <ChevronRight className="mt-0.5 h-4 w-4 shrink-0" />
+                </button>
+              )
             )}
             <div className="grid grid-cols-2 gap-3">
               {REDEEM_TIERS.map((t) => {
@@ -167,7 +178,7 @@ export default function PointsPage() {
         )}
       </Modal>
 
-      <VerifyPhoneModal phone={u.phone} open={verifyOpen} onClose={() => setVerifyOpen(false)} onVerified={() => setVerifyOpen(false)} />
+      <VerifyPhoneModal phone={u.phone} open={verifyOpen} onClose={() => setVerifyOpen(false)} onVerified={() => { setVerifyOpen(false); setJustVerified(true); }} />
     </div>
   );
 }
