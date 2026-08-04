@@ -3,6 +3,7 @@ import { issueOtp } from "@/lib/otp";
 import { sendSms, smsokConfigured, normalizeThaiPhone } from "@/lib/smsok";
 import { phoneOrFilter } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { rateLimit, clientIp } from "@/lib/ratelimit";
 import type { Database } from "@/lib/supabase/database.types";
 
 export const runtime = "nodejs";
@@ -21,8 +22,14 @@ export async function POST(req: Request) {
 
   // กันสแปมแบบ shared (ตาราง otp_throttle) แทน in-memory ที่ bypass บน serverless ได้
   const hasDb = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const table = hasDb ? <T extends keyof Database["public"]["Tables"]>(n: T) => createAdminClient().from(n) : null;
+  const admin = hasDb ? createAdminClient() : null;
+  const table = admin ? <T extends keyof Database["public"]["Tables"]>(n: T) => admin.from(n) : null;
   const today = new Date().toISOString().slice(0, 10);
+
+  // 🔒 per-IP: กันหมุนเบอร์ยิงขอ OTP รัว ๆ (เปลืองค่า SMS) — throttle ต่อเบอร์กันไว้แล้วด้านล่าง
+  if (admin && !(await rateLimit(admin, `otp_send_ip:${clientIp(req)}`, 15, 600))) {
+    return NextResponse.json({ ok: false, error: "ขอรหัสถี่เกินไป — ลองใหม่ภายหลัง" }, { status: 429 });
+  }
 
   // 🔒 รีเซ็ตรหัสผ่าน: ต้องมีบัญชีสำหรับเบอร์นี้ก่อน ถึงจะส่ง OTP
   //    (กันคนสุ่มยิงขอ OTP รั่ว ๆ เปลืองค่า SMS + กันเบอร์ที่ไม่มีบัญชี)

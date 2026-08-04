@@ -177,6 +177,7 @@ export interface Database {
       is_operator: { Args: Record<string, unknown>; Returns: unknown };
       owns_cabinet: { Args: Record<string, unknown>; Returns: unknown };
       pay_franchise: { Args: Record<string, unknown>; Returns: unknown };
+      rate_limit_hit: { Args: { p_key: string; p_limit: number; p_window_seconds: number }; Returns: boolean };
       record_factory_sale: { Args: Record<string, unknown>; Returns: unknown };
       redeem_points: { Args: Record<string, unknown>; Returns: unknown };
       review_payout: { Args: Record<string, unknown>; Returns: unknown };

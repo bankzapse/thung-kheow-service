@@ -3,6 +3,7 @@ import { verifyOtp } from "@/lib/otp";
 import { normalizeThaiPhone } from "@/lib/smsok";
 import { phoneOrFilter } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { rateLimit, clientIp } from "@/lib/ratelimit";
 import type { Database } from "@/lib/supabase/database.types";
 
 export const runtime = "nodejs";
@@ -25,6 +26,11 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient();
   const table = <T extends keyof Database["public"]["Tables"]>(n: T) => admin.from(n);
+
+  // 🔒 per-IP: กันถล่มรีเซ็ต (ต่อเบอร์กันด้วย otp_throttle ด้านล่าง)
+  if (!(await rateLimit(admin, `reset_ip:${clientIp(req)}`, 20, 600))) {
+    return NextResponse.json({ ok: false, error: "ทำรายการถี่เกินไป — ลองใหม่ภายหลัง" }, { status: 429 });
+  }
 
   // 1) กัน brute-force: ถ้าถูกล็อกอยู่ → ปฏิเสธ
   const { data: th } = await table("otp_throttle").select("fails, locked_until").eq("phone", p).maybeSingle();

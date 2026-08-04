@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,10 @@ export async function POST(req: Request) {
     const roles = [row?.role, ...(Array.isArray(row?.roles) ? row.roles : [])];
     if (!roles.some((r) => r === "buyer" || r === "admin")) {
       return NextResponse.json({ distances: null, reason: "forbidden" }, { status: 403 });
+    }
+    // 🔒 per-user: กันยิงถล่ม Google Distance Matrix (ค่า API บาน) — 60 คำขอ / 10 นาที
+    if (!(await rateLimit(supabase, `matrix_user:${auth.user.id}`, 60, 600))) {
+      return NextResponse.json({ distances: null, reason: "rate_limited" }, { status: 429 });
     }
   }
 
