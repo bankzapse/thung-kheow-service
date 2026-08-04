@@ -9,7 +9,7 @@ import { PICKUP_ENABLED } from "@/lib/features";
 import { canAccessAdminMenu } from "@/lib/permissions";
 import { Logo } from "@/components/Logo";
 import { BootLoader, ConsoleSkeleton } from "@/components/ui";
-import { LayoutDashboard, Users, Trophy, Tag, LogOut, Recycle, Store, Landmark, Banknote, Truck, Receipt, LayoutGrid, PackageSearch, ShieldCheck, Factory, PiggyBank, Target } from "lucide-react";
+import { LayoutDashboard, Users, Trophy, Tag, LogOut, Recycle, Store, Landmark, Banknote, Truck, Receipt, LayoutGrid, PackageSearch, ShieldCheck, Factory, PiggyBank, Target, ScrollText } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "ภาพรวม", icon: LayoutDashboard, exact: true, pickup: true, menu: null as string | null },
@@ -25,6 +25,7 @@ const NAV = [
   { href: "/admin/payouts", label: "อนุมัติบัญชี", icon: Landmark, pickup: false, menu: "payouts" },
   { href: "/admin/payments", label: "โอนเงิน", icon: Banknote, pickup: false, menu: "payments" },
   { href: "/admin/transfers", label: "ประวัติโอน", icon: Receipt, pickup: false, menu: "transfers" },
+  { href: "/admin/audit", label: "บันทึกการใช้งาน", icon: ScrollText, pickup: false, menu: "audit" },
   { href: "/admin/buyers", label: "ผู้ซื้อ", icon: Users, pickup: true, menu: null },
   { href: "/admin/rewards", label: "รางวัล", icon: Trophy, pickup: true, menu: null },
   { href: "/admin/prices", label: "อัตราเลทโรงงาน", icon: Tag, pickup: true, menu: null },
