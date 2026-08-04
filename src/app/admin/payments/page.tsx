@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
 import { Modal, Spinner } from "@/components/ui";
-import { franchiseRevenue } from "@/lib/selectors";
+import { franchiseRevenue, sellerRecycleSummary } from "@/lib/selectors";
 import { formatBaht, thaiDateTime } from "@/lib/utils";
 import type { Franchise } from "@/lib/types";
 import { Banknote, CheckCircle2, XCircle, Building2, User, Clock, Landmark, AlertTriangle } from "lucide-react";
@@ -51,19 +51,38 @@ export default function AdminPaymentsPage() {
           <div className="card text-sm text-neutral-400">ไม่มีคำขอรอโอน</div>
         ) : (
           <div className="grid gap-3 lg:grid-cols-2">
-            {pendingRedemptions.map((r) => (
-              <div key={r.id} className="card flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Banknote className="h-5 w-5" /></span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-neutral-800">฿{formatBaht(r.amountBaht)} <span className="text-xs font-normal text-neutral-400">· {r.userName}</span></p>
-                  <p className="text-xs text-neutral-400">{r.code} · พร้อมเพย์ {r.account} · {thaiDateTime(r.requestedAt)}</p>
+            {pendingRedemptions.map((r) => {
+              const recycled = sellerRecycleSummary(db, r.userId);
+              return (
+                <div key={r.id} className="card space-y-2.5">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Banknote className="h-5 w-5" /></span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-neutral-800">฿{formatBaht(r.amountBaht)} <span className="text-xs font-normal text-neutral-400">· {r.userName}</span></p>
+                      <p className="text-xs text-neutral-500">ใช้ {formatBaht(r.points)} คะแนน · {r.method === "bank" ? "ธนาคาร" : "พร้อมเพย์"} <span className="font-medium text-neutral-700">{r.account}</span></p>
+                      <p className="text-xs text-neutral-400">{r.code} · {thaiDateTime(r.requestedAt)}</p>
+                    </div>
+                    <div className="flex shrink-0 gap-1.5">
+                      <button onClick={() => rejectRedemption(r.id)} className="btn-outline !px-2.5 !py-2 !text-red-600"><XCircle className="h-4 w-4" /></button>
+                      <button onClick={() => markRedemptionPaid(r.id)} className="btn-primary !px-3 !py-2 text-sm"><CheckCircle2 className="h-4 w-4" /> โอนแล้ว</button>
+                    </div>
+                  </div>
+                  {/* ของเก่าที่ผู้ขายรีไซเคิล (สะสมจากถุงที่ตีราคาแล้ว) */}
+                  {recycled.length > 0 && (
+                    <div className="rounded-xl bg-neutral-50 p-2.5">
+                      <p className="mb-1.5 text-[11px] font-medium text-neutral-400">ของเก่าที่รีไซเคิล (สะสมทั้งหมด)</p>
+                      <div className="flex flex-wrap gap-1">
+                        {recycled.map((s) => (
+                          <span key={s.materialId} className="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 text-xs text-neutral-600 ring-1 ring-neutral-200">
+                            {s.name} <b className="text-neutral-800">{formatBaht(s.qty)}</b> กก.
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex gap-1.5">
-                  <button onClick={() => rejectRedemption(r.id)} className="btn-outline !px-2.5 !py-2 !text-red-600"><XCircle className="h-4 w-4" /></button>
-                  <button onClick={() => markRedemptionPaid(r.id)} className="btn-primary !px-3 !py-2 text-sm"><CheckCircle2 className="h-4 w-4" /> โอนแล้ว</button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
         {paidRedemptions.length > 0 && (
