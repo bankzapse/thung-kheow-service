@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   // ไม่ ignore lint ตอน build แล้ว → lint error จะบล็อก deploy ได้ (เดิมปิดไว้ = ไม่มีอะไรกันเลย)
@@ -31,4 +32,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// ครอบด้วย Sentry — instrument build เฉย ๆ, ไม่ตั้ง DSN ก็ inert (SDK ไม่ init ตอน runtime)
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: !process.env.CI, // เงียบตอน dev ในเครื่อง, โชว์ log บน CI
+  // อัป source map ขึ้น Sentry เฉพาะเมื่อมี auth token (ไม่มี = ข้าม ไม่ทำ build พัง/ช้า)
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+});
