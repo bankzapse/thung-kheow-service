@@ -15,6 +15,7 @@ export const ADMIN_MENUS: { key: string; label: string }[] = [
   { key: "payments", label: "โอนเงิน" },
   { key: "transfers", label: "ประวัติโอน" },
   { key: "audit", label: "บันทึกการใช้งาน (audit)" },
+  { key: "deleted", label: "บัญชีที่ลบแล้ว (กู้คืน)" },
 ];
 
 export const ADMIN_MENU_KEYS = ADMIN_MENUS.map((m) => m.key);
