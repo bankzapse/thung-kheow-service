@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useStore } from "@/lib/store";
@@ -53,6 +53,24 @@ export default function HomePage() {
   const u = currentUser!;
   const isSeller = u.role === "seller";
   const [pricesOpen, setPricesOpen] = useState(false);
+  const [livePos, setLivePos] = useState<{ lat: number; lng: number } | null>(null); // ตำแหน่ง GPS สด (ไม่บันทึก DB)
+
+  // ขอตำแหน่งปัจจุบันอัตโนมัติตอนเข้าหน้าแรก → "ตู้หย่อนใกล้ฉัน" อัปเดตเอง ไม่ต้องกดปุ่ม
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    let done = false;
+    const ask = () =>
+      navigator.geolocation.getCurrentPosition(
+        (p) => { if (!done) setLivePos({ lat: p.coords.latitude, lng: p.coords.longitude }); },
+        () => {}, // เงียบ — ไม่ได้สิทธิ์/พลาด ให้ผู้ใช้กดปุ่มเองได้
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+      );
+    // ไม่รบกวนถ้าผู้ใช้เคยปฏิเสธสิทธิ์ตำแหน่ง
+    const perm = navigator.permissions?.query?.({ name: "geolocation" as PermissionName });
+    if (perm) perm.then((r) => { if (r.state !== "denied") ask(); }).catch(() => ask());
+    else ask();
+    return () => { done = true; };
+  }, []);
 
   const draw = currentDraw(db) ?? announcedDraw(db);
   const myTickets = ticketsForUser(db, u.id).length;
@@ -62,7 +80,8 @@ export default function HomePage() {
   const income = incomeSummary(db, u.id);
   const points = pointsOf(db, u.id);
   const dstats = dropStats(db, u.id);
-  const base = { lat: u.baseLat ?? DEFAULT_BASE.lat, lng: u.baseLng ?? DEFAULT_BASE.lng };
+  // ใช้ตำแหน่งสด (auto) ถ้ามี · ไม่งั้น fallback ตำแหน่งที่บันทึกไว้/ค่าเริ่มต้น
+  const base = livePos ?? { lat: u.baseLat ?? DEFAULT_BASE.lat, lng: u.baseLng ?? DEFAULT_BASE.lng };
   const openCount = isSeller ? 0 : availableJobsNear(db, base.lat, base.lng, RADIUS_KM).length;
   const activeCount = activeJobs(isSeller ? sellerJobs : buyerJobs).length;
   const priceOf = (id: string) => buyerPrice(db, u.id, id);
