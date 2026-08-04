@@ -231,6 +231,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         } else {
           const { data: profile } = await withTimeout(supabase.from("profiles").select("*").eq("id", user.id).single(), 12000, "โหลดโปรไฟล์ช้า");
           if (!active) return;
+          // บัญชีถูกลบ (soft-delete) → เด้งออกจากระบบทุกกรณี (กันช่วง token เดิมยังไม่หมดอายุ · ครอบทั้ง password/LINE)
+          if (profile?.deleted_at) {
+            await supabase.auth.signOut().catch(() => {});
+            setSbUser(null);
+            return;
+          }
           setSbUser(profile ? profileToUser(profile) : null);
           try {
             const fresh = await withTimeout(repo.loadAll(supabase), 20000, "โหลดข้อมูลช้า");
