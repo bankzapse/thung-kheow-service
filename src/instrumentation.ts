@@ -5,6 +5,9 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     await import("../sentry.server.config");
+    // ตรวจ env ตอนบูต (server) — log ปัญหาชัด ๆ ตั้งแต่แรก
+    const { validateServerEnv } = await import("./lib/env");
+    await validateServerEnv();
   }
   if (process.env.NEXT_RUNTIME === "edge") {
     await import("../sentry.edge.config");
