@@ -49,7 +49,7 @@ begin
     insert into public.audit_logs (actor_id, actor_role, action, target_type, target_id, summary, metadata)
     values (
       auth.uid(),
-      (select case when p.owner then 'owner' else p.role end from public.profiles p where p.id = auth.uid()),
+      (select case when p.owner then 'owner' else p.role::text end from public.profiles p where p.id = auth.uid()), -- ::text กัน CASE ปน enum×text
       'redemption.paid',
       'redemption',
       new.id::text,
