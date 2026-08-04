@@ -57,9 +57,11 @@ export async function POST(req: Request) {
 
   try {
     if (table === "point_transactions" && type === "INSERT" && rec.type === "earn" && rec.user_id) {
+      const pts = formatBaht(Number(rec.points));
       await notify({
         userId: rec.user_id,
-        push: { title: "ถุงเขียว 🎉", body: `คุณได้รับ ${formatBaht(Number(rec.points))} คะแนนจากการรีไซเคิล` },
+        push: { title: "ถุงเขียว 🎉", body: `คุณได้รับ ${pts} คะแนนจากการรีไซเคิล` },
+        line: `🎉 ถุงของคุณถูกตีราคาแล้ว! ได้รับ ${pts} คะแนน (1 คะแนน = ฿1) สะสมไว้แลกเงินได้ในแอปถุงเขียว 🌱`,
       });
     } else if (table === "redemptions" && type === "UPDATE" && rec.user_id) {
       const baht = formatBaht(Number(rec.amount_baht));
