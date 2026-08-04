@@ -91,5 +91,21 @@ Framework: **Next.js** · Build: `next build` · ไม่ต้องตั้�
 
 ---
 
+## 🧪 เทส & CI
+
+```bash
+npm test         # รันเทส logic การเงิน (vitest) ครั้งเดียว
+npm run test:watch   # โหมด watch ระหว่างพัฒนา
+```
+
+เทสครอบคลุมส่วนคำนวณเงินล้วน (pure functions): `fees.ts` (ค่าคอม/สิทธิ์),
+`revenue.ts` (ส่วนแบ่งแฟรนไชส์ ↔ บริษัท), `rewards.ts` (โบนัสขั้นบันได + ภารกิจ),
+`report.ts` (รายงานรายได้ + CSV) — อยู่ที่ `src/lib/__tests__/`
+
+CI (GitHub Actions) รันอัตโนมัติทุก push/PR เข้า `main`:
+`tsc --noEmit` → `next lint` → `npm test` → `next build`
+
+---
+
 ## 🧾 Tech stack
-Next.js 15 (App Router) · TypeScript · Tailwind CSS · Supabase · LINE Messaging/Login API · lucide-react
+Next.js 15 (App Router) · TypeScript · Tailwind CSS · Supabase · LINE Messaging/Login API · lucide-react · Vitest

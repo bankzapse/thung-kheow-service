@@ -1,0 +1,40 @@
+name: CI
+
+# ตรวจก่อน merge: type-check → lint → test → build
+# (ตรงกับที่รันในเครื่อง: tsc --noEmit && next lint && vitest && next build)
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# ยกเลิก run เก่าเมื่อ push ใหม่มาที่ ref เดียวกัน (ประหยัด CI)
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests (logic การเงิน)
+        run: npm test
+
+      - name: Build
+        run: npm run build
