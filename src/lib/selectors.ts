@@ -377,6 +377,21 @@ export function bagsForUser(db: DB, userId: string): MeshBag[] {
     .filter((b) => b.userId === userId)
     .sort((a, b) => +new Date(b.droppedAt) - +new Date(a.droppedAt));
 }
+/** สรุปวัสดุ (ของเก่า) ที่ผู้ขายรีไซเคิลจากถุงที่ตีราคาแล้ว — รวม qty ตามชนิด เรียงมาก→น้อย */
+export function sellerRecycleSummary(db: DB, userId: string): { materialId: string; name: string; qty: number; bahtTotal: number }[] {
+  const agg = new Map<string, { materialId: string; name: string; qty: number; bahtTotal: number }>();
+  for (const b of (db.bags ?? [])) {
+    if (b.userId !== userId || b.status !== "credited") continue;
+    for (const it of b.items ?? []) {
+      const cur = agg.get(it.materialId) ?? { materialId: it.materialId, name: it.name || MATERIAL_MAP[it.materialId]?.name || it.materialId, qty: 0, bahtTotal: 0 };
+      cur.qty += Number(it.qty) || 0;
+      cur.bahtTotal += Number(it.subtotal) || 0;
+      agg.set(it.materialId, cur);
+    }
+  }
+  return [...agg.values()].sort((a, b) => b.qty - a.qty);
+}
+
 /** ถุงที่รอผู้ดูแลจัดการ (หย่อนแล้ว/กำลังคัดแยก) */
 export function pendingBags(db: DB): MeshBag[] {
   return (db.bags ?? [])

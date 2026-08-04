@@ -35,7 +35,7 @@ const NAV = [
 const OWNER_LINK = { href: "/admin/team", label: "จัดการผู้ดูแล", icon: ShieldCheck, exact: false, pickup: false, menu: null } as (typeof NAV)[number];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { ready, currentUser, logout } = useStore();
+  const { ready, currentUser, logout, db } = useStore();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -65,6 +65,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const nav = NAV.filter((n) => n.menu == null || canAccessAdminMenu(currentUser, n.menu));
   const items = currentUser.owner ? [...nav, OWNER_LINK] : nav;
 
+  // จำนวนงานค้าง (ใหม่ + รอทำ) — โชว์เป็น badge หลังเมนู
+  const badges: Record<string, number> = {
+    payments: (db.redemptions ?? []).filter((r) => r.status === "pending").length, // คำขอแลกเงินรอโอน
+    payouts: (db.users ?? []).filter((u) => u.payout?.status === "pending").length, // บัญชีรอตรวจอนุมัติ
+  };
+
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
 
@@ -73,22 +79,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.replace("/app");
   };
 
-  const NavLink = ({ n, mobile }: { n: (typeof NAV)[number]; mobile?: boolean }) => (
-    <Link
-      href={n.href}
-      className={cn(
-        mobile
-          ? "flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-sm"
-          : "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition",
-        isActive(n.href, n.exact)
-          ? mobile ? "bg-brand-600 text-white" : "bg-brand-600 text-white shadow-sm"
-          : mobile ? "bg-neutral-100 text-neutral-500" : "text-neutral-600 hover:bg-neutral-100",
-      )}
-    >
-      <n.icon className="h-[18px] w-[18px]" />
-      {n.label}
-    </Link>
-  );
+  const NavLink = ({ n, mobile }: { n: (typeof NAV)[number]; mobile?: boolean }) => {
+    const count = n.menu ? badges[n.menu] ?? 0 : 0;
+    const active = isActive(n.href, n.exact);
+    return (
+      <Link
+        href={n.href}
+        className={cn(
+          mobile
+            ? "flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-sm"
+            : "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition",
+          active
+            ? mobile ? "bg-brand-600 text-white" : "bg-brand-600 text-white shadow-sm"
+            : mobile ? "bg-neutral-100 text-neutral-500" : "text-neutral-600 hover:bg-neutral-100",
+        )}
+      >
+        <n.icon className="h-[18px] w-[18px]" />
+        {n.label}
+        {count > 0 && (
+          <span
+            className={cn(
+              "ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-xs font-bold",
+              active ? "bg-white/25 text-white" : "bg-red-500 text-white",
+            )}
+          >
+            {count}
+          </span>
+        )}
+      </Link>
+    );
+  };
 
   return (
     <div className="min-h-dvh bg-neutral-100">
