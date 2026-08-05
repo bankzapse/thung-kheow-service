@@ -8,6 +8,7 @@ import { AuthShell } from "@/components/AuthShell";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/client";
 import { friendlyError } from "@/lib/authError";
+import { trackPixel } from "@/lib/metapixel";
 import { ArrowRight, Loader2, User, Phone, Mail, KeyRound } from "lucide-react";
 
 const PHONE_RE = /^0\d{8,9}$/;
@@ -72,6 +73,7 @@ function RegisterForm() {
         if (!r.ok || j.ok === false) return setErr(friendlyError(j.error, "สมัครไม่สำเร็จ"));
         const { error } = await createClient().auth.signInWithPassword({ phone: toE164(phone), password });
         if (error) return setErr(friendlyError(error, "สมัครสำเร็จ — กรุณาเข้าสู่ระบบ"));
+        trackPixel("CompleteRegistration"); // 📊 วัดผลโฆษณา: สมัครสำเร็จ
         return; // session → redirect effect
       }
       if (smsMode) {
@@ -82,6 +84,7 @@ function RegisterForm() {
       }
       const res = await registerAccount({ name, phone, email: email || undefined, password });
       if (!res.ok) return setErr(res.error ?? "สมัครไม่สำเร็จ");
+      trackPixel("CompleteRegistration"); // 📊 วัดผลโฆษณา: สมัครสำเร็จ (เดโม)
       // demo: registerAccount ตั้ง currentUser แล้ว → redirect effect
     } catch (e) {
       setErr(friendlyError(e));
