@@ -5,6 +5,7 @@ import { StoreProvider } from "@/lib/store";
 import { Toaster, GlobalLoadingBar } from "@/components/ui";
 import { Shell } from "@/components/Shell";
 import { NativeBootstrap } from "@/components/NativeBootstrap";
+import { MetaPixel } from "@/components/MetaPixel";
 import { SITE_URL, SITE_NAME, SITE_TITLE, SITE_DESC } from "@/lib/site";
 
 const fontSans = IBM_Plex_Sans_Thai({
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="th" className={fontSans.variable}>
       <body>
+        <MetaPixel />
         <StoreProvider>
           <NativeBootstrap />
           <GlobalLoadingBar />
