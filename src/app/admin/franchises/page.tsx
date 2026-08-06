@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
-import { Modal } from "@/components/ui";
+import { Modal, Segmented } from "@/components/ui";
 import { AddressPicker } from "@/components/AddressPicker";
 import { LocationPicker } from "@/components/LocationPicker";
 import { hasGeo } from "@/lib/geo";
@@ -22,7 +22,7 @@ type CabForm = { name: string; address: string; province: string; district: stri
 const EMPTY_CAB: CabForm = { name: "", address: "", province: "", district: "", subdistrict: "" };
 
 export default function AdminFranchisesPage() {
-  const { db, addFranchise, addCabinet, editFranchise, removeFranchise, setCabinetLocation, updateCabinetInfo } = useStore();
+  const { db, addFranchise, addCabinet, reassignCabinet, editFranchise, removeFranchise, setCabinetLocation, updateCabinetInfo } = useStore();
   const allFranchises = franchisesWithStats(db);
   const nearFull = cabinetsWithCounts(db)
     .filter((c) => c.pending >= NEAR_FULL)
@@ -94,13 +94,16 @@ export default function AdminFranchisesPage() {
   const [delFr, setDelFr] = useState<FranchiseWithStats | null>(null);
   const doDelete = () => { if (delFr) { removeFranchise(delFr.id); setDelFr(null); } };
 
-  // เพิ่มตู้ (บริษัทเท่านั้น — ผูกกับสัญญาเช่าซื้อ)
+  // เพิ่มตู้ (บริษัทเท่านั้น — ผูกกับสัญญาเช่าซื้อ) · 2 โหมด: สร้างใหม่ หรือ เลือกตู้ว่างที่มีอยู่
   const [cabFor, setCabFor] = useState<FranchiseWithStats | null>(null);
+  const [cabMode, setCabMode] = useState<"new" | "existing">("new");
+  const [pickCabId, setPickCabId] = useState("");
   const [cab, setCab] = useState<CabForm>({ ...EMPTY_CAB });
   const [cabGeo, setCabGeo] = useState<{ lat: number; lng: number } | null>(null);
+  const freeCabs = (db.cabinets ?? []).filter((c) => !c.franchiseId);
   const cabComplete = !!(cab.name.trim() && cab.address.trim() && cab.province && cab.district.trim() && cab.subdistrict.trim() && cabGeo);
   const nextTk = "TK-" + String(db.cabinets.map((c) => Number(/^TK0*(\d+)$/.exec(c.code)?.[1] ?? 0)).reduce((a, b) => Math.max(a, b), 0) + 1).padStart(2, "0");
-  const openAddCab = (f: FranchiseWithStats) => { setCab({ ...EMPTY_CAB }); setCabGeo(null); setCabFor(f); };
+  const openAddCab = (f: FranchiseWithStats) => { setCab({ ...EMPTY_CAB }); setCabGeo(null); setCabMode("new"); setPickCabId(""); setCabFor(f); };
 
   // ตั้งตำแหน่งตู้เดิมที่ยังไม่มีพิกัด (0,0)
   const [locCab, setLocCab] = useState<{ id: string; name: string; code: string; address: string; geo: { lat: number; lng: number } | null } | null>(null);
@@ -123,9 +126,16 @@ export default function AdminFranchisesPage() {
   // พิมพ์ QR ตู้ของแฟรนไชส์ (บริษัทพิมพ์ให้ได้)
   const [qrFor, setQrFor] = useState<FranchiseWithStats | null>(null);
   const qrCabinets = qrFor ? cabinetsForFranchise(db, qrFor.id) : [];
+  const canSaveCab = cabMode === "new" ? cabComplete : !!pickCabId;
   const saveCab = () => {
-    if (!cabFor || !cabComplete || !cabGeo) return;
-    addCabinet({ name: cab.name, address: cab.address, province: cab.province, district: cab.district, subdistrict: cab.subdistrict, franchiseId: cabFor.id, franchiseCode: cabFor.code, lat: cabGeo.lat, lng: cabGeo.lng });
+    if (!cabFor) return;
+    if (cabMode === "existing") {
+      if (!pickCabId) return;
+      reassignCabinet(pickCabId, cabFor.id, cabFor.code);
+    } else {
+      if (!cabComplete || !cabGeo) return;
+      addCabinet({ name: cab.name, address: cab.address, province: cab.province, district: cab.district, subdistrict: cab.subdistrict, franchiseId: cabFor.id, franchiseCode: cabFor.code, lat: cabGeo.lat, lng: cabGeo.lng });
+    }
     setCabFor(null);
   };
 
@@ -404,30 +414,54 @@ export default function AdminFranchisesPage() {
         footer={
           <>
             <button className="btn-outline flex-1" onClick={() => setCabFor(null)}>ยกเลิก</button>
-            <button className="btn-primary flex-1 disabled:opacity-50" disabled={!cabComplete} onClick={saveCab}>บันทึก</button>
+            <button className="btn-primary flex-1 disabled:opacity-50" disabled={!canSaveCab} onClick={saveCab}>บันทึก</button>
           </>
         }
       >
         <div className="space-y-3">
-          <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700 ring-1 ring-amber-100">
-            <FileSignature className="mr-1 inline h-3.5 w-3.5" /> ตู้ผูกกับสัญญาเช่าซื้อ — บริษัทเป็นผู้เพิ่มให้แฟรนไชส์เท่านั้น
-          </div>
-          <div className="rounded-xl bg-brand-50 px-3 py-2 text-xs text-brand-700 ring-1 ring-brand-100">รหัสตู้จะถูกกำหนดอัตโนมัติเป็น <b>{nextTk}</b></div>
-          <div>
-            <label className="label">ชื่อจุดตั้ง</label>
-            <input className="input" value={cab.name} onChange={(e) => setCab({ ...cab, name: e.target.value })} placeholder="Lotus's รามอินทรา" />
-          </div>
-          <div>
-            <label className="label">ที่อยู่ / จุดสังเกต</label>
-            <input className="input" value={cab.address} onChange={(e) => setCab({ ...cab, address: e.target.value })} placeholder="ชั้น G ทางเข้าหลัก" />
-          </div>
-          <AddressPicker province={cab.province} district={cab.district} subdistrict={cab.subdistrict} onChange={(v) => setCab({ ...cab, ...v })} />
-          <LocationPicker
-            value={cabGeo}
-            onChange={(lat, lng) => setCabGeo({ lat, lng })}
-            query={[cab.name, cab.address, cab.subdistrict, cab.district, cab.province].filter(Boolean).join(" ")}
+          <Segmented<"new" | "existing">
+            value={cabMode}
+            onChange={setCabMode}
+            options={[{ value: "new", label: "สร้างตู้ใหม่" }, { value: "existing", label: `เลือกตู้ว่าง (${freeCabs.length})` }]}
           />
-          {!cabComplete && <p className="text-xs text-amber-600">* กรอกให้ครบทุกช่อง (ชื่อ · ที่อยู่ · จังหวัด · อำเภอ · ตำบล) และปักหมุดตำแหน่งตู้บนแผนที่</p>}
+          {cabMode === "existing" ? (
+            <>
+              <div className="rounded-xl bg-brand-50 px-3 py-2 text-xs text-brand-700 ring-1 ring-brand-100">มอบตู้ที่ “ว่าง” ในคลังให้แฟรนไชส์นี้ (ไม่ต้องกรอกที่อยู่ใหม่)</div>
+              {freeCabs.length === 0 ? (
+                <p className="py-6 text-center text-sm text-neutral-400">ยังไม่มีตู้ว่างในคลัง — ไปสร้างที่หน้า “จัดการตู้” หรือใช้โหมด “สร้างตู้ใหม่”</p>
+              ) : (
+                <div>
+                  <label className="label">เลือกตู้ที่ว่าง</label>
+                  <select className="input" value={pickCabId} onChange={(e) => setPickCabId(e.target.value)}>
+                    <option value="">— เลือกตู้ —</option>
+                    {freeCabs.map((c) => <option key={c.id} value={c.id}>{displayCabinetCode(c.code)} · {c.name}{c.province ? ` · ${c.province}` : ""}</option>)}
+                  </select>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700 ring-1 ring-amber-100">
+                <FileSignature className="mr-1 inline h-3.5 w-3.5" /> ตู้ผูกกับสัญญาเช่าซื้อ — บริษัทเป็นผู้เพิ่มให้แฟรนไชส์เท่านั้น
+              </div>
+              <div className="rounded-xl bg-brand-50 px-3 py-2 text-xs text-brand-700 ring-1 ring-brand-100">รหัสตู้จะถูกกำหนดอัตโนมัติเป็น <b>{nextTk}</b></div>
+              <div>
+                <label className="label">ชื่อจุดตั้ง</label>
+                <input className="input" value={cab.name} onChange={(e) => setCab({ ...cab, name: e.target.value })} placeholder="Lotus's รามอินทรา" />
+              </div>
+              <div>
+                <label className="label">ที่อยู่ / จุดสังเกต</label>
+                <input className="input" value={cab.address} onChange={(e) => setCab({ ...cab, address: e.target.value })} placeholder="ชั้น G ทางเข้าหลัก" />
+              </div>
+              <AddressPicker province={cab.province} district={cab.district} subdistrict={cab.subdistrict} onChange={(v) => setCab({ ...cab, ...v })} />
+              <LocationPicker
+                value={cabGeo}
+                onChange={(lat, lng) => setCabGeo({ lat, lng })}
+                query={[cab.name, cab.address, cab.subdistrict, cab.district, cab.province].filter(Boolean).join(" ")}
+              />
+              {!cabComplete && <p className="text-xs text-amber-600">* กรอกให้ครบทุกช่อง (ชื่อ · ที่อยู่ · จังหวัด · อำเภอ · ตำบล) และปักหมุดตำแหน่งตู้บนแผนที่</p>}
+            </>
+          )}
         </div>
       </Modal>
 
