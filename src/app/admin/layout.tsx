@@ -9,7 +9,7 @@ import { PICKUP_ENABLED } from "@/lib/features";
 import { canAccessAdminMenu } from "@/lib/permissions";
 import { Logo } from "@/components/Logo";
 import { BootLoader, ConsoleSkeleton } from "@/components/ui";
-import { LayoutDashboard, Users, Trophy, Tag, LogOut, Recycle, Store, Landmark, Banknote, Truck, Receipt, LayoutGrid, PackageSearch, ShieldCheck, Factory, PiggyBank, Target, ScrollText, ArchiveRestore } from "lucide-react";
+import { LayoutDashboard, Users, Trophy, Tag, LogOut, Recycle, Store, Landmark, Banknote, Truck, Receipt, LayoutGrid, PackageSearch, ShieldCheck, Factory, PiggyBank, Target, ScrollText, ArchiveRestore, Boxes } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "ภาพรวม", icon: LayoutDashboard, exact: true, pickup: true, menu: null as string | null },
@@ -17,6 +17,7 @@ const NAV = [
   { href: "/admin/dropgo", label: "Drop Bag", icon: Recycle, pickup: false, menu: "dropgo" },
   { href: "/admin/missions", label: "จัดการภารกิจ", icon: Target, pickup: false, menu: "missions" },
   { href: "/admin/franchises", label: "แฟรนไชส์", icon: Store, pickup: false, menu: "franchises" },
+  { href: "/admin/cabinets", label: "จัดการตู้", icon: Boxes, pickup: false, menu: "cabinets" },
   { href: "/admin/centers", label: "ศูนย์คัดแยก", icon: PackageSearch, pickup: false, menu: "centers" },
   { href: "/admin/sellers", label: "จัดการผู้ขาย", icon: Users, pickup: false, menu: "sellers" },
   { href: "/admin/scrap-prices", label: "ราคาของเก่า", icon: Tag, pickup: false, menu: "scrap" },

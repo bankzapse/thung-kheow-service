@@ -21,6 +21,9 @@ const AUDITABLE: Record<string, (b: Record<string, unknown>) => AuditMeta> = {
   createFranchise: (b) => ({ targetType: "franchise", targetId: str(b.code), summary: `สร้างแฟรนไชส์ ${str(b.code) ?? ""}` }),
   updateFranchise: (b) => ({ targetType: "franchise", targetId: str(b.franchiseId), summary: "แก้ข้อมูลแฟรนไชส์" }),
   removeFranchise: (b) => ({ targetType: "franchise", targetId: str(b.franchiseId), summary: "ลบแฟรนไชส์ (รวมตู้ + บัญชีเจ้าของ)" }),
+  createCabinet: (b) => ({ targetType: "cabinet", summary: `สร้างตู้ ${str(b.name) ?? ""}${b.franchiseId ? " + มอบให้แฟรนไชส์" : " (คลัง)"}` }),
+  reassignCabinet: (b) => ({ targetType: "cabinet", targetId: str(b.cabinetId), summary: b.franchiseId ? "ย้าย/มอบหมายตู้ให้แฟรนไชส์" : "ปลดตู้เป็นว่าง" }),
+  deleteCabinet: (b) => ({ targetType: "cabinet", targetId: str(b.cabinetId), summary: "ลบตู้" }),
   createCenter: (b) => ({ targetType: "profile", summary: `สร้างบัญชีศูนย์คัดแยก ${str(b.name) ?? ""}` }),
   updateCenter: (b) => ({ targetType: "profile", targetId: str(b.userId), summary: "แก้บัญชีศูนย์คัดแยก" }),
   removeCenter: (b) => ({ targetType: "profile", targetId: str(b.userId), summary: "ลบบัญชีศูนย์คัดแยก" }),
@@ -136,6 +139,57 @@ export async function POST(req: Request) {
         if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return bad("พิกัดไม่ถูกต้อง");
         const { error } = await table("cabinets").update({ lat, lng }).eq("id", cabinetId);
         if (error) return bad(error.message ?? "บันทึกตำแหน่งไม่สำเร็จ");
+        return NextResponse.json({ ok: true });
+      }
+      case "createCabinet": {
+        // สร้างตู้เข้าคลัง — สังกัดแฟรนไชส์ก็ได้ หรือปล่อยว่าง (franchiseId ไม่ส่ง = ว่าง)
+        const { name, address, province, district, subdistrict, lat, lng, franchiseId } = body;
+        if (!String(name || "").trim()) return bad("กรอกชื่อจุดตั้ง");
+        // รหัสตู้อัตโนมัติ TK01, TK02, … (รันทั้งระบบ)
+        const { data: rows } = await table("cabinets").select("code");
+        const maxN = ((rows as { code: string }[] | null) ?? []).reduce((m, r) => { const n = Number(/^TK0*(\d+)$/.exec(String(r.code || ""))?.[1] ?? 0); return n > m ? n : m; }, 0);
+        const code = "TK" + String(maxN + 1).padStart(2, "0");
+        // ปลายทางแฟรนไชส์ (ถ้ามี) — ดึง code จากตาราง franchises เอง กัน client ส่งผิด
+        let frId: string | null = null;
+        let frCode: string | null = null;
+        if (franchiseId) {
+          const { data: fr } = await table("franchises").select("code").eq("id", String(franchiseId)).maybeSingle();
+          if (!fr) return bad("ไม่พบแฟรนไชส์ปลายทาง");
+          frId = String(franchiseId);
+          frCode = (fr as { code?: string }).code ?? null;
+        }
+        const insert: Database["public"]["Tables"]["cabinets"]["Insert"] = {
+          code, name: String(name).trim(), address: address != null ? String(address).trim() || null : null,
+          province: province ? String(province).trim() : null, district: district ? String(district).trim() : null, subdistrict: subdistrict ? String(subdistrict).trim() : null,
+          franchise_id: frId, franchise_code: frCode, status: "active",
+          ...(Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : {}),
+        };
+        const { data, error } = await table("cabinets").insert(insert).select("id").single();
+        if (error) return bad(error.message ?? "สร้างตู้ไม่สำเร็จ");
+        return NextResponse.json({ ok: true, id: (data as { id?: string } | null)?.id });
+      }
+      case "reassignCabinet": {
+        // ย้าย/มอบหมายตู้ — เปลี่ยนแฟรนไชส์เจ้าของ · ไม่ส่ง franchiseId = ปลดเป็นตู้ว่าง
+        const { cabinetId, franchiseId } = body;
+        if (!cabinetId) return bad("missing cabinetId");
+        let frId: string | null = null;
+        let frCode: string | null = null;
+        if (franchiseId) {
+          const { data: fr } = await table("franchises").select("code").eq("id", String(franchiseId)).maybeSingle();
+          if (!fr) return bad("ไม่พบแฟรนไชส์ปลายทาง");
+          frId = String(franchiseId);
+          frCode = (fr as { code?: string }).code ?? null;
+        }
+        const { error } = await table("cabinets").update({ franchise_id: frId, franchise_code: frCode }).eq("id", cabinetId);
+        if (error) return bad(error.message ?? "ย้ายตู้ไม่สำเร็จ");
+        return NextResponse.json({ ok: true });
+      }
+      case "deleteCabinet": {
+        // ลบตู้ถาวร — ถุงที่อ้างตู้นี้จะถูกตั้ง cabinet_id = null (FK on delete set null)
+        const { cabinetId } = body;
+        if (!cabinetId) return bad("missing cabinetId");
+        const { error } = await table("cabinets").delete().eq("id", cabinetId);
+        if (error) return bad(error.message ?? "ลบตู้ไม่สำเร็จ");
         return NextResponse.json({ ok: true });
       }
       case "createFranchise": {

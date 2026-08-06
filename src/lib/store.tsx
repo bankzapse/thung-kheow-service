@@ -143,6 +143,9 @@ interface StoreValue {
   markRedemptionPaid: (id: string) => void;
   rejectRedemption: (id: string) => void;
   addCabinet: (input: { code?: string; name: string; address: string; province?: string; district?: string; subdistrict?: string; franchiseId: string; franchiseCode: string; lat?: number; lng?: number }) => void;
+  createCabinet: (input: { name: string; address: string; province?: string; district?: string; subdistrict?: string; franchiseId?: string; franchiseCode?: string; lat?: number; lng?: number }) => void;
+  reassignCabinet: (id: string, franchiseId: string, franchiseCode: string) => void;
+  deleteCabinet: (id: string) => void;
   editCabinet: (id: string, patch: { name?: string; address?: string; province?: string; district?: string; subdistrict?: string }) => void;
   setCabinetLocation: (id: string, lat: number, lng: number) => void;
   updateCabinetInfo: (id: string, patch: { name?: string; address?: string; province?: string; district?: string; subdistrict?: string }) => void;
@@ -1403,6 +1406,50 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [db.cabinets, pushToast],
   );
 
+  // สร้างตู้เข้าคลัง (บริษัท) — สังกัดแฟรนไชส์ก็ได้ หรือปล่อย "ว่าง" (franchiseId="") ไว้มอบให้ทีหลัง
+  // Supabase ผ่าน service-role (cabinets เขียนตรงไม่ได้) · demo สร้างในหน่วยความจำ
+  const createCabinet = useCallback(
+    (input: { name: string; address: string; province?: string; district?: string; subdistrict?: string; franchiseId?: string; franchiseCode?: string; lat?: number; lng?: number }) => {
+      if (!input.name.trim()) { pushToast("กรอกชื่อจุดตั้ง", "info"); return; }
+      const frId = (input.franchiseId || "").trim();
+      const frCode = (input.franchiseCode || "").trim().toUpperCase();
+      if (supabaseConfigured) { adminUsersApi("createCabinet", { name: input.name.trim(), address: input.address, province: input.province, district: input.district, subdistrict: input.subdistrict, franchiseId: frId || undefined, franchiseCode: frCode || undefined, lat: input.lat, lng: input.lng }, frId ? "สร้างตู้ + มอบให้แฟรนไชส์แล้ว" : "สร้างตู้เข้าคลัง (ว่าง) แล้ว"); return; }
+      const nums = db.cabinets.map((c) => Number(/^TK0*(\d+)$/.exec(c.code)?.[1] ?? 0));
+      const code = "TK" + String((nums.length ? Math.max(0, ...nums) : 0) + 1).padStart(2, "0");
+      const cab: Cabinet = {
+        id: uid("cab-"), code, franchiseId: frId, franchiseCode: frCode,
+        name: input.name.trim(), location: { lat: input.lat ?? 13.7563, lng: input.lng ?? 100.5018, address: input.address.trim() },
+        province: input.province?.trim() || undefined, district: input.district?.trim() || undefined, subdistrict: input.subdistrict?.trim() || undefined,
+        status: "active", createdAt: todayISO(),
+      };
+      setDb((d) => ({ ...d, cabinets: [...d.cabinets, cab] }));
+      pushToast(frId ? "สร้างตู้ + มอบให้แฟรนไชส์แล้ว" : "สร้างตู้เข้าคลัง (ว่าง) แล้ว", "success");
+    },
+    [db.cabinets, pushToast, adminUsersApi],
+  );
+
+  // ย้าย/มอบหมายตู้ (บริษัท) — เปลี่ยนแฟรนไชส์เจ้าของ · franchiseId="" = ปลดเป็นตู้ว่าง
+  const reassignCabinet = useCallback(
+    (id: string, franchiseId: string, franchiseCode: string) => {
+      const frId = (franchiseId || "").trim();
+      const frCode = (franchiseCode || "").trim().toUpperCase();
+      if (supabaseConfigured) { adminUsersApi("reassignCabinet", { cabinetId: id, franchiseId: frId || undefined, franchiseCode: frCode || undefined }, frId ? "ย้ายตู้ไปแฟรนไชส์ใหม่แล้ว" : "ปลดตู้เป็นว่างแล้ว"); return; }
+      setDb((d) => ({ ...d, cabinets: d.cabinets.map((c) => (c.id === id ? { ...c, franchiseId: frId, franchiseCode: frCode } : c)) }));
+      pushToast(frId ? "ย้ายตู้ไปแฟรนไชส์ใหม่แล้ว" : "ปลดตู้เป็นว่างแล้ว", "success");
+    },
+    [pushToast, adminUsersApi],
+  );
+
+  // ลบตู้ถาวร (บริษัท) — ถุงที่อ้างตู้นี้ FK on delete set null (ไม่ค้าง)
+  const deleteCabinet = useCallback(
+    (id: string) => {
+      if (supabaseConfigured) { adminUsersApi("deleteCabinet", { cabinetId: id }, "ลบตู้แล้ว"); return; }
+      setDb((d) => ({ ...d, cabinets: d.cabinets.filter((c) => c.id !== id) }));
+      pushToast("ลบตู้แล้ว", "info");
+    },
+    [pushToast, adminUsersApi],
+  );
+
   // ปักพิกัดตู้บนแผนที่ (บริษัท) — โหมด Supabase ผ่าน service-role (cabinets เขียนตรงไม่ได้)
   const setCabinetLocation = useCallback(
     (id: string, lat: number, lng: number) => {
@@ -1614,6 +1661,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     removeAdmin,
     setAdminPermissions,
     addCabinet,
+    createCabinet,
+    reassignCabinet,
+    deleteCabinet,
     setCabinetLocation,
     updateCabinetInfo,
     editCabinet,
