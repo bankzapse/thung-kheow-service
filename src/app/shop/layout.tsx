@@ -11,16 +11,16 @@ import { BootLoader, ConsoleSkeleton } from "@/components/ui";
 import { LayoutDashboard, ReceiptText, Wallet, Tag, LogOut, LayoutGrid, Plus, Box, Factory } from "lucide-react";
 
 const NAV = [
-  { href: "/shop", label: "ภาพรวม", icon: LayoutDashboard, exact: true, pickup: true },
-  { href: "/shop/cabinets", label: "ตู้ Drop Bag", icon: Box, pickup: false },
-  { href: "/shop/factory", label: "ขายโรงงาน", icon: Factory, pickup: false },
-  { href: "/shop/bills", label: "บิลรับซื้อ", icon: ReceiptText, pickup: true },
-  { href: "/shop/accounting", label: "บัญชี", icon: Wallet, pickup: true },
-  { href: "/shop/prices", label: "ราคา/วัสดุ", icon: Tag, pickup: true },
+  { href: "/shop", label: "ภาพรวม", icon: LayoutDashboard, exact: true, pickup: true, menu: null as string | null },
+  { href: "/shop/cabinets", label: "ตู้ Drop Bag", icon: Box, pickup: false, menu: "cabinets" },
+  { href: "/shop/factory", label: "ขายโรงงาน", icon: Factory, pickup: false, menu: null },
+  { href: "/shop/bills", label: "บิลรับซื้อ", icon: ReceiptText, pickup: true, menu: null },
+  { href: "/shop/accounting", label: "บัญชี", icon: Wallet, pickup: true, menu: null },
+  { href: "/shop/prices", label: "ราคา/วัสดุ", icon: Tag, pickup: true, menu: null },
 ].filter((n) => PICKUP_ENABLED || !n.pickup);
 
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
-  const { ready, currentUser, logout } = useStore();
+  const { ready, currentUser, logout, db } = useStore();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -42,22 +42,40 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
     exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
   const doLogout = () => { logout(); router.replace("/app"); };
 
-  const NavLink = ({ n, mobile }: { n: (typeof NAV)[number]; mobile?: boolean }) => (
-    <Link
-      href={n.href}
-      className={cn(
-        mobile
-          ? "flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-sm"
-          : "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition",
-        isActive(n.href, n.exact)
-          ? mobile ? "bg-brand-600 text-white" : "bg-brand-600 text-white shadow-sm"
-          : mobile ? "bg-neutral-100 text-neutral-500" : "text-neutral-600 hover:bg-neutral-100",
-      )}
-    >
-      <n.icon className="h-[18px] w-[18px]" />
-      {n.label}
-    </Link>
-  );
+  // ถุงที่ยังไม่ได้ตีราคา (รอคัดแยก) — โชว์เป็น badge หลังเมนู "ตู้ Drop Bag"
+  const pendingBagCount = (db.bags ?? []).filter((b) => b.status !== "credited").length;
+  const badges: Record<string, number> = { cabinets: pendingBagCount };
+
+  const NavLink = ({ n, mobile }: { n: (typeof NAV)[number]; mobile?: boolean }) => {
+    const count = n.menu ? badges[n.menu] ?? 0 : 0;
+    const active = isActive(n.href, n.exact);
+    return (
+      <Link
+        href={n.href}
+        className={cn(
+          mobile
+            ? "flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-sm"
+            : "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition",
+          active
+            ? mobile ? "bg-brand-600 text-white" : "bg-brand-600 text-white shadow-sm"
+            : mobile ? "bg-neutral-100 text-neutral-500" : "text-neutral-600 hover:bg-neutral-100",
+        )}
+      >
+        <n.icon className="h-[18px] w-[18px]" />
+        {n.label}
+        {count > 0 && (
+          <span
+            className={cn(
+              "ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-xs font-bold",
+              active ? "bg-white/25 text-white" : "bg-red-500 text-white",
+            )}
+          >
+            {count}
+          </span>
+        )}
+      </Link>
+    );
+  };
 
   return (
     <div className="min-h-dvh bg-neutral-100">
