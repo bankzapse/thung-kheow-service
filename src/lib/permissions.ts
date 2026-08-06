@@ -5,6 +5,7 @@ export const ADMIN_MENUS: { key: string; label: string }[] = [
   { key: "summary", label: "สรุปการเงิน" },
   { key: "dropgo", label: "Drop Bag (ภาพรวม)" },
   { key: "missions", label: "จัดการภารกิจ" },
+  { key: "luckydraw", label: "ชิงโชค (lucky draw)" },
   { key: "franchises", label: "แฟรนไชส์" },
   { key: "cabinets", label: "จัดการตู้ (คลังตู้)" },
   { key: "centers", label: "ศูนย์คัดแยก" },
