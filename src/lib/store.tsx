@@ -2,6 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { isMonthBonusClosed, sellerBonuses, bonusTxnNote } from "./rewards";
+import { luckyDrawConfig, drawParticipants, pickWinners, type LuckyDrawConfig, type DrawPrize } from "./luckyDraw";
 import type { Bill, BillItem, Expense, Job, JobStatus, Role, ScheduleSlot, User, WalletTxn, MeshBag, BagItem, PointTxn, Redemption, Cabinet, Franchise, PayoutAccount, FranchisePayout, FactorySale, FactorySaleItem, Mission, CreateJobInput, CreateBillInput } from "./types";
 import { POINTS_PER_BAHT, bagQr } from "./types";
 import { createInitialDB, emptyDB, type DB } from "./seed";
@@ -128,6 +129,9 @@ interface StoreValue {
   setAdminPermissions: (userId: string, permissions: string[]) => void;
   setCentralPrice: (materialId: string, price: number) => void;
   setMissions: (missions: Mission[]) => void;
+  setLuckyDrawConfig: (patch: Partial<Pick<LuckyDrawConfig, "enabled" | "bahtPerEntry" | "maxEntriesPerMonth" | "title">>) => void;
+  setDrawRoundPrizes: (month: string, prizes: DrawPrize[]) => void;
+  drawLuckyWinners: (month: string) => void;
   setFactoryPrice: (materialId: string, price: number) => void;
   recordFactorySale: (items: FactorySaleItem[], factoryName?: string, note?: string) => boolean;
   setDrawPrize: (month: string, prizeName: string, prizeValue: number) => void;
@@ -998,6 +1002,52 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [sbWrite],
   );
 
+  // ── ระบบชิงโชค (lucky draw) — เก็บ config ก้อนเดียวใน app_config (RLS is_admin) ──
+  const persistLucky = useCallback(
+    (next: LuckyDrawConfig, toast: string) => {
+      if (supabaseConfigured) { sbWrite((sb) => repo.setLuckyDraw(sb, next), toast, "success"); return; }
+      setDb((d) => ({ ...d, luckyDraw: next }));
+      pushToast(toast, "success");
+    },
+    [sbWrite, pushToast],
+  );
+
+  // เปิด-ปิดระบบ + ตั้งเงื่อนไข (฿X/สิทธิ์, เพดาน, ชื่อแคมเปญ)
+  const setLuckyDrawConfig = useCallback(
+    (patch: Partial<Pick<LuckyDrawConfig, "enabled" | "bahtPerEntry" | "maxEntriesPerMonth" | "title">>) => {
+      const cur = luckyDrawConfig(db);
+      persistLucky({ ...cur, ...patch }, patch.enabled === false ? "ปิดระบบชิงโชคแล้ว" : "บันทึกตั้งค่าชิงโชคแล้ว");
+    },
+    [db, persistLucky],
+  );
+
+  // ตั้งรางวัลของรอบ (เดือน)
+  const setDrawRoundPrizes = useCallback(
+    (month: string, prizes: DrawPrize[]) => {
+      const cur = luckyDrawConfig(db);
+      const round = cur.rounds[month] ?? { month, prizes: [], status: "open" as const, winners: [] };
+      if (round.status === "drawn") { pushToast("รอบนี้จับรางวัลไปแล้ว แก้รางวัลไม่ได้", "info"); return; }
+      persistLucky({ ...cur, rounds: { ...cur.rounds, [month]: { ...round, prizes } } }, "บันทึกรางวัลของรอบแล้ว");
+    },
+    [db, persistLucky, pushToast],
+  );
+
+  // จับรางวัล (สุ่มถ่วงน้ำหนักตามสิทธิ์) — บันทึกผู้โชคดี + ปิดรอบ
+  const drawLuckyWinners = useCallback(
+    (month: string) => {
+      const cur = luckyDrawConfig(db);
+      const round = cur.rounds[month];
+      if (!round || !round.prizes.length) { pushToast("ยังไม่มีรางวัลในรอบนี้", "info"); return; }
+      if (round.status === "drawn") { pushToast("รอบนี้จับรางวัลไปแล้ว", "info"); return; }
+      const participants = drawParticipants(db, cur, month);
+      if (!participants.length) { pushToast("ยังไม่มีผู้มีสิทธิ์ลุ้นในรอบนี้", "info"); return; }
+      const now = todayISO();
+      const winners = pickWinners(participants, round.prizes).map((w) => ({ ...w, drawnAt: now }));
+      persistLucky({ ...cur, rounds: { ...cur.rounds, [month]: { ...round, status: "drawn" as const, winners, drawnAt: now } } }, `จับรางวัลแล้ว ${winners.length} รางวัล`);
+    },
+    [db, persistLucky, pushToast],
+  );
+
   // บริษัทตั้งราคาขายโรงงานของเก่า/กก.
   const setFactoryPrice = useCallback(
     (materialId: string, price: number) => {
@@ -1658,6 +1708,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setUserStatus,
     setCentralPrice,
     setMissions,
+    setLuckyDrawConfig,
+    setDrawRoundPrizes,
+    drawLuckyWinners,
     setFactoryPrice,
     recordFactorySale,
     setDrawPrize,

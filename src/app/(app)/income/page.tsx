@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { AppHeader } from "@/components/AppHeader";
 import { Modal } from "@/components/ui";
-import { incomeSummary, ticketsForUser, jobsForSeller, jobsForBuyer } from "@/lib/selectors";
+import { incomeSummary, jobsForSeller, jobsForBuyer } from "@/lib/selectors";
+import { luckyDrawConfig, entriesForUser } from "@/lib/luckyDraw";
 import { formatBaht, thaiMonthLabel, thaiDate } from "@/lib/utils";
 import { realEmail } from "@/lib/username";
 import { MATERIAL_MAP } from "@/lib/materials";
@@ -99,7 +100,8 @@ export default function IncomePage() {
 
 function SellerBody({ userId, db }: { userId: string; db: ReturnType<typeof useStore>["db"] }) {
   const income = incomeSummary(db, userId);
-  const tickets = ticketsForUser(db, userId);
+  const drawCfg = luckyDrawConfig(db);
+  const myEntries = entriesForUser(db, userId, drawCfg);
   const completed = jobsForSeller(db, userId).filter((j) => j.status === "completed");
   const maxMonth = Math.max(1, ...income.byMonth.map((m) => m.amount));
 
@@ -140,27 +142,22 @@ function SellerBody({ userId, db }: { userId: string; db: ReturnType<typeof useS
         </div>
       )}
 
-      {/* reward tickets */}
-      <Link href="/rewards" className="card block">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gold/15 text-gold-dark">
-            <Ticket className="h-6 w-6" />
+      {/* สิทธิ์ลุ้นชิงโชค (แสดงเมื่อเปิดระบบ) */}
+      {drawCfg.enabled && (
+        <Link href="/rewards" className="card block">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gold/15 text-gold-dark">
+              <Ticket className="h-6 w-6" />
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-neutral-800">สิทธิ์ลุ้นรางวัลเดือนนี้</p>
+              <p className="text-xs text-neutral-400">ทุกมูลค่า ฿{formatBaht(drawCfg.bahtPerEntry)} = 1 สิทธิ์</p>
+            </div>
+            <span className="text-2xl font-extrabold text-gold-dark">{formatBaht(myEntries)}</span>
+            <ChevronRight className="h-5 w-5 text-neutral-300" />
           </div>
-          <div className="flex-1">
-            <p className="font-bold text-neutral-800">สิทธิ์ลุ้นรางวัลเดือนนี้</p>
-            <p className="text-xs text-neutral-400">ขายครบ 100 บาท = 1 สิทธิ์</p>
-          </div>
-          <span className="text-2xl font-extrabold text-gold-dark">{tickets.length}</span>
-          <ChevronRight className="h-5 w-5 text-neutral-300" />
-        </div>
-        {tickets.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5 border-t border-neutral-100 pt-3">
-            {tickets.map((t) => (
-              <span key={t.id} className="rounded-md bg-neutral-100 px-2 py-1 font-mono text-xs font-semibold text-neutral-600">{t.number}</span>
-            ))}
-          </div>
-        )}
-      </Link>
+        </Link>
+      )}
 
       {/* transactions */}
       <div className="card">

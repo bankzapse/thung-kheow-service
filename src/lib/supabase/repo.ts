@@ -4,6 +4,7 @@
  * ใช้เมื่อ supabaseConfigured = true เท่านั้น
  */
 import type { DB } from "../seed";
+import type { LuckyDrawConfig } from "../luckyDraw";
 import type { Database, Json } from "./database.types";
 type Row<T extends keyof Database["public"]["Tables"]> = Database["public"]["Tables"][T]["Row"];
 import type { Bill, Expense, Job, RewardDraw, RewardTicket, ScheduleSlot, User, WalletTxn, Cabinet, MeshBag, BagItem, PointTxn, Redemption, Franchise, Mission, CreateJobInput, CreateBillInput, FactorySaleItem } from "../types";
@@ -187,6 +188,10 @@ export async function loadAll(sb: SupabaseClient<Database>): Promise<DB> {
       const row = (appConfigRes?.data ?? []).find((c) => c.key === "missions");
       return Array.isArray(row?.value) && row.value.length ? (row.value as unknown as Mission[]) : null;
     })(),
+    luckyDraw: (() => {
+      const row = (appConfigRes?.data ?? []).find((c) => c.key === "lucky_draw");
+      return row?.value && typeof row.value === "object" ? (row.value as unknown as LuckyDrawConfig) : null;
+    })(),
     pricesUpdatedAt: todayISO(),
   };
 }
@@ -244,6 +249,9 @@ export const setCentralPrice = (sb: SupabaseClient<Database>, materialId: string
 /** บริษัทตั้งภารกิจ (เก็บเป็น jsonb ใน app_config key='missions') — RLS is_admin() */
 export const setMissions = (sb: SupabaseClient<Database>, missions: Mission[]) =>
   sb.from("app_config").upsert({ key: "missions", value: missions as unknown as Json, updated_at: new Date().toISOString() });
+/** บริษัทตั้งค่าระบบชิงโชค (เก็บเป็น jsonb ใน app_config key='lucky_draw') — RLS is_admin() */
+export const setLuckyDraw = (sb: SupabaseClient<Database>, cfg: LuckyDrawConfig) =>
+  sb.from("app_config").upsert({ key: "lucky_draw", value: cfg as unknown as Json, updated_at: new Date().toISOString() });
 export const setDrawPrize = (sb: SupabaseClient<Database>, month: string, prizeName: string, prizeValue: number) =>
   sb.from("reward_draws").upsert({ month, prize_name: prizeName, prize_value: prizeValue });
 export const drawWinner = (sb: SupabaseClient<Database>, month: string) => sb.rpc("draw_reward_winner", { p_month: month });
