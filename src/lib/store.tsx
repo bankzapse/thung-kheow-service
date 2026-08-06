@@ -144,6 +144,7 @@ interface StoreValue {
   rejectRedemption: (id: string) => void;
   addCabinet: (input: { code?: string; name: string; address: string; province?: string; district?: string; subdistrict?: string; franchiseId: string; franchiseCode: string; lat?: number; lng?: number }) => void;
   createCabinet: (input: { name: string; address: string; province?: string; district?: string; subdistrict?: string; franchiseId?: string; franchiseCode?: string; lat?: number; lng?: number }) => void;
+  bulkCreateCabinets: (count: number, namePrefix?: string) => void;
   reassignCabinet: (id: string, franchiseId: string, franchiseCode: string) => void;
   deleteCabinet: (id: string) => void;
   editCabinet: (id: string, patch: { name?: string; address?: string; province?: string; district?: string; subdistrict?: string }) => void;
@@ -1428,6 +1429,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [db.cabinets, pushToast, adminUsersApi],
   );
 
+  // สร้างตู้ว่างล็อตใหญ่เข้าคลัง (บริษัท) — ไม่มีที่อยู่/พิกัด · ค่อยมอบให้แฟรนไชส์ + ปักหมุดทีหลัง
+  const bulkCreateCabinets = useCallback(
+    (count: number, namePrefix?: string) => {
+      const n = Math.max(1, Math.min(50, Math.floor(Number(count) || 0)));
+      if (!n) { pushToast("จำนวนตู้ไม่ถูกต้อง (1–50)", "info"); return; }
+      const prefix = (namePrefix || "ตู้สต็อก").trim();
+      if (supabaseConfigured) { adminUsersApi("bulkCreateCabinets", { count: n, namePrefix: prefix }, `สร้างตู้ว่างเข้าคลัง ${n} ตู้แล้ว`); return; }
+      let next = db.cabinets.map((c) => Number(/^TK0*(\d+)$/.exec(c.code)?.[1] ?? 0)).reduce((a, b) => Math.max(a, b), 0);
+      const news: Cabinet[] = [];
+      for (let i = 0; i < n; i++) {
+        next++;
+        const code = "TK" + String(next).padStart(2, "0");
+        news.push({ id: uid("cab-"), code, franchiseId: "", franchiseCode: "", name: `${prefix} ${code}`, location: { lat: 0, lng: 0, address: "" }, status: "active", createdAt: todayISO() });
+      }
+      setDb((d) => ({ ...d, cabinets: [...d.cabinets, ...news] }));
+      pushToast(`สร้างตู้ว่างเข้าคลัง ${n} ตู้แล้ว`, "success");
+    },
+    [db.cabinets, pushToast, adminUsersApi],
+  );
+
   // ย้าย/มอบหมายตู้ (บริษัท) — เปลี่ยนแฟรนไชส์เจ้าของ · franchiseId="" = ปลดเป็นตู้ว่าง
   const reassignCabinet = useCallback(
     (id: string, franchiseId: string, franchiseCode: string) => {
@@ -1662,6 +1683,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setAdminPermissions,
     addCabinet,
     createCabinet,
+    bulkCreateCabinets,
     reassignCabinet,
     deleteCabinet,
     setCabinetLocation,

@@ -22,6 +22,7 @@ const AUDITABLE: Record<string, (b: Record<string, unknown>) => AuditMeta> = {
   updateFranchise: (b) => ({ targetType: "franchise", targetId: str(b.franchiseId), summary: "แก้ข้อมูลแฟรนไชส์" }),
   removeFranchise: (b) => ({ targetType: "franchise", targetId: str(b.franchiseId), summary: "ลบแฟรนไชส์ (รวมตู้ + บัญชีเจ้าของ)" }),
   createCabinet: (b) => ({ targetType: "cabinet", summary: `สร้างตู้ ${str(b.name) ?? ""}${b.franchiseId ? " + มอบให้แฟรนไชส์" : " (คลัง)"}` }),
+  bulkCreateCabinets: (b) => ({ targetType: "cabinet", summary: `สร้างตู้ว่างเข้าคลัง ${str(b.count) ?? ""} ตู้` }),
   reassignCabinet: (b) => ({ targetType: "cabinet", targetId: str(b.cabinetId), summary: b.franchiseId ? "ย้าย/มอบหมายตู้ให้แฟรนไชส์" : "ปลดตู้เป็นว่าง" }),
   deleteCabinet: (b) => ({ targetType: "cabinet", targetId: str(b.cabinetId), summary: "ลบตู้" }),
   createCenter: (b) => ({ targetType: "profile", summary: `สร้างบัญชีศูนย์คัดแยก ${str(b.name) ?? ""}` }),
@@ -167,6 +168,23 @@ export async function POST(req: Request) {
         const { data, error } = await table("cabinets").insert(insert).select("id").single();
         if (error) return bad(error.message ?? "สร้างตู้ไม่สำเร็จ");
         return NextResponse.json({ ok: true, id: (data as { id?: string } | null)?.id });
+      }
+      case "bulkCreateCabinets": {
+        // สร้างตู้ว่างล็อตใหญ่เข้าคลัง — ไม่มีแฟรนไชส์/ที่อยู่/พิกัด (ค่อยมอบ + ปักหมุดทีหลัง)
+        const count = Math.max(1, Math.min(50, Math.floor(Number(body.count) || 0)));
+        if (!count) return bad("จำนวนตู้ไม่ถูกต้อง (1–50)");
+        const prefix = String(body.namePrefix || "ตู้สต็อก").trim();
+        const { data: rows } = await table("cabinets").select("code");
+        let maxN = ((rows as { code: string }[] | null) ?? []).reduce((m, r) => { const n = Number(/^TK0*(\d+)$/.exec(String(r.code || ""))?.[1] ?? 0); return n > m ? n : m; }, 0);
+        const inserts: Database["public"]["Tables"]["cabinets"]["Insert"][] = [];
+        for (let i = 0; i < count; i++) {
+          maxN++;
+          const code = "TK" + String(maxN).padStart(2, "0");
+          inserts.push({ code, name: `${prefix} ${code}`, franchise_id: null, franchise_code: null, status: "active" });
+        }
+        const { error } = await table("cabinets").insert(inserts);
+        if (error) return bad(error.message ?? "สร้างตู้ไม่สำเร็จ");
+        return NextResponse.json({ ok: true, count });
       }
       case "reassignCabinet": {
         // ย้าย/มอบหมายตู้ — เปลี่ยนแฟรนไชส์เจ้าของ · ไม่ส่ง franchiseId = ปลดเป็นตู้ว่าง
