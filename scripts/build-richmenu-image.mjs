@@ -16,25 +16,22 @@ import { FONT_FILES, FONT_FAMILY } from "./lib/thai-font.mjs";
 
 const W = 2500;
 const H = 1686;
-// แถวบน 2 ช่องใหญ่ (งานที่ใช้บ่อยสุด) · แถวล่าง 3 ช่อง
+// กริด 3 คอลัมน์ × 2 แถว (6 ช่อง)
 const ROW_H = 843;
-const TOP = [
-  { x: 0, w: 1250 },
-  { x: 1250, w: 1250 },
-];
-const BOTTOM = [
+const COLS = [
   { x: 0, w: 833 },
   { x: 833, w: 833 },
   { x: 1666, w: 834 },
 ];
-const cellBox = (i) =>
-  i < 2 ? { ...TOP[i], y: 0 } : { ...BOTTOM[i - 2], y: ROW_H };
+const cellBox = (i) => ({ ...COLS[i % 3], y: Math.floor(i / 3) * ROW_H });
 
 // ไอคอนวาดด้วย path ล้วน (ไม่พึ่งฟอนต์ emoji ที่อาจไม่มีบนเครื่อง build)
-// ไล่สีต่อช่อง (โทนเขียว-เทียลชุดเดียวกัน ไม่ให้ดูมั่ว) + 2 ปุ่มบนมีรูปประกอบ
+// ไล่สีต่อช่อง (โทนเขียว-เทียล + ทองสำหรับชิงโชค) + 2 ปุ่มมีรูปประกอบ
+// ⚠️ ลำดับต้องตรงกับ CELLS ใน scripts/line-richmenu.mjs
 const CELLS = [
   { label: "หย่อนถุง", sub: "สแกน QR บนถุง", icon: "scan", from: "#22c55e", to: "#15803d", photo: "hero" },
-  { label: "คะแนน & แลกเงิน", sub: "ดูยอด · โอนพร้อมเพย์", icon: "coin", from: "#14b8a6", to: "#0f766e", photo: "coins" },
+  { label: "คะแนน", sub: "แลกเงิน · พร้อมเพย์", icon: "coin", from: "#14b8a6", to: "#0f766e", photo: "coins" },
+  { label: "ชิงโชค", sub: "ลุ้นทอง · บัตรกำนัล", icon: "gift", from: "#f59e0b", to: "#d97706" },
   { label: "สถานะถุง", sub: "ติดตามการคัดแยก", icon: "box", from: "#22d3ee", to: "#0e7490" },
   { label: "หน้าแรก", sub: "ภาพรวมบัญชี", icon: "home", from: "#34d399", to: "#047857" },
   { label: "โปรไฟล์", sub: "บัญชี · ตั้งค่า", icon: "user", from: "#4d7c6f", to: "#1f3d34" },
@@ -47,6 +44,7 @@ const ICONS = {
   tag: `<path d="M-6-30h22a14 14 0 0114 14v22L-2 34a8 8 0 01-11 0l-21-21a8 8 0 010-11z" fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round"/><circle cx="12" cy="-12" r="6" fill="#fff"/>`,
   home: `<path d="M-32 -2L0-32l32 30" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M-23 4v28h46V4" fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round"/>`,
   user: `<circle cy="-12" r="16" fill="none" stroke="#fff" stroke-width="7"/><path d="M-26 34c0-16 12-26 26-26s26 10 26 26" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/>`,
+  gift: `<rect x="-30" y="-4" width="60" height="36" rx="5" fill="none" stroke="#fff" stroke-width="7"/><rect x="-35" y="-22" width="70" height="20" rx="4" fill="none" stroke="#fff" stroke-width="7"/><path d="M0-22v54" stroke="#fff" stroke-width="7"/><path d="M0-22c-7-18-28-13-13 0M0-22c7-18 28-13 13 0" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round"/>`,
 };
 
 const FONT = FONT_FAMILY;

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useStore } from "@/lib/store";
 import { PriceList } from "@/components/PriceList";
+import { LuckyDrawCard } from "@/components/LuckyDrawCard";
 import { Sheet } from "@/components/ui";
 import {
   announcedDraw,
@@ -168,6 +169,7 @@ export default function HomePage() {
               {PICKUP_ENABLED && <ActionTile href="/jobs" icon={<ClipboardList className="h-5 w-5" />} label="รายการของฉัน" hint={`${sellerJobs.length} รายการ`} />}
               {PICKUP_ENABLED && <ActionTile href="/income" icon={<Wallet className="h-5 w-5" />} label="รายได้ & รางวัล" hint={`${myTickets} สิทธิ์`} />}
             </div>
+            <LuckyDrawCard />
           </div>
         ) : (
           <div className="space-y-3">

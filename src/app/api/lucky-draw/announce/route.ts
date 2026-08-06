@@ -44,6 +44,9 @@ export async function POST(req: Request) {
   if (!round || round.status !== "drawn") return bad("รอบนี้ยังไม่ได้ประกาศผล");
   const title = cfg?.title || "ชิงโชค";
   const monthLabel = thaiMonthLabel(month);
+  // ลิงก์เปิดแอปหน้าผลรางวัลใน LINE (LIFF) — ถ้าตั้ง LIFF ID
+  const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+  const appLink = liffId ? `\n\n👉 ดูสิทธิ์ & ผลรางวัล: https://liff.line.me/${liffId}/rewards` : "";
 
   const winners = round.winners ?? [];
   const winnerIds = new Set(winners.map((w) => w.userId));
@@ -63,7 +66,7 @@ export async function POST(req: Request) {
     const to = lineOf.get(w.userId);
     if (!to) { skipped++; continue; }
     const prizeVal = w.prizeValue > 0 ? ` (มูลค่า ฿${formatBaht(w.prizeValue)})` : "";
-    const text = `🎉 ยินดีด้วย! คุณเป็นผู้โชคดีจากกิจกรรม “${title}” ประจำเดือน${monthLabel}\n\n🏆 รางวัล: ${w.prizeName}${prizeVal}\n\nทีมงานถุงเขียวจะติดต่อกลับเพื่อมอบรางวัลเร็ว ๆ นี้ ขอบคุณที่ร่วมสนุกครับ 🙏`;
+    const text = `🎉 ยินดีด้วย! คุณเป็นผู้โชคดีจากกิจกรรม “${title}” ประจำเดือน${monthLabel}\n\n🏆 รางวัล: ${w.prizeName}${prizeVal}\n\nทีมงานถุงเขียวจะติดต่อกลับเพื่อมอบรางวัลเร็ว ๆ นี้ ขอบคุณที่ร่วมสนุกครับ 🙏${appLink}`;
     try { await pushText(to, text); sent++; } catch { skipped++; }
   }
 
@@ -71,7 +74,7 @@ export async function POST(req: Request) {
   for (const id of otherIds) {
     const to = lineOf.get(id);
     if (!to) { skipped++; continue; }
-    const text = `📢 ประกาศผลกิจกรรม “${title}” ประจำเดือน${monthLabel}แล้ว!\n\nขอบคุณที่ร่วมสนุก 🍀 เปิดแอปเพื่อดูผลผู้โชคดี — และสะสมสิทธิ์ลุ้นรอบใหม่ได้เลย ✨`;
+    const text = `📢 ประกาศผลกิจกรรม “${title}” ประจำเดือน${monthLabel}แล้ว!\n\nขอบคุณที่ร่วมสนุก 🍀 เปิดแอปเพื่อดูผลผู้โชคดี — และสะสมสิทธิ์ลุ้นรอบใหม่ได้เลย ✨${appLink}`;
     try { await pushText(to, text); sent++; } catch { skipped++; }
   }
 
