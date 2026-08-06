@@ -11,7 +11,7 @@ import { cabinetsWithCounts, type CabinetWithCounts } from "@/lib/selectors";
 import { displayCabinetCode, cabinetFullCode } from "@/lib/types";
 import { PROVINCES } from "@/lib/thai-address";
 import { thaiDate } from "@/lib/utils";
-import { Boxes, Box, Plus, Search, X, MapPin, Pencil, Trash2, Move, Store, AlertTriangle, Printer, PackageOpen, ArrowDownWideNarrow } from "lucide-react";
+import { Boxes, Box, Plus, Search, X, MapPin, Pencil, Trash2, Move, Store, AlertTriangle, Printer, PackageOpen, ArrowDownWideNarrow, Layers } from "lucide-react";
 
 type CabForm = { name: string; address: string; province: string; district: string; subdistrict: string };
 const EMPTY_CAB: CabForm = { name: "", address: "", province: "", district: "", subdistrict: "" };
@@ -21,7 +21,7 @@ type SortKey = "code" | "status" | "pending";
 const areaOf = (c: { subdistrict?: string; district?: string; province?: string }) => [c.subdistrict, c.district, c.province].filter(Boolean).join(" · ");
 
 export default function AdminCabinetsPage() {
-  const { db, createCabinet, reassignCabinet, deleteCabinet, updateCabinetInfo, setCabinetLocation } = useStore();
+  const { db, createCabinet, bulkCreateCabinets, reassignCabinet, deleteCabinet, updateCabinetInfo, setCabinetLocation } = useStore();
   const codeNo = (code: string) => Number(/\d+/.exec(code)?.[0] ?? 0);
   const cabinets = useMemo(() => cabinetsWithCounts(db), [db]);
   const franchiseName = (id: string) => db.franchises.find((f) => f.id === id)?.name ?? "";
@@ -58,6 +58,15 @@ export default function AdminCabinetsPage() {
   const nextTk = "TK-" + String(db.cabinets.map((c) => Number(/^TK0*(\d+)$/.exec(c.code)?.[1] ?? 0)).reduce((a, b) => Math.max(a, b), 0) + 1).padStart(2, "0");
   const cabComplete = !!(cab.name.trim() && cab.address.trim() && cab.province && cab.district.trim() && cab.subdistrict.trim() && cabGeo);
   const openCreateModal = () => { setCab({ ...EMPTY_CAB }); setCabGeo(null); setCabFr(""); setOpenCreate(true); };
+
+  // ── สร้างตู้ว่างล็อตใหญ่เข้าคลัง ──
+  const [openBulk, setOpenBulk] = useState(false);
+  const [bulkCount, setBulkCount] = useState(20);
+  const [bulkPrefix, setBulkPrefix] = useState("ตู้สต็อก");
+  const nextNo = codeNo(nextTk); // เลขตู้ถัดไป (เช่น 6 → TK-06)
+  const bulkN = Math.max(1, Math.min(50, Math.floor(bulkCount) || 0));
+  const bulkRange = `TK-${String(nextNo).padStart(2, "0")} … TK-${String(nextNo + bulkN - 1).padStart(2, "0")}`;
+  const saveBulk = () => { bulkCreateCabinets(bulkN, bulkPrefix); setOpenBulk(false); };
   const saveCreate = () => {
     if (!cabComplete || !cabGeo) return;
     const fr = db.franchises.find((f) => f.id === cabFr);
@@ -105,7 +114,10 @@ export default function AdminCabinetsPage() {
           <h1 className="flex items-center gap-2 text-2xl font-bold text-neutral-800"><Boxes className="h-6 w-6 text-brand-600" /> จัดการตู้ทั้งหมด</h1>
           <p className="text-sm text-neutral-500">คลังตู้ทั้งระบบ · สร้าง · มอบให้แฟรนไชส์ · ย้าย · ลบ</p>
         </div>
-        <button onClick={openCreateModal} className="btn-primary !px-4 !py-2.5 text-sm"><Plus className="h-4 w-4" /> สร้างตู้ใหม่</button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setOpenBulk(true)} className="btn-outline !px-4 !py-2.5 text-sm"><Layers className="h-4 w-4" /> สร้างล็อต</button>
+          <button onClick={openCreateModal} className="btn-primary !px-4 !py-2.5 text-sm"><Plus className="h-4 w-4" /> สร้างตู้ใหม่</button>
+        </div>
       </div>
 
       {/* สรุปสถานะ */}
@@ -230,6 +242,37 @@ export default function AdminCabinetsPage() {
           <AddressPicker province={cab.province} district={cab.district} subdistrict={cab.subdistrict} onChange={(v) => setCab({ ...cab, ...v })} />
           <LocationPicker value={cabGeo} onChange={(lat, lng) => setCabGeo({ lat, lng })} query={[cab.name, cab.address, cab.subdistrict, cab.district, cab.province].filter(Boolean).join(" ")} />
           {!cabComplete && <p className="text-xs text-amber-600">* กรอกให้ครบทุกช่อง (ชื่อ · ที่อยู่ · จังหวัด · อำเภอ · ตำบล) และปักหมุดตำแหน่งบนแผนที่</p>}
+        </div>
+      </Modal>
+
+      {/* สร้างตู้ว่างล็อตใหญ่ */}
+      <Modal
+        open={openBulk}
+        onClose={() => setOpenBulk(false)}
+        title="สร้างตู้ว่างล็อตใหญ่ (เข้าคลัง)"
+        footer={
+          <>
+            <button className="btn-outline flex-1" onClick={() => setOpenBulk(false)}>ยกเลิก</button>
+            <button className="btn-primary flex-1 disabled:opacity-50" disabled={bulkN < 1} onClick={saveBulk}><Layers className="h-4 w-4" /> สร้าง {bulkN} ตู้</button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700 ring-1 ring-amber-100">
+            สร้างตู้เข้าคลังเป็นสถานะ <b>“ว่าง”</b> — ยังไม่มีที่อยู่/พิกัด · ค่อย <b>มอบให้แฟรนไชส์</b> แล้ว <b>ปักหมุด</b> ทีหลังทีละตู้ได้
+          </div>
+          <div>
+            <label className="label">จำนวนตู้ (1–50)</label>
+            <input className="input" type="number" min={1} max={50} value={bulkCount} onChange={(e) => setBulkCount(Number(e.target.value))} />
+          </div>
+          <div>
+            <label className="label">คำนำหน้าชื่อ <span className="text-neutral-400">(ไม่บังคับ)</span></label>
+            <input className="input" value={bulkPrefix} onChange={(e) => setBulkPrefix(e.target.value)} placeholder="ตู้สต็อก" />
+            <p className="mt-1 text-xs text-neutral-400">ชื่อตู้จะเป็น เช่น “{(bulkPrefix.trim() || "ตู้สต็อก")} TK{String(nextNo).padStart(2, "0")}” (แก้ทีหลังได้)</p>
+          </div>
+          <div className="rounded-xl bg-brand-50 px-3 py-2 text-sm text-brand-700 ring-1 ring-brand-100">
+            จะได้รหัสตู้ <b className="font-mono">{bulkRange}</b>
+          </div>
         </div>
       </Modal>
 
