@@ -11,19 +11,19 @@ import { cabinetsWithCounts, type CabinetWithCounts } from "@/lib/selectors";
 import { displayCabinetCode, cabinetFullCode } from "@/lib/types";
 import { PROVINCES } from "@/lib/thai-address";
 import { thaiDate } from "@/lib/utils";
-import { Boxes, Box, Plus, Search, X, MapPin, Pencil, Trash2, Move, Store, AlertTriangle, Printer, PackageOpen } from "lucide-react";
+import { Boxes, Box, Plus, Search, X, MapPin, Pencil, Trash2, Move, Store, AlertTriangle, Printer, PackageOpen, ArrowDownWideNarrow } from "lucide-react";
 
 type CabForm = { name: string; address: string; province: string; district: string; subdistrict: string };
 const EMPTY_CAB: CabForm = { name: "", address: "", province: "", district: "", subdistrict: "" };
 type StatusFilter = "all" | "free" | "assigned";
+type SortKey = "code" | "status" | "pending";
 
 const areaOf = (c: { subdistrict?: string; district?: string; province?: string }) => [c.subdistrict, c.district, c.province].filter(Boolean).join(" · ");
 
 export default function AdminCabinetsPage() {
   const { db, createCabinet, reassignCabinet, deleteCabinet, updateCabinetInfo, setCabinetLocation } = useStore();
-  // เรียงตามรหัสตู้ (TK-01, TK-02, …) — เลขตู้จากน้อยไปมาก
   const codeNo = (code: string) => Number(/\d+/.exec(code)?.[0] ?? 0);
-  const cabinets = useMemo(() => cabinetsWithCounts(db).sort((a, b) => codeNo(a.code) - codeNo(b.code) || a.code.localeCompare(b.code)), [db]);
+  const cabinets = useMemo(() => cabinetsWithCounts(db), [db]);
   const franchiseName = (id: string) => db.franchises.find((f) => f.id === id)?.name ?? "";
 
   const freeCount = cabinets.filter((c) => !c.franchiseId).length;
@@ -33,15 +33,22 @@ export default function AdminCabinetsPage() {
   const [q, setQ] = useState("");
   const [prov, setProv] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
+  const [sortBy, setSortBy] = useState<SortKey>("code");
   const provWithCab = new Set((db.cabinets ?? []).map((c) => c.province).filter(Boolean) as string[]);
-  const filtered = cabinets.filter((c) => {
-    const kw = q.trim().toLowerCase();
-    const isFree = !c.franchiseId;
-    const matchStatus = status === "all" || (status === "free" ? isFree : !isFree);
-    const matchProv = !prov || c.province === prov;
-    const matchQ = !kw || [c.name, c.code, cabinetFullCode(c.franchiseCode, c.code), c.location.address, franchiseName(c.franchiseId)].some((v) => (v ?? "").toLowerCase().includes(kw));
-    return matchStatus && matchProv && matchQ;
-  });
+  const filtered = cabinets
+    .filter((c) => {
+      const kw = q.trim().toLowerCase();
+      const isFree = !c.franchiseId;
+      const matchStatus = status === "all" || (status === "free" ? isFree : !isFree);
+      const matchProv = !prov || c.province === prov;
+      const matchQ = !kw || [c.name, c.code, cabinetFullCode(c.franchiseCode, c.code), c.location.address, franchiseName(c.franchiseId)].some((v) => (v ?? "").toLowerCase().includes(kw));
+      return matchStatus && matchProv && matchQ;
+    })
+    .sort((a, b) => {
+      if (sortBy === "pending") return b.pending - a.pending || codeNo(a.code) - codeNo(b.code); // ถุงค้างมาก→น้อย
+      if (sortBy === "status") return (a.franchiseId ? 1 : 0) - (b.franchiseId ? 1 : 0) || codeNo(a.code) - codeNo(b.code); // ว่างขึ้นก่อน
+      return codeNo(a.code) - codeNo(b.code) || a.code.localeCompare(b.code); // รหัสตู้ TK-01, TK-02, …
+    });
 
   // ── สร้างตู้ใหม่ (เข้าคลัง/มอบให้แฟรนไชส์) ──
   const [openCreate, setOpenCreate] = useState(false);
@@ -128,6 +135,14 @@ export default function AdminCabinetsPage() {
           <option value="">ทุกจังหวัด</option>
           {PROVINCES.map((p) => <option key={p} value={p}>{provWithCab.has(p) ? `● ${p}` : p}</option>)}
         </select>
+        <div className="flex items-center gap-1.5">
+          <ArrowDownWideNarrow className="h-4 w-4 shrink-0 text-neutral-400" />
+          <select className="input w-auto min-w-[150px]" value={sortBy} onChange={(e) => setSortBy(e.target.value as SortKey)}>
+            <option value="code">เรียงตาม: รหัสตู้</option>
+            <option value="status">เรียงตาม: สถานะ (ว่างก่อน)</option>
+            <option value="pending">เรียงตาม: ถุงค้าง (มาก→น้อย)</option>
+          </select>
+        </div>
         <div className="w-full sm:w-auto">
           <Segmented<StatusFilter>
             value={status}
