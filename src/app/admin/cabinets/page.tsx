@@ -21,7 +21,9 @@ const areaOf = (c: { subdistrict?: string; district?: string; province?: string 
 
 export default function AdminCabinetsPage() {
   const { db, createCabinet, reassignCabinet, deleteCabinet, updateCabinetInfo, setCabinetLocation } = useStore();
-  const cabinets = useMemo(() => cabinetsWithCounts(db), [db]);
+  // เรียงตามรหัสตู้ (TK-01, TK-02, …) — เลขตู้จากน้อยไปมาก
+  const codeNo = (code: string) => Number(/\d+/.exec(code)?.[0] ?? 0);
+  const cabinets = useMemo(() => cabinetsWithCounts(db).sort((a, b) => codeNo(a.code) - codeNo(b.code) || a.code.localeCompare(b.code)), [db]);
   const franchiseName = (id: string) => db.franchises.find((f) => f.id === id)?.name ?? "";
 
   const freeCount = cabinets.filter((c) => !c.franchiseId).length;
