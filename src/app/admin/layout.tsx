@@ -73,7 +73,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     payments: (db.redemptions ?? []).filter((r) => r.status === "pending").length, // คำขอแลกเงินรอโอน
     payouts: (db.users ?? []).filter((u) => u.payout?.status === "pending").length, // บัญชีรอตรวจอนุมัติ
     collect: pendingBagCount, // ถุงค้างรอเข้าเก็บ
-    centers: pendingBagCount, // ถุงรอคัดแยก/ตีราคา
   };
 
   const isActive = (href: string, exact?: boolean) =>

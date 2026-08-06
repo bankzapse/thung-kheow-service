@@ -9,7 +9,8 @@ import { Box, MapPin, PackageOpen, PackageCheck, Coins, ChevronRight, Inbox } fr
 
 export default function CabinetsPage() {
   const { db } = useStore();
-  const cabinets = cabinetsWithCounts(db);
+  // แสดงเฉพาะตู้ที่ใช้งานจริง (สังกัดแฟรนไชส์) — ซ่อนตู้ว่างในคลังที่ยังไม่ได้ติดตั้ง
+  const cabinets = cabinetsWithCounts(db).filter((c) => c.franchiseId);
   const s = dropGoSummary(db);
 
   return (
