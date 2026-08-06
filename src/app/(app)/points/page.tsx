@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { Modal, EmptyState, Spinner } from "@/components/ui";
 import { pointsOf, pointsLedger, redemptionsForUser } from "@/lib/selectors";
 import { MonthlyRewards } from "@/components/MonthlyRewards";
+import { LuckyDrawCard } from "@/components/LuckyDrawCard";
 import { VerifyPhoneModal } from "@/components/VerifyPhoneModal";
 import { REDEEM_TIERS, POINTS_PER_BAHT } from "@/lib/types";
 import type { PointTxn, Redemption } from "@/lib/types";
@@ -53,6 +54,9 @@ export default function PointsPage() {
             <p className="mt-2 text-xs text-white/70">≈ แลกเงินได้สูงสุด ฿{formatBaht(Math.floor(points / POINTS_PER_BAHT))}</p>
           </div>
         </div>
+
+        {/* ชิงโชค (โชว์เมื่อเปิดระบบ) */}
+        <LuckyDrawCard />
 
         {/* tabs */}
         <div className="flex gap-1 rounded-xl bg-neutral-100 p-1">
