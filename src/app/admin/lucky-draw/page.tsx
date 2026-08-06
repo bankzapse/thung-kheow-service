@@ -18,11 +18,14 @@ export default function AdminLuckyDrawPage() {
   const total = totalEntries(db, cfg, month);
   const history = drawnRounds(cfg).filter((r) => r.month !== month || r.status === "drawn");
 
-  // ── ตั้งค่าเงื่อนไข ──
+  // ── ตั้งค่าเงื่อนไข ── (เก็บเป็น string เพื่อให้ลบ/พิมพ์ได้อิสระ ไม่ค้างที่ 0)
+  const onlyDigits = (v: string) => v.replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
   const [title, setTitle] = useState(cfg.title);
-  const [bahtPerEntry, setBahtPerEntry] = useState(cfg.bahtPerEntry);
-  const [maxPer, setMaxPer] = useState(cfg.maxEntriesPerMonth);
-  const saveConfig = () => setLuckyDrawConfig({ title: title.trim() || "ลุ้นโชคทุกเดือน", bahtPerEntry: Math.max(1, Math.floor(bahtPerEntry) || 1), maxEntriesPerMonth: Math.max(1, Math.floor(maxPer) || 1) });
+  const [bahtPerEntry, setBahtPerEntry] = useState(String(cfg.bahtPerEntry));
+  const [maxPer, setMaxPer] = useState(String(cfg.maxEntriesPerMonth));
+  const perNum = Math.max(1, Math.floor(Number(bahtPerEntry)) || 1);
+  const maxNum = Math.max(1, Math.floor(Number(maxPer)) || 1);
+  const saveConfig = () => setLuckyDrawConfig({ title: title.trim() || "ลุ้นโชคทุกเดือน", bahtPerEntry: perNum, maxEntriesPerMonth: maxNum });
 
   // ── จัดการรางวัลของรอบ ──
   const drawn = round?.status === "drawn";
@@ -78,14 +81,14 @@ export default function AdminLuckyDrawPage() {
           </div>
           <div>
             <label className="label">ทุกมูลค่า ฿ = 1 สิทธิ์</label>
-            <input className="input" type="number" min={1} value={bahtPerEntry} onChange={(e) => setBahtPerEntry(Number(e.target.value))} />
+            <input className="input" inputMode="numeric" value={bahtPerEntry} onChange={(e) => setBahtPerEntry(onlyDigits(e.target.value))} placeholder="100" />
           </div>
           <div>
             <label className="label">เพดานสิทธิ์/คน/เดือน</label>
-            <input className="input" type="number" min={1} value={maxPer} onChange={(e) => setMaxPer(Number(e.target.value))} />
+            <input className="input" inputMode="numeric" value={maxPer} onChange={(e) => setMaxPer(onlyDigits(e.target.value))} placeholder="300" />
           </div>
         </div>
-        <p className="text-xs text-neutral-400">ตัวอย่าง: คัดแยกได้มูลค่า ฿{formatBaht(bahtPerEntry * 3)} ในเดือน = {3} สิทธิ์ (ทุก ฿{formatBaht(bahtPerEntry)} = 1 สิทธิ์)</p>
+        <p className="text-xs text-neutral-400">ตัวอย่าง: คัดแยกได้มูลค่า ฿{formatBaht(perNum * 3)} ในเดือน = {3} สิทธิ์ (ทุก ฿{formatBaht(perNum)} = 1 สิทธิ์)</p>
         <button className="btn-primary w-full sm:w-auto" onClick={saveConfig}><Save className="h-4 w-4" /> บันทึกเงื่อนไข</button>
       </div>
 
@@ -108,8 +111,8 @@ export default function AdminLuckyDrawPage() {
               {prizes.map((p) => (
                 <div key={p.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-neutral-50 p-2.5 ring-1 ring-neutral-100">
                   <input className="input min-w-[140px] flex-1 !py-2" value={p.name} onChange={(e) => upPrize(p.id, { name: e.target.value })} placeholder="ชื่อรางวัล เช่น ทองคำ 1 สลึง" />
-                  <div className="flex items-center gap-1"><span className="text-xs text-neutral-400">฿</span><input className="input w-28 !py-2" type="number" min={0} value={p.value} onChange={(e) => upPrize(p.id, { value: Number(e.target.value) })} placeholder="มูลค่า" /></div>
-                  <div className="flex items-center gap-1"><span className="text-xs text-neutral-400">จำนวน</span><input className="input w-20 !py-2" type="number" min={1} value={p.qty} onChange={(e) => upPrize(p.id, { qty: Number(e.target.value) })} /></div>
+                  <div className="flex items-center gap-1"><span className="text-xs text-neutral-400">฿</span><input className="input w-28 !py-2" inputMode="numeric" value={p.value || ""} onChange={(e) => upPrize(p.id, { value: Number(onlyDigits(e.target.value)) || 0 })} placeholder="มูลค่า" /></div>
+                  <div className="flex items-center gap-1"><span className="text-xs text-neutral-400">จำนวน</span><input className="input w-20 !py-2" inputMode="numeric" value={p.qty || ""} onChange={(e) => upPrize(p.id, { qty: Number(onlyDigits(e.target.value)) || 0 })} placeholder="1" /></div>
                   {p.value > 0 && <span className="chip bg-amber-50 text-amber-700" title="ภาษีหัก ณ ที่จ่าย 5%">ภาษี ฿{formatBaht(withholdingTax(p.value))}</span>}
                   <button onClick={() => rmPrize(p.id)} className="rounded-lg p-2 text-neutral-400 hover:bg-red-50 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
                 </div>

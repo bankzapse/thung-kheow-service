@@ -1032,9 +1032,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [db, persistLucky, pushToast],
   );
 
-  // จับรางวัล (สุ่มถ่วงน้ำหนักตามสิทธิ์) — บันทึกผู้โชคดี + ปิดรอบ
+  // จับรางวัล (สุ่มถ่วงน้ำหนักตามสิทธิ์) — บันทึกผู้โชคดี + ปิดรอบ + แจ้ง LINE
   const drawLuckyWinners = useCallback(
-    (month: string) => {
+    async (month: string) => {
       const cur = luckyDrawConfig(db);
       const round = cur.rounds[month];
       if (!round || !round.prizes.length) { pushToast("ยังไม่มีรางวัลในรอบนี้", "info"); return; }
@@ -1043,9 +1043,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (!participants.length) { pushToast("ยังไม่มีผู้มีสิทธิ์ลุ้นในรอบนี้", "info"); return; }
       const now = todayISO();
       const winners = pickWinners(participants, round.prizes).map((w) => ({ ...w, drawnAt: now }));
-      persistLucky({ ...cur, rounds: { ...cur.rounds, [month]: { ...round, status: "drawn" as const, winners, drawnAt: now } } }, `จับรางวัลแล้ว ${winners.length} รางวัล`);
+      const next = { ...cur, rounds: { ...cur.rounds, [month]: { ...round, status: "drawn" as const, winners, drawnAt: now } } };
+      if (supabaseConfigured) {
+        const ok = await sbWrite((sb) => repo.setLuckyDraw(sb, next), `จับรางวัลแล้ว ${winners.length} รางวัล`, "success");
+        // แจ้ง LINE ผู้โชคดี + ผู้ร่วมสนุก (ไม่บล็อก UI ถ้าล้ม) · endpoint no-op ถ้ายังไม่ตั้ง LINE token
+        if (ok) fetch("/api/lucky-draw/announce", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ month, participantIds: participants.map((p) => p.userId) }) }).catch(() => {});
+        return;
+      }
+      setDb((d) => ({ ...d, luckyDraw: next }));
+      pushToast(`จับรางวัลแล้ว ${winners.length} รางวัล (โหมดเดโม — ไม่ส่ง LINE)`, "success");
     },
-    [db, persistLucky, pushToast],
+    [db, pushToast, sbWrite],
   );
 
   // บริษัทตั้งราคาขายโรงงานของเก่า/กก.
