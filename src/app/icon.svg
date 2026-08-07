@@ -1,18 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="bg" x1="256" y1="16" x2="256" y2="504" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#3fd97f"/><stop offset="0.5" stop-color="#1c9a4e"/><stop offset="1" stop-color="#0f5f30"/>
+    <linearGradient id="dark" x1="256" y1="240" x2="256" y2="504" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#178c4a"/><stop offset="1" stop-color="#0b4f27"/>
+    </linearGradient>
+    <linearGradient id="light" x1="256" y1="8" x2="256" y2="320" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#48d381"/><stop offset="1" stop-color="#2eb567"/>
     </linearGradient>
     <radialGradient id="gloss" cx="96" cy="80" r="300" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/><stop offset="0.62" stop-color="#ffffff" stop-opacity="0.22"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.42"/><stop offset="0.62" stop-color="#ffffff" stop-opacity="0.16"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
     <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#052a15" flood-opacity="0.35"/></filter>
     <clipPath id="r"><rect x="8" y="8" width="496" height="496" rx="108"/></clipPath>
   </defs>
-  <rect x="8" y="8" width="496" height="496" rx="108" fill="url(#bg)"/>
+  <rect x="8" y="8" width="496" height="496" rx="108" fill="url(#dark)"/>
   <g clip-path="url(#r)">
+    <path d="M8 8 H504 V256 Q256 320 8 256 Z" fill="url(#light)"/>
+    <path d="M8 8 H504 V256 Q256 320 8 256" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="3"/>
     <rect x="8" y="8" width="496" height="496" fill="url(#gloss)"/>
-    <circle cx="44" cy="40" r="252" fill="none" stroke="#ffffff" stroke-opacity="0.20" stroke-width="4"/>
   </g>
   <rect x="9" y="9" width="494" height="494" rx="107" fill="none" stroke="#ffffff" stroke-opacity="0.28" stroke-width="2"/>
   <g filter="url(#sh)">
