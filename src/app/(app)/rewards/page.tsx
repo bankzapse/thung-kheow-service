@@ -44,22 +44,25 @@ export default function RewardsPage() {
               </div>
             )}
 
-            {/* ผลรางวัลล่าสุด */}
+            {/* ประกาศรายชื่อผู้โชคดี */}
             {latest && (
               <div className="card ring-1 ring-amber-100">
                 <div className="mb-3 flex items-center gap-2">
                   <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gold/15 text-gold-dark"><Crown className="h-5 w-5" /></span>
                   <div>
-                    <p className="font-bold text-neutral-800">ผู้โชคดีประจำเดือน{thaiMonthLabel(latest.month)}</p>
-                    {latest.drawnAt && <p className="text-xs text-neutral-400">ประกาศเมื่อ {thaiDate(latest.drawnAt)}</p>}
+                    <p className="font-bold text-neutral-800">🏆 ประกาศรายชื่อผู้โชคดี</p>
+                    <p className="text-xs text-neutral-400">ประจำเดือน{thaiMonthLabel(latest.month)}{latest.drawnAt && ` · ประกาศ ${thaiDate(latest.drawnAt)}`}</p>
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   {latest.winners.map((w, i) => (
                     <div key={i} className="flex items-center gap-3 rounded-xl bg-amber-50 px-3 py-2.5 ring-1 ring-amber-100">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gold-dark text-xs font-bold text-white">{i + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-neutral-800">{w.name}</p>
+                        <p className="truncate text-xs text-neutral-500">{w.prizeName}{w.prizeValue > 0 && ` · ฿${formatBaht(w.prizeValue)}`}</p>
+                      </div>
                       <Trophy className="h-4 w-4 shrink-0 text-gold-dark" />
-                      <span className="flex-1 text-sm font-semibold text-neutral-800">{w.name}</span>
-                      <span className="text-xs text-neutral-500">{w.prizeName}</span>
                     </div>
                   ))}
                 </div>
@@ -97,7 +100,6 @@ export default function RewardsPage() {
                 {[
                   `หย่อนถุง & คัดแยกได้มูลค่าทุก ฿${formatBaht(cfg.bahtPerEntry)} รับ 1 สิทธิ์อัตโนมัติ`,
                   `สะสมสิทธิ์ตลอดเดือน (สูงสุด ${formatBaht(cfg.maxEntriesPerMonth)} สิทธิ์/เดือน)`,
-                  "สิ้นเดือนระบบสุ่มผู้โชคดีแบบถ่วงน้ำหนักตามสิทธิ์",
                   "รางวัลจะโอน/มอบให้ผู้โชคดีตามเงื่อนไข (หักภาษี ณ ที่จ่าย 5%)",
                 ].map((t, i) => (
                   <li key={i} className="flex gap-2.5">
