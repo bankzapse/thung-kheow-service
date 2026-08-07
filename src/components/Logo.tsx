@@ -22,14 +22,10 @@ export function Logo({ size = 40, className }: { size?: number; className?: stri
           <stop offset="0.5" stopColor="#1c9a4e" />
           <stop offset="1" stopColor="#0f5f30" />
         </linearGradient>
-        <linearGradient id="tk-gloss" x1="256" y1="8" x2="256" y2="292" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#ffffff" stopOpacity="0.5" />
-          <stop offset="0.72" stopColor="#ffffff" stopOpacity="0.26" />
-          <stop offset="1" stopColor="#ffffff" stopOpacity="0.12" />
-        </linearGradient>
-        <radialGradient id="tk-spot" cx="0.3" cy="0.16" r="0.85">
-          <stop offset="0" stopColor="#ffffff" stopOpacity="0.5" />
-          <stop offset="0.45" stopColor="#ffffff" stopOpacity="0.08" />
+        <radialGradient id="tk-gloss" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stopColor="#ffffff" stopOpacity="0.52" />
+          <stop offset="0.55" stopColor="#ffffff" stopOpacity="0.30" />
+          <stop offset="0.82" stopColor="#ffffff" stopOpacity="0.12" />
           <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
         </radialGradient>
         <clipPath id="tk-clip">
@@ -38,8 +34,7 @@ export function Logo({ size = 40, className }: { size?: number; className?: stri
       </defs>
       <rect x="8" y="8" width="496" height="496" rx="108" fill="url(#tk-bg)" />
       <g clipPath="url(#tk-clip)">
-        <path d="M8 8 H504 V292 Q256 208 8 292 Z" fill="url(#tk-gloss)" />
-        <ellipse cx="180" cy="120" rx="260" ry="170" fill="url(#tk-spot)" />
+        <ellipse cx="172" cy="72" rx="392" ry="352" fill="url(#tk-gloss)" />
       </g>
       <rect x="9" y="9" width="494" height="494" rx="107" fill="none" stroke="#ffffff" strokeOpacity="0.28" strokeWidth="2" />
       {/* TK monogram */}
