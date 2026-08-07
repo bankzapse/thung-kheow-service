@@ -11,8 +11,8 @@
   </defs>
   <rect x="8" y="8" width="496" height="496" rx="108" fill="url(#bg)"/>
   <g clip-path="url(#r)">
-    <circle cx="118" cy="94" r="342" fill="url(#gloss)"/>
-    <circle cx="118" cy="94" r="342" fill="none" stroke="#ffffff" stroke-opacity="0.22" stroke-width="4"/>
+    <circle cx="150" cy="-140" r="540" fill="url(#gloss)"/>
+    <circle cx="150" cy="-140" r="540" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="4"/>
   </g>
   <rect x="9" y="9" width="494" height="494" rx="107" fill="none" stroke="#ffffff" stroke-opacity="0.28" stroke-width="2"/>
   <g filter="url(#sh)">

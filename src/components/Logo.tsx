@@ -34,8 +34,8 @@ export function Logo({ size = 40, className }: { size?: number; className?: stri
       </defs>
       <rect x="8" y="8" width="496" height="496" rx="108" fill="url(#tk-bg)" />
       <g clipPath="url(#tk-clip)">
-        <circle cx="118" cy="94" r="342" fill="url(#tk-gloss)" />
-        <circle cx="118" cy="94" r="342" fill="none" stroke="#ffffff" strokeOpacity="0.22" strokeWidth="4" />
+        <circle cx="150" cy="-140" r="540" fill="url(#tk-gloss)" />
+        <circle cx="150" cy="-140" r="540" fill="none" stroke="#ffffff" strokeOpacity="0.18" strokeWidth="4" />
       </g>
       <rect x="9" y="9" width="494" height="494" rx="107" fill="none" stroke="#ffffff" strokeOpacity="0.28" strokeWidth="2" />
       {/* TK monogram */}
