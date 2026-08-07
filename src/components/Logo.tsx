@@ -36,8 +36,8 @@ export function Logo({ size = 40, className }: { size?: number; className?: stri
       </defs>
       <rect x="8" y="8" width="496" height="496" rx="108" fill="url(#tk-dark)" />
       <g clipPath="url(#tk-clip)">
-        <path d="M8 8 H504 V256 Q256 320 8 256 Z" fill="url(#tk-light)" />
-        <path d="M8 8 H504 V256 Q256 320 8 256" fill="none" stroke="#ffffff" strokeOpacity="0.16" strokeWidth="3" />
+        <circle cx="44" cy="40" r="252" fill="url(#tk-light)" />
+        <circle cx="44" cy="40" r="252" fill="none" stroke="#ffffff" strokeOpacity="0.16" strokeWidth="3" />
         <rect x="8" y="8" width="496" height="496" fill="url(#tk-gloss)" />
       </g>
       <rect x="9" y="9" width="494" height="494" rx="107" fill="none" stroke="#ffffff" strokeOpacity="0.28" strokeWidth="2" />
