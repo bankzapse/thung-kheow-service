@@ -32,8 +32,8 @@ export function iconSvg({ maskable = false } = {}) {
     <linearGradient id="bg" x1="256" y1="16" x2="256" y2="504" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#3fd97f"/><stop offset="0.5" stop-color="#1c9a4e"/><stop offset="1" stop-color="#0f5f30"/>
     </linearGradient>
-    <radialGradient id="gloss" cx="210" cy="46" r="440" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.52"/><stop offset="0.62" stop-color="#ffffff" stop-opacity="0.20"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    <radialGradient id="gloss" cx="130" cy="96" r="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.52"/><stop offset="0.62" stop-color="#ffffff" stop-opacity="0.22"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
     <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#052a15" flood-opacity="0.35"/></filter>
     <clipPath id="r"><rect x="8" y="8" width="496" height="496" rx="${rx}"/></clipPath>
@@ -41,7 +41,7 @@ export function iconSvg({ maskable = false } = {}) {
   <rect x="8" y="8" width="496" height="496" rx="${rx}" fill="url(#bg)"/>
   <g clip-path="url(#r)">
     <rect x="8" y="8" width="496" height="496" fill="url(#gloss)"/>
-    <circle cx="232" cy="-196" r="560" fill="none" stroke="#ffffff" stroke-opacity="0.20" stroke-width="4"/>
+    <circle cx="118" cy="70" r="360" fill="none" stroke="#ffffff" stroke-opacity="0.20" stroke-width="4"/>
   </g>
   <rect x="9" y="9" width="494" height="494" rx="${maskable ? 0 : 107}" fill="none" stroke="#ffffff" stroke-opacity="0.28" stroke-width="2"/>
   <g filter="url(#sh)">${tk}</g>
