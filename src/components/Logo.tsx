@@ -17,24 +17,28 @@ export function Logo({ size = 40, className }: { size?: number; className?: stri
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
-        <linearGradient id="tk-bg" x1="256" y1="16" x2="256" y2="504" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#3fd97f" />
-          <stop offset="0.5" stopColor="#1c9a4e" />
-          <stop offset="1" stopColor="#0f5f30" />
+        <linearGradient id="tk-dark" x1="256" y1="240" x2="256" y2="504" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#178c4a" />
+          <stop offset="1" stopColor="#0b4f27" />
+        </linearGradient>
+        <linearGradient id="tk-light" x1="256" y1="8" x2="256" y2="320" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#48d381" />
+          <stop offset="1" stopColor="#2eb567" />
         </linearGradient>
         <radialGradient id="tk-gloss" cx="96" cy="80" r="300" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#ffffff" stopOpacity="0.55" />
-          <stop offset="0.62" stopColor="#ffffff" stopOpacity="0.22" />
+          <stop offset="0" stopColor="#ffffff" stopOpacity="0.42" />
+          <stop offset="0.62" stopColor="#ffffff" stopOpacity="0.16" />
           <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
         </radialGradient>
         <clipPath id="tk-clip">
           <rect x="8" y="8" width="496" height="496" rx="108" />
         </clipPath>
       </defs>
-      <rect x="8" y="8" width="496" height="496" rx="108" fill="url(#tk-bg)" />
+      <rect x="8" y="8" width="496" height="496" rx="108" fill="url(#tk-dark)" />
       <g clipPath="url(#tk-clip)">
+        <path d="M8 8 H504 V256 Q256 320 8 256 Z" fill="url(#tk-light)" />
+        <path d="M8 8 H504 V256 Q256 320 8 256" fill="none" stroke="#ffffff" strokeOpacity="0.16" strokeWidth="3" />
         <rect x="8" y="8" width="496" height="496" fill="url(#tk-gloss)" />
-        <circle cx="44" cy="40" r="252" fill="none" stroke="#ffffff" strokeOpacity="0.20" strokeWidth="4" />
       </g>
       <rect x="9" y="9" width="494" height="494" rx="107" fill="none" stroke="#ffffff" strokeOpacity="0.28" strokeWidth="2" />
       {/* TK monogram */}
