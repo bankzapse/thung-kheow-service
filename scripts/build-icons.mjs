@@ -30,7 +30,7 @@ export function iconSvg({ maskable = false } = {}) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <defs>
     <linearGradient id="dark" x1="256" y1="8" x2="256" y2="504" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#2bad60"/><stop offset="1" stop-color="#08431f"/>
+      <stop offset="0" stop-color="#2bad60"/><stop offset="1" stop-color="#136c3c"/>
     </linearGradient>
     <linearGradient id="light" x1="256" y1="8" x2="256" y2="320" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#48d381"/><stop offset="1" stop-color="#2eb567"/>

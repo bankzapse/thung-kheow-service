@@ -19,7 +19,7 @@ export function Logo({ size = 40, className }: { size?: number; className?: stri
       <defs>
         <linearGradient id="tk-dark" x1="256" y1="8" x2="256" y2="504" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#2bad60" />
-          <stop offset="1" stopColor="#08431f" />
+          <stop offset="1" stopColor="#136c3c" />
         </linearGradient>
         <linearGradient id="tk-light" x1="256" y1="8" x2="256" y2="320" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#48d381" />
