@@ -208,7 +208,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }, delay);
   }, []);
 
-  // Load from localStorage on mount (demo data layer)
+  // โหลด state ที่ persist ไว้ตอน mount (ฝั่ง client) — จำเป็นต้อง setState ใน effect
+  // เพราะ localStorage ไม่มีตอน SSR (ใช้ lazy init จะพังตอน hydrate) → เป็น pattern ที่ถูกต้อง
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     try {
       const rawDb = localStorage.getItem(DB_KEY);
@@ -222,6 +224,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
     setStorageReady(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Production: hydrate user + data จาก Supabase (session + ตารางทั้งหมด) + realtime
   useEffect(() => {

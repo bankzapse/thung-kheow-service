@@ -11,11 +11,7 @@ const eslintConfig = [
     rules: {
       "@next/next/no-img-element": "off",
       "react/no-unescaped-entities": "off",
-      // กฎ react-compiler ที่ Next 16 เปิดใหม่ (เข้มกว่าเดิม) — ลดเป็น warn ก่อน
-      // เพื่อคงความเข้มเท่ากับ Next 15 · TODO: ค่อย refactor แล้วเปิดเป็น error
-      "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/refs": "warn",
-      "react-hooks/static-components": "warn",
+      // กฎ react-compiler (Next 16) เปิดเป็น error ตาม default — refactor โค้ดเรียบร้อยแล้ว
     },
   },
 ];

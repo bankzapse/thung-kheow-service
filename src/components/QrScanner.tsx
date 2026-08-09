@@ -28,9 +28,12 @@ export function QrScanner({
   const firedRef = useRef(false); // สแกนได้แล้ว 1 ถุง → ไม่ยิงซ้ำ
   const lastScanRef = useRef(0); // throttle การถอดรหัส
   const onResultRef = useRef(onResult);
-  onResultRef.current = onResult;
   const onCameraFailRef = useRef(onCameraFail);
-  onCameraFailRef.current = onCameraFail;
+  // อัปเดต ref ให้ชี้ callback ล่าสุดใน effect (ห้ามแตะ ref ตอน render — react-hooks/refs)
+  useEffect(() => {
+    onResultRef.current = onResult;
+    onCameraFailRef.current = onCameraFail;
+  });
 
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(true);
@@ -39,9 +42,6 @@ export function QrScanner({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    setError(null);
-    setStarting(true);
-    setFlash(false);
     firedRef.current = false;
 
     const stopCamera = () => {
@@ -52,6 +52,9 @@ export function QrScanner({
     };
 
     (async () => {
+      setError(null);
+      setStarting(true);
+      setFlash(false);
       try {
         const jsQR = (await import("jsqr")).default;
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });

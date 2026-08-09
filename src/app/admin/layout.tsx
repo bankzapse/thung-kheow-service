@@ -36,6 +36,41 @@ const NAV = [
 
 const OWNER_LINK = { href: "/admin/team", label: "จัดการผู้ดูแล", icon: ShieldCheck, exact: false, pickup: false, menu: null } as (typeof NAV)[number];
 
+const isActiveHref = (pathname: string, href: string, exact?: boolean) =>
+  exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
+
+// นิยามที่ module level (ไม่สร้าง component ใน render — react-hooks/static-components)
+function AdminNavLink({ n, mobile, badges, pathname }: { n: (typeof NAV)[number]; mobile?: boolean; badges: Record<string, number>; pathname: string }) {
+  const count = n.menu ? badges[n.menu] ?? 0 : 0;
+  const active = isActiveHref(pathname, n.href, n.exact);
+  return (
+    <Link
+      href={n.href}
+      className={cn(
+        mobile
+          ? "flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-sm"
+          : "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition",
+        active
+          ? mobile ? "bg-brand-600 text-white" : "bg-brand-600 text-white shadow-sm"
+          : mobile ? "bg-neutral-100 text-neutral-500" : "text-neutral-600 hover:bg-neutral-100",
+      )}
+    >
+      <n.icon className="h-[18px] w-[18px]" />
+      {n.label}
+      {count > 0 && (
+        <span
+          className={cn(
+            "ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-xs font-bold",
+            active ? "bg-white/25 text-white" : "bg-red-500 text-white",
+          )}
+        >
+          {count}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { ready, currentUser, logout, db } = useStore();
   const router = useRouter();
@@ -76,43 +111,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     collect: pendingBagCount, // ถุงค้างรอเข้าเก็บ
   };
 
-  const isActive = (href: string, exact?: boolean) =>
-    exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
-
   const doLogout = () => {
     logout();
     router.replace("/app");
-  };
-
-  const NavLink = ({ n, mobile }: { n: (typeof NAV)[number]; mobile?: boolean }) => {
-    const count = n.menu ? badges[n.menu] ?? 0 : 0;
-    const active = isActive(n.href, n.exact);
-    return (
-      <Link
-        href={n.href}
-        className={cn(
-          mobile
-            ? "flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-sm"
-            : "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition",
-          active
-            ? mobile ? "bg-brand-600 text-white" : "bg-brand-600 text-white shadow-sm"
-            : mobile ? "bg-neutral-100 text-neutral-500" : "text-neutral-600 hover:bg-neutral-100",
-        )}
-      >
-        <n.icon className="h-[18px] w-[18px]" />
-        {n.label}
-        {count > 0 && (
-          <span
-            className={cn(
-              "ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-xs font-bold",
-              active ? "bg-white/25 text-white" : "bg-red-500 text-white",
-            )}
-          >
-            {count}
-          </span>
-        )}
-      </Link>
-    );
   };
 
   return (
@@ -130,18 +131,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         {/* Mobile horizontal nav */}
         <nav className="no-scrollbar flex gap-1 overflow-x-auto border-t border-white/10 bg-white px-3 py-2 md:hidden">
-          {items.map((n) => <NavLink key={n.href} n={n} mobile />)}
+          {items.map((n) => <AdminNavLink key={n.href} n={n} mobile badges={badges} pathname={pathname} />)}
         </nav>
       </header>
 
       <div className="flex">
         {/* Desktop left sidebar */}
         <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 flex-col gap-1 overflow-y-auto border-r border-neutral-200 bg-white px-3 py-4 md:flex">
-          {nav.map((n) => <NavLink key={n.href} n={n} />)}
+          {nav.map((n) => <AdminNavLink key={n.href} n={n} badges={badges} pathname={pathname} />)}
           {currentUser.owner && (
             <>
               <div className="my-2 border-t border-neutral-100" />
-              <NavLink n={OWNER_LINK} />
+              <AdminNavLink n={OWNER_LINK} badges={badges} pathname={pathname} />
             </>
           )}
         </aside>

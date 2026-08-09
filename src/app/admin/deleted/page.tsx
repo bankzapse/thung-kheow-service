@@ -29,7 +29,7 @@ async function callApi(action: string, payload: Record<string, unknown> = {}) {
 
 export default function AdminDeletedPage() {
   const [rows, setRows] = useState<DeletedAccount[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(supabaseConfigured); // ไม่ได้ตั้ง Supabase = ไม่โหลด → เริ่ม false
   const [error, setError] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -49,8 +49,8 @@ export default function AdminDeletedPage() {
   }, []);
 
   useEffect(() => {
-    if (!supabaseConfigured) { setLoading(false); return; }
-    refresh();
+    if (!supabaseConfigured) return; // loading เริ่มเป็น false อยู่แล้ว
+    void Promise.resolve().then(refresh); // เลื่อน 1 microtask กัน setState sync ใน effect
   }, [refresh]);
 
   const restore = async (id: string) => {
