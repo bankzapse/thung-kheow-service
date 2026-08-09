@@ -30,6 +30,8 @@ export function PayoutCard() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   // เมื่อข้อมูลจริงตามมาเป็น pending แล้ว (โหลดใหม่เสร็จ) → เลิกโหมด optimistic
+  // sync กับ prop ที่มาแบบ async — จำเป็นต้อง setState ใน effect (reset ตามสถานะจริงที่เปลี่ยน)
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (real?.status === "pending") setSubmitted(false); }, [real?.status]);
 
   // แสดงผลแบบ optimistic: หลังกดส่ง ให้ขึ้น "รอการดำเนินการ" ทันที (ใช้ข้อมูลที่เพิ่งกรอก) จนกว่าข้อมูลจริงจะมา

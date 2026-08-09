@@ -86,7 +86,7 @@ const roleLabel = (r: string | null) =>
 export default function AdminAuditPage() {
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(supabaseConfigured); // ไม่ได้ตั้ง Supabase = ไม่โหลด → เริ่ม false เลย
   const [loadingMore, setLoadingMore] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +118,7 @@ export default function AdminAuditPage() {
   }, []);
 
   useEffect(() => {
-    if (!supabaseConfigured) { setLoading(false); return; }
+    if (!supabaseConfigured) return; // loading เริ่มเป็น false อยู่แล้ว
     let alive = true;
     (async () => {
       try {
