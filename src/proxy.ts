@@ -1,7 +1,9 @@
 import { type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
-export async function middleware(request: NextRequest) {
+// Next 16: ใช้ convention ไฟล์ "proxy" แทน "middleware" (เดิม middleware.ts)
+// ทำหน้าที่รีเฟรช session ของ Supabase ทุก request (ยกเว้น static assets ด้านล่าง)
+export async function proxy(request: NextRequest) {
   return await updateSession(request);
 }
 
