@@ -16,22 +16,25 @@ import { FONT_FILES, FONT_FAMILY } from "./lib/thai-font.mjs";
 
 const W = 2500;
 const H = 1686;
-// กริด 3 คอลัมน์ × 2 แถว (6 ช่อง)
+// แถวบน 2 ช่องใหญ่ (งานที่ใช้บ่อยสุด) · แถวล่าง 3 ช่อง
 const ROW_H = 843;
-const COLS = [
+const TOP = [
+  { x: 0, w: 1250 },
+  { x: 1250, w: 1250 },
+];
+const BOTTOM = [
   { x: 0, w: 833 },
   { x: 833, w: 833 },
   { x: 1666, w: 834 },
 ];
-const cellBox = (i) => ({ ...COLS[i % 3], y: Math.floor(i / 3) * ROW_H });
+const cellBox = (i) => (i < 2 ? { ...TOP[i], y: 0 } : { ...BOTTOM[i - 2], y: ROW_H });
 
 // ไอคอนวาดด้วย path ล้วน (ไม่พึ่งฟอนต์ emoji ที่อาจไม่มีบนเครื่อง build)
-// ไล่สีต่อช่อง (โทนเขียว-เทียล + ทองสำหรับชิงโชค) + 2 ปุ่มมีรูปประกอบ
+// ไล่สีต่อช่อง (โทนเขียว-เทียลชุดเดียวกัน) + 2 ปุ่มบนมีรูปประกอบ
 // ⚠️ ลำดับต้องตรงกับ CELLS ใน scripts/line-richmenu.mjs
 const CELLS = [
   { label: "หย่อนถุง", sub: "สแกน QR บนถุง", icon: "scan", from: "#22c55e", to: "#15803d", photo: "hero" },
-  { label: "คะแนน", sub: "แลกเงิน · พร้อมเพย์", icon: "coin", from: "#14b8a6", to: "#0f766e", photo: "coins" },
-  { label: "ชิงโชค", sub: "ลุ้นทอง · บัตรกำนัล", icon: "gift", from: "#f59e0b", to: "#d97706" },
+  { label: "คะแนน & แลกเงิน", sub: "ดูยอด · โอนพร้อมเพย์", icon: "coin", from: "#14b8a6", to: "#0f766e", photo: "coins" },
   { label: "สถานะถุง", sub: "ติดตามการคัดแยก", icon: "box", from: "#22d3ee", to: "#0e7490" },
   { label: "หน้าแรก", sub: "ภาพรวมบัญชี", icon: "home", from: "#34d399", to: "#047857" },
   { label: "โปรไฟล์", sub: "บัญชี · ตั้งค่า", icon: "user", from: "#4d7c6f", to: "#1f3d34" },

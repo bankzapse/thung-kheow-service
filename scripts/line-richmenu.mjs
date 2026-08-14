@@ -44,12 +44,12 @@ const api = async (path, init = {}, base = "https://api.line.me") => {
 /** พิกัดต้องตรงกับ scripts/build-richmenu-image.mjs */
 const W = 2500, H = 1686, ROW = 843;
 // กริด 3 คอลัมน์ × 2 แถว (6 ช่อง) — ต้องตรงกับ build-richmenu-image.mjs
-const COLS = [{ x: 0, w: 833 }, { x: 833, w: 833 }, { x: 1666, w: 834 }];
-const cellBox = (i) => ({ ...COLS[i % 3], y: Math.floor(i / 3) * ROW });
+const TOP = [{ x: 0, w: 1250 }, { x: 1250, w: 1250 }];
+const BOTTOM = [{ x: 0, w: 833 }, { x: 833, w: 833 }, { x: 1666, w: 834 }];
+const cellBox = (i) => (i < 2 ? { ...TOP[i], y: 0 } : { ...BOTTOM[i - 2], y: ROW });
 const CELLS = [
   { label: "หย่อนถุง", path: "/drop" },
-  { label: "คะแนน", path: "/points" },
-  { label: "ชิงโชค", path: "/rewards" },
+  { label: "คะแนน & แลกเงิน", path: "/points" },
   { label: "สถานะถุง", path: "/status" },
   { label: "หน้าแรก", path: "/home" },
   { label: "โปรไฟล์", path: "/profile" },
