@@ -71,6 +71,7 @@ const slot = (W - MARGIN * 2) / N;
 const cx = (i) => MARGIN + slot / 2 + i * slot;
 const CIRCLE_Y = 1000; // จัดกลางช่วงบน · วงใหญ่ขึ้นเต็มพื้นที่ใต้ header
 const R = 250;
+const R1 = 290; // การ์ด QR ขั้นตอน 1 ใหญ่กว่าวงอื่น ให้เป็นพระเอก (สแกนก่อน)
 
 function step(i) {
   const s = STEPS[i];
@@ -92,17 +93,24 @@ function step(i) {
   const title = `<text x="${x}" y="${CIRCLE_Y + R + 118}" font-family="${FONT}" font-size="90" font-weight="700"
           fill="#153d29" text-anchor="middle">${esc(s.title)}</text>`;
 
-  // ขั้นตอน 1: การ์ด QR สแกนเพิ่มเพื่อนแทนไอคอน (QR อยู่กลางการ์ด ระยะขอบเท่ากันทุกด้าน
-  // เลขลำดับมุมขวาบนไม่ทับ finder ของ QR)
+  // ขั้นตอน 1: การ์ด QR (พระเอก) — ใหญ่กว่าวงอื่น QR กลางการ์ดขอบเท่ากัน
+  // เลขลำดับอยู่มุมขวาบนของการ์ด ไม่ทับ finder ของ QR
   if (i === 0) {
-    const q = 316;
-    const pad = (2 * R - q) / 2;
+    const q = 380;
+    const pad = (2 * R1 - q) / 2;
     const qx = x - q / 2;
-    const qy = CIRCLE_Y - R + pad;
+    const qy = CIRCLE_Y - R1 + pad;
+    const b1x = x + R1 - 34;
+    const b1y = CIRCLE_Y - R1 + 34;
+    const badge1 = `
+      <circle cx="${b1x}" cy="${b1y}" r="80" fill="#fff"/>
+      <circle cx="${b1x}" cy="${b1y}" r="80" fill="none" stroke="#15803d" stroke-width="7"/>
+      <text x="${b1x}" y="${b1y + 30}" font-family="${FONT}" font-size="86" font-weight="700"
+            fill="#15803d" text-anchor="middle">1</text>`;
     return `
-      <rect x="${x - R}" y="${CIRCLE_Y - R}" width="${2 * R}" height="${2 * R}" rx="56" fill="#ffffff" stroke="#dfeae3" stroke-width="5"/>
+      <rect x="${x - R1}" y="${CIRCLE_Y - R1}" width="${2 * R1}" height="${2 * R1}" rx="62" fill="#ffffff" stroke="#dfeae3" stroke-width="6"/>
       <image href="${qrUri}" x="${qx}" y="${qy}" width="${q}" height="${q}"/>
-      ${numBadge}
+      ${badge1}
       ${title}
       ${desc}`;
   }
@@ -118,7 +126,7 @@ function step(i) {
 function connectors() {
   let out = "";
   for (let i = 0; i < N - 1; i++) {
-    const x1 = cx(i) + R + 44;
+    const x1 = cx(i) + (i === 0 ? R1 : R) + 44;
     const x2 = cx(i + 1) - R - 44;
     const my = CIRCLE_Y;
     out += `<line x1="${x1}" y1="${my}" x2="${x2 - 30}" y2="${my}" stroke="#86d0a4" stroke-width="8"
