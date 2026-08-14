@@ -57,8 +57,7 @@ export function fontFaceCssLinked(): string {
 
 const fmt = (url: string) => (url.endsWith(".woff2") ? "woff2" : url.endsWith(".woff") ? "woff" : "truetype");
 
-/** โหลดไฟล์ฟอนต์ 1 ตระกูล → @font-face แบบ base64 (ใช้ฝังใน SVG ตอน export PNG ให้ตัวอักษรไม่เพี้ยน) */
-export async function fontFaceCssEmbedded(family: string): Promise<string> {
+async function embedOne(family: string): Promise<string> {
   const font = findFont(family);
   const faces = await Promise.all(
     font.files.map(async (w) => {
@@ -68,8 +67,15 @@ export async function fontFaceCssEmbedded(family: string): Promise<string> {
       const bytes = new Uint8Array(buf);
       for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
       const b64 = btoa(bin);
-      return `@font-face{font-family:"${family}";font-weight:${w.weight};font-style:normal;src:url("data:font/${fmt(w.url)};base64,${b64}") format("${fmt(w.url)}")}`;
+      return `@font-face{font-family:"${font.family}";font-weight:${w.weight};font-style:normal;src:url("data:font/${fmt(w.url)};base64,${b64}") format("${fmt(w.url)}")}`;
     }),
   );
   return faces.join("\n");
+}
+
+/** โหลดฟอนต์ทุกตระกูลที่ใช้ → @font-face base64 (ฝังใน SVG ตอน export PNG ให้ทุก section ตรงฟอนต์ที่ตั้ง) */
+export async function fontFaceCssEmbedded(families: string[]): Promise<string> {
+  const uniq = [...new Set(families.map((f) => findFont(f).family))];
+  const blocks = await Promise.all(uniq.map((fam) => embedOne(fam)));
+  return blocks.join("\n");
 }

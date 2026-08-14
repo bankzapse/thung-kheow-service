@@ -127,15 +127,22 @@ export default function PosterEditor({ userName = "ผู้ดูแล" }: { u
     return kind === "flow-wide" ? buildFlowWide(b) : buildFlowA4(b);
   };
 
+  // ฟอนต์ทุกตัวที่ใช้จริง (รวม + ราย section) — ต้องฝังครบตอน export ไม่งั้น section ที่ตั้งฟอนต์ต่างจะตกฟอนต์
+  const usedFonts = (): string[] => {
+    const styles: SectionStyle[] = Object.values(isCab ? cab.styles : flow.styles);
+    return [...new Set([font, ...styles.map((s) => s.font).filter(Boolean)])];
+  };
+
   const doExport = async (mode: "png" | "print" | "bleed") => {
     try {
       setBusy(mode);
       const b = await resolveExport();
+      const fonts = usedFonts();
       if (mode === "bleed") {
-        const blob = await renderPrintBleedPng(b, font, spec.targetW, spec.physWidthMm);
+        const blob = await renderPrintBleedPng(b, fonts, spec.targetW, spec.physWidthMm);
         downloadBlob(blob, `${spec.file}-print.png`);
       } else {
-        const blob = await renderPng(b, font, spec.targetW);
+        const blob = await renderPng(b, fonts, spec.targetW);
         if (mode === "print") printPng(blob, spec.landscape, printMargin);
         else downloadBlob(blob, `${spec.file}.png`);
       }
