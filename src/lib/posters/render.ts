@@ -55,16 +55,15 @@ export async function renderPng(built: BuiltSvg, fontFamily: string, targetW: nu
 }
 
 /** ห่อ canvas ด้วย bleed 3mm (ยืดขอบ) + crop marks → PNG blob สำหรับส่งโรงพิมพ์ */
-export async function renderPrintBleedPng(built: BuiltSvg, fontFamily: string, dpi = 300): Promise<Blob> {
-  // trim = A4 300dpi
-  const targetW = Math.round((297 / 25.4) * dpi); // 3508
+export async function renderPrintBleedPng(built: BuiltSvg, fontFamily: string, targetW: number, physWidthMm: number): Promise<Blob> {
   const fontCss = await fontFaceCssEmbedded(fontFamily);
   const svg = built.svg.replace("</defs>", `<style>${fontCss}</style></defs>`);
   const trim = await svgToCanvas(svg, targetW, built.width, built.height);
   const TW = trim.width;
   const TH = trim.height;
 
-  const mm = (v: number) => Math.round((v / 25.4) * dpi);
+  const pxPerMm = targetW / physWidthMm;
+  const mm = (v: number) => Math.round(v * pxPerMm);
   const BLEED = mm(3);
   const MARK = mm(3);
   const PAD = mm(1.5);

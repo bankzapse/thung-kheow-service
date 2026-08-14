@@ -1,4 +1,4 @@
-import type { FlowConfig, Palette } from "./types";
+import type { CabinetConfig, FlowConfig, Palette, PosterKind } from "./types";
 
 export const GREEN_PALETTE: Palette = {
   bg: "#f6fbf8",
@@ -50,3 +50,33 @@ export function defaultFlowConfig(): FlowConfig {
     qrUri: "",
   };
 }
+
+export function defaultCabinetConfig(): CabinetConfig {
+  return {
+    fontFamily: "IBM Plex Sans Thai",
+    scale: 1,
+    palette: { ...GREEN_PALETTE },
+    brand: "ถุงเขียว",
+    headline: "เปลี่ยนขยะรีไซเคิลให้เป็นเงิน",
+    subheadline: "หย่อนถุงที่ตู้นี้ · สะสมแต้ม · แลกเงินเข้าพร้อมเพย์",
+    qrCaption: "สแกน QR นี้เพื่อเริ่มใช้งาน",
+    steps: [
+      { n: "1", title: "คัดแยกขยะใส่ถุง", sub: "ขวด · กระป๋อง · กระดาษ · พลาสติก" },
+      { n: "2", title: "หย่อนถุงที่ตู้นี้", sub: "แล้วสแกน QR บนถุงในแอป" },
+      { n: "3", title: "ทีมงานคัดแยก & ตีราคา", sub: "คะแนนเข้าบัญชีอัตโนมัติ" },
+      { n: "4", title: "แลกเป็นเงินเข้าพร้อมเพย์", sub: "1 คะแนน = 1 บาท" },
+    ],
+    footer: "ไม่ต้องติดตั้งแอป · ใช้ผ่าน LINE ได้เลย",
+    site: "thung-kheow.com",
+    lineId: LINE_OA_ID,
+    logoUri: "/poster-logo.svg",
+    qrUri: "",
+  };
+}
+
+/** สเปกส่งออก/พิมพ์ ต่อชนิดโปสเตอร์ */
+export const POSTER_SPECS: Record<PosterKind, { label: string; targetW: number; physWidthMm: number; landscape: boolean; file: string }> = {
+  "flow-a4": { label: "ขั้นตอน — A4 แนวนอน", targetW: 3508, physWidthMm: 297, landscape: true, file: "poster-flow-a4" },
+  "flow-wide": { label: "ขั้นตอน — ป้ายใหญ่ 80×40cm", targetW: 6000, physWidthMm: 800, landscape: true, file: "poster-flow-80x40" },
+  cabinet: { label: "ติดหน้าตู้ — A4 แนวตั้ง", targetW: 2480, physWidthMm: 210, landscape: false, file: "poster-cabinet" },
+};
