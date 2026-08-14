@@ -26,14 +26,14 @@ const FONT = FONT_FAMILY;
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/ำ/g, "ํา");
 
 const ICONS = {
-  // ขั้นตอน 2 — ถุงช้อปมีหูหิ้ว 2 ข้าง + ลูกศรรีไซเคิลวน (สื่อ "คัดแยกใส่ถุง")
-  bag: `<path d="M-30-6h60v42a10 10 0 01-10 10h-40a10 10 0 01-10-10z" fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round"/><path d="M-21-6v-9a8 8 0 0116 0v9" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/><path d="M5-6v-9a8 8 0 0116 0v9" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/><path d="M-10 22a14 14 0 0124-9M12 26a14 14 0 01-24 9" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M12 4l5 9-10 1M-12 36l-5-9 10-1" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`,
-  // ขั้นตอน 3 — กรอบสแกน 4 มุม + ลาย QR ข้างใน (สื่อ "สแกน QR")
+  // ขั้นตอน 2 — ถุงช้อปมีหูหิ้ว 2 ข้าง + ลูกศรรีไซเคิลวน (สื่อ "คัดแยกใส่ถุง") · จัดกึ่งกลาง (0,0)
+  bag: `<path d="M-30-21h60v42a10 10 0 01-10 10h-40a10 10 0 01-10-10z" fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round"/><path d="M-21-21v-9a8 8 0 0116 0v9" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/><path d="M5-21v-9a8 8 0 0116 0v9" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/><path d="M-10 7a14 14 0 0124-9M12 11a14 14 0 01-24 9" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M12-11l5 9-10 1M-12 21l-5-9 10-1" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`,
+  // ขั้นตอน 3 — กรอบสแกน 4 มุม + ลาย QR ข้างใน (สื่อ "สแกน QR") · สมมาตรกึ่งกลางอยู่แล้ว
   scan: `<g fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M-40-18v-16a6 6 0 016-6h16"/><path d="M18-40h16a6 6 0 016 6v16"/><path d="M40 18v16a6 6 0 01-6 6h-16"/><path d="M-18 40h-16a6 6 0 01-6-6v-16"/></g><g fill="#fff"><rect x="-18" y="-18" width="14" height="14" rx="2.5"/><rect x="4" y="-18" width="14" height="14" rx="2.5"/><rect x="-18" y="4" width="14" height="14" rx="2.5"/><rect x="6" y="6" width="6" height="6"/><rect x="15" y="6" width="3" height="6"/><rect x="6" y="15" width="6" height="3"/><rect x="15" y="14" width="3" height="4"/></g>`,
-  // ขั้นตอน 4 — ลูกศรหย่อนลงกล่อง/ตู้ (สื่อ "หย่อนถุงลงตู้")
-  drop: `<path d="M-34 10h68v34a4 4 0 01-4 4H-30a4 4 0 01-4-4z" fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round"/><path d="M-34 10h68" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M0-40V6" stroke="#fff" stroke-width="8" stroke-linecap="round"/><path d="M-16-12L0 6l16-18" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>`,
-  // ขั้นตอน 5 — เหรียญ ฿ ซ้อน 2 เหรียญ (สื่อ "รับคะแนน แลกเงิน")
-  coin: `<circle cx="-16" cy="11" r="23" fill="none" stroke="#fff" stroke-width="5" opacity="0.45"/><circle cx="9" cy="-4" r="33" fill="none" stroke="#fff" stroke-width="7"/><g transform="translate(9 -4)" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M-6-15v30"/><path d="M-6-15H4a7.5 7.5 0 010 15H-6"/><path d="M-6 0H5a7.5 7.5 0 010 15H-6"/><path d="M0-21v6M0 15v6"/></g>`,
+  // ขั้นตอน 4 — ลูกศรหย่อนลงกล่อง/ตู้ (สื่อ "หย่อนถุงลงตู้") · จัดกึ่งกลาง (0,0)
+  drop: `<path d="M-34 6h68v34a4 4 0 01-4 4H-30a4 4 0 01-4-4z" fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round"/><path d="M-34 6h68" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M0-44V2" stroke="#fff" stroke-width="8" stroke-linecap="round"/><path d="M-16-16L0 2l16-18" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>`,
+  // ขั้นตอน 5 — เหรียญ ฿ กลางวง + เหรียญซ้อนด้านหลัง (สื่อ "รับคะแนน แลกเงิน") · เหรียญหลักอยู่กึ่งกลาง
+  coin: `<circle cx="-21" cy="-13" r="20" fill="none" stroke="#fff" stroke-width="5" opacity="0.45"/><circle cx="0" cy="0" r="33" fill="none" stroke="#fff" stroke-width="7"/><g fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M-6-15v30"/><path d="M-6-15H4a7.5 7.5 0 010 15H-6"/><path d="M-6 0H5a7.5 7.5 0 010 15H-6"/><path d="M0-21v6M0 15v6"/></g>`,
 };
 
 const STEPS = [
@@ -69,9 +69,9 @@ const N = STEPS.length;
 const MARGIN = 130;
 const slot = (W - MARGIN * 2) / N;
 const cx = (i) => MARGIN + slot / 2 + i * slot;
-const CIRCLE_Y = 1000; // จัดกลางช่วงบน · วงใหญ่ขึ้นเต็มพื้นที่ใต้ header
-const R = 250;
-const R1 = 252; // การ์ด QR ขั้นตอน 1 เท่าวงอื่น (ไม่ชนหัวข้อ) แต่ QR เต็มการ์ด กรอบบาง
+const CIRCLE_Y = 1010; // จัดกลางช่วงบน · วงใหญ่ขึ้นเต็มพื้นที่ใต้ header
+const R = 290;
+const R1 = 290; // การ์ด QR ขั้นตอน 1 เท่าวงอื่น (ไม่ชนหัวข้อ) แต่ QR เต็มการ์ด กรอบบาง
 
 function step(i) {
   const s = STEPS[i];
@@ -90,7 +90,7 @@ function step(i) {
            fill="#5b6b60" text-anchor="middle">${esc(l)}</text>`,
     )
     .join("");
-  const title = `<text x="${x}" y="${CIRCLE_Y + R + 118}" font-family="${FONT}" font-size="90" font-weight="700"
+  const title = `<text x="${x}" y="${CIRCLE_Y + R + 120}" font-family="${FONT}" font-size="96" font-weight="700"
           fill="#153d29" text-anchor="middle">${esc(s.title)}</text>`;
 
   // ขั้นตอน 1: การ์ด QR (พระเอก) — ใหญ่กว่าวงอื่น QR กลางการ์ดขอบเท่ากัน
@@ -108,16 +108,16 @@ function step(i) {
       <text x="${b1x}" y="${b1y + 28}" font-family="${FONT}" font-size="82" font-weight="700"
             fill="#15803d" text-anchor="middle">1</text>`;
     return `
-      <rect x="${x - R1}" y="${CIRCLE_Y - R1}" width="${2 * R1}" height="${2 * R1}" rx="62" fill="#ffffff" stroke="#dfeae3" stroke-width="6"/>
+      <rect x="${x - R1}" y="${CIRCLE_Y - R1}" width="${2 * R1}" height="${2 * R1}" rx="66" fill="#ffffff" stroke="#dfeae3" stroke-width="6" filter="url(#softsh)"/>
       <image href="${qrUri}" x="${qx}" y="${qy}" width="${q}" height="${q}"/>
       ${badge1}
       ${title}
       ${desc}`;
   }
   return `
-    <circle cx="${x}" cy="${CIRCLE_Y}" r="${R}" fill="url(#gcircle)"/>
-    <circle cx="${x}" cy="${CIRCLE_Y}" r="${R}" fill="none" stroke="#ffffff" stroke-width="14" opacity="0.25"/>
-    <g transform="translate(${x} ${CIRCLE_Y}) scale(2.7)">${ICONS[s.icon]}</g>
+    <circle cx="${x}" cy="${CIRCLE_Y}" r="${R}" fill="url(#gcircle)" filter="url(#softsh)"/>
+    <circle cx="${x}" cy="${CIRCLE_Y}" r="${R}" fill="none" stroke="#ffffff" stroke-width="14" opacity="0.22"/>
+    <g transform="translate(${x} ${CIRCLE_Y}) scale(3.35)">${ICONS[s.icon]}</g>
     ${numBadge}
     ${title}
     ${desc}`;
@@ -244,6 +244,9 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
     <linearGradient id="gcard" x1="0" y1="0" x2="1" y2="1">
       <stop stop-color="#16a34a"/><stop offset="1" stop-color="#0f6a34"/>
     </linearGradient>
+    <filter id="softsh" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#0c3d22" flood-opacity="0.16"/>
+    </filter>
   </defs>
 
   <rect width="${W}" height="${H}" fill="#f6fbf8"/>
