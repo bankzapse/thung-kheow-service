@@ -71,7 +71,7 @@ const slot = (W - MARGIN * 2) / N;
 const cx = (i) => MARGIN + slot / 2 + i * slot;
 const CIRCLE_Y = 1000; // จัดกลางช่วงบน · วงใหญ่ขึ้นเต็มพื้นที่ใต้ header
 const R = 250;
-const R1 = 290; // การ์ด QR ขั้นตอน 1 ใหญ่กว่าวงอื่น ให้เป็นพระเอก (สแกนก่อน)
+const R1 = 252; // การ์ด QR ขั้นตอน 1 เท่าวงอื่น (ไม่ชนหัวข้อ) แต่ QR เต็มการ์ด กรอบบาง
 
 function step(i) {
   const s = STEPS[i];
@@ -96,16 +96,16 @@ function step(i) {
   // ขั้นตอน 1: การ์ด QR (พระเอก) — ใหญ่กว่าวงอื่น QR กลางการ์ดขอบเท่ากัน
   // เลขลำดับอยู่มุมขวาบนของการ์ด ไม่ทับ finder ของ QR
   if (i === 0) {
-    const pad = 60; // กรอบขาวบาง (เป็น quiet zone ของ QR ในตัว)
+    const pad = 40; // กรอบขาวบาง (เป็น quiet zone ของ QR ในตัว)
     const q = 2 * R1 - 2 * pad;
     const qx = x - q / 2;
     const qy = CIRCLE_Y - R1 + pad;
-    const b1x = x + R1; // คร่อมมุมขวาบนของการ์ดพอดี ไม่ทับ finder
-    const b1y = CIRCLE_Y - R1;
+    const b1x = x + R1 + 20; // ลอยคร่อมมุมขวาบนด้านนอก ไม่กินพื้นที่ QR
+    const b1y = CIRCLE_Y - R1 - 20;
     const badge1 = `
-      <circle cx="${b1x}" cy="${b1y}" r="80" fill="#fff"/>
-      <circle cx="${b1x}" cy="${b1y}" r="80" fill="none" stroke="#15803d" stroke-width="7"/>
-      <text x="${b1x}" y="${b1y + 30}" font-family="${FONT}" font-size="86" font-weight="700"
+      <circle cx="${b1x}" cy="${b1y}" r="76" fill="#fff"/>
+      <circle cx="${b1x}" cy="${b1y}" r="76" fill="none" stroke="#15803d" stroke-width="7"/>
+      <text x="${b1x}" y="${b1y + 28}" font-family="${FONT}" font-size="82" font-weight="700"
             fill="#15803d" text-anchor="middle">1</text>`;
     return `
       <rect x="${x - R1}" y="${CIRCLE_Y - R1}" width="${2 * R1}" height="${2 * R1}" rx="62" fill="#ffffff" stroke="#dfeae3" stroke-width="6"/>
