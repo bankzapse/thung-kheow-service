@@ -1,4 +1,3 @@
-import { fontFaceCssEmbedded } from "./fonts";
 import type { BuiltSvg } from "./types";
 
 /** สร้าง QR เป็น data URI (ใช้ในเบราว์เซอร์) */
@@ -20,16 +19,6 @@ export async function toDataUri(url: string): Promise<string> {
   });
 }
 
-const b64utf8 = (s: string) => {
-  const bytes = new TextEncoder().encode(s);
-  let bin = "";
-  const CHUNK = 0x8000;
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-  }
-  return btoa(bin);
-};
-
 /** โหลดฟอนต์ที่ใช้เข้า document.fonts ให้ decode พร้อมก่อน rasterize (กันตกเป็น serif) */
 async function awaitFonts(families: string[]): Promise<void> {
   if (typeof document === "undefined" || !document.fonts) return;
@@ -41,38 +30,70 @@ async function awaitFonts(families: string[]): Promise<void> {
 /** แปลง SVG (ฝังฟอนต์ base64 ให้แล้ว) → canvas ที่ความกว้างเป้าหมาย */
 async function svgToCanvas(svg: string, targetW: number, vbW: number, vbH: number): Promise<HTMLCanvasElement> {
   const targetH = Math.round((targetW * vbH) / vbW);
-  const url = "data:image/svg+xml;base64," + b64utf8(svg);
+  // Blob URL แทน base64 data URL — ไม่ต้อง encode SVG ทั้งก้อน (เร็วกว่ามากเมื่อมีรูป data URI)
+  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
   const img = new Image();
-  await new Promise<void>((resolve, reject) => {
-    img.onload = () => resolve();
-    img.onerror = () => reject(new Error("โหลด SVG ไม่สำเร็จ"));
-    img.src = url;
-  });
-  // เว้น 1 เฟรม ให้เบราว์เซอร์เตรียมฟอนต์ที่ฝังก่อนวาด (คู่กับ awaitFonts ที่ preload ไว้แล้ว)
-  await new Promise<void>((r) => requestAnimationFrame(() => r()));
-  const canvas = document.createElement("canvas");
-  canvas.width = targetW;
-  canvas.height = targetH;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("โหลด SVG ไม่สำเร็จ"));
+      img.src = url;
+    });
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+    const canvas = document.createElement("canvas");
+    canvas.width = targetW;
+    canvas.height = targetH;
+    canvas.getContext("2d")!.drawImage(img, 0, 0, targetW, targetH);
+    return canvas;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/** rasterize โปสเตอร์ → canvas
+ *  พื้นหลัง/ไล่สี/รูป/ไอคอน เรนเดอร์จาก SVG (img) · ตัวอักษรวาดด้วย canvas fillText โดยตรง
+ *  (ใช้ฟอนต์จาก document.fonts ที่ preload แล้ว — ชัวร์ทุกเบราว์เซอร์ ไม่พึ่ง webfont ใน SVG-img) */
+async function rasterizePoster(built: BuiltSvg, targetW: number): Promise<HTMLCanvasElement> {
+  const scale = targetW / built.width;
+  // 1) เอา <text> ออก แล้ว rasterize ส่วนที่เหลือ (ไม่พึ่งฟอนต์)
+  const noText = built.svg.replace(/<text\b[\s\S]*?<\/text>/g, "");
+  const canvas = await svgToCanvas(noText, targetW, built.width, built.height);
   const ctx = canvas.getContext("2d")!;
-  ctx.drawImage(img, 0, 0, targetW, targetH);
+  // 2) วาดตัวอักษรเองด้วย fillText — parse เฉพาะ <text> (ตัด data URI ของรูปออกก่อน ให้ parse เร็ว)
+  const lite = built.svg.replace(/\shref="data:[^"]*"/g, ' href=""');
+  const doc = new DOMParser().parseFromString(lite, "image/svg+xml");
+  ctx.textBaseline = "alphabetic";
+  doc.querySelectorAll("text").forEach((t) => {
+    const text = t.textContent ?? "";
+    if (!text) return;
+    const x = parseFloat(t.getAttribute("x") || "0") * scale;
+    const y = parseFloat(t.getAttribute("y") || "0") * scale;
+    const size = parseFloat(t.getAttribute("font-size") || "16") * scale;
+    const weight = t.getAttribute("font-weight") || "400";
+    const family = t.getAttribute("font-family") || "sans-serif";
+    const anchor = t.getAttribute("text-anchor") || "start";
+    const op = t.getAttribute("opacity");
+    ctx.font = `${weight} ${size}px "${family}"`;
+    ctx.fillStyle = t.getAttribute("fill") || "#000";
+    ctx.textAlign = anchor === "middle" ? "center" : anchor === "end" ? "right" : "left";
+    ctx.globalAlpha = op ? parseFloat(op) : 1;
+    ctx.fillText(text, x, y);
+  });
+  ctx.globalAlpha = 1;
   return canvas;
 }
 
-/** ฝังฟอนต์ + rasterize เป็น PNG blob (trim) */
+/** rasterize เป็น PNG blob (trim) */
 export async function renderPng(built: BuiltSvg, fontFamilies: string[], targetW: number): Promise<Blob> {
   await awaitFonts(fontFamilies);
-  const fontCss = await fontFaceCssEmbedded(fontFamilies);
-  const svg = built.svg.replace("</defs>", `<style>${fontCss}</style></defs>`);
-  const canvas = await svgToCanvas(svg, targetW, built.width, built.height);
+  const canvas = await rasterizePoster(built, targetW);
   return await new Promise((resolve) => canvas.toBlob((b) => resolve(b!), "image/png"));
 }
 
 /** ห่อ canvas ด้วย bleed 3mm (ยืดขอบ) + crop marks → PNG blob สำหรับส่งโรงพิมพ์ */
 export async function renderPrintBleedPng(built: BuiltSvg, fontFamilies: string[], targetW: number, physWidthMm: number): Promise<Blob> {
   await awaitFonts(fontFamilies);
-  const fontCss = await fontFaceCssEmbedded(fontFamilies);
-  const svg = built.svg.replace("</defs>", `<style>${fontCss}</style></defs>`);
-  const trim = await svgToCanvas(svg, targetW, built.width, built.height);
+  const trim = await rasterizePoster(built, targetW);
   const TW = trim.width;
   const TH = trim.height;
 
