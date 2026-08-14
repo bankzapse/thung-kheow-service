@@ -17,7 +17,7 @@ import { FONT_FILES, FONT_FAMILY } from "./lib/thai-font.mjs";
 
 const LINE_OA_ID = "@200iyzrg";
 const ADD_URL = `https://line.me/R/ti/p/${LINE_OA_ID}`;
-const SITE = "app.thungkhiao.co";
+const SITE = "thung-kheow.com";
 
 // ผืนงานตรรกะ 4800×2400 (2:1) แล้วค่อยขยายตอนเรนเดอร์
 const W = 4800;
