@@ -46,6 +46,13 @@ export function defaultFlowConfig(): FlowConfig {
     footerLeft: "thung-kheow.com",
     footerCenter: "1 คะแนน = 1 บาท · โอนเข้าพร้อมเพย์",
     footerRight: "Powered by ถุงเขียว",
+    styles: {
+      header: { font: "", title: "#ffffff", body: "#d9f4e3" },
+      steps: { font: "", title: "#153d29", body: "#5b6b60" },
+      materials: { font: "", title: "#153d29", body: "#5b6b60" },
+      promo: { font: "", title: "#ffffff", body: "#eafaf0" },
+      footer: { font: "", title: "#991b1b", body: "#ffffff" },
+    },
     logoUri: "/poster-logo.svg",
     qrUri: "",
   };
@@ -69,6 +76,11 @@ export function defaultCabinetConfig(): CabinetConfig {
     footer: "ไม่ต้องติดตั้งแอป · ใช้ผ่าน LINE ได้เลย",
     site: "thung-kheow.com",
     lineId: LINE_OA_ID,
+    styles: {
+      header: { font: "", title: "#ffffff", body: "#ffffff" },
+      steps: { font: "", title: "#ffffff", body: "#ffffff" },
+      footer: { font: "", title: "#ffffff", body: "#ffffff" },
+    },
     logoUri: "/poster-logo.svg",
     qrUri: "",
   };

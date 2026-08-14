@@ -8,7 +8,7 @@ import { defaultFlowConfig, defaultCabinetConfig, POSTER_SPECS, LINE_OA_ID } fro
 import { FONTS, fontFaceCssLinked } from "@/lib/posters/fonts";
 import { ICON_KEYS, ICONS } from "@/lib/posters/icons";
 import { qrDataUri, toDataUri, renderPng, renderPrintBleedPng, downloadBlob, printPng } from "@/lib/posters/render";
-import type { BuiltSvg, CabinetConfig, FlowConfig, Palette, PosterKind } from "@/lib/posters/types";
+import type { BuiltSvg, CabinetConfig, CabinetStyles, FlowConfig, FlowStyles, Palette, PosterKind, SectionStyle } from "@/lib/posters/types";
 import { Printer, Download, FileImage, RotateCcw, Loader2 } from "lucide-react";
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
@@ -26,12 +26,36 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
 );
 const KINDS: PosterKind[] = ["flow-a4", "flow-wide", "cabinet"];
 
+/** แถวปรับฟอนต์ + สี ต่อ section */
+function StyleRow({ style, onChange }: { style: SectionStyle; onChange: (u: Partial<SectionStyle>) => void }) {
+  return (
+    <div className="mb-1 flex items-end gap-2 rounded-lg bg-neutral-50 p-2">
+      <label className="flex-1 text-[11px] text-neutral-500">
+        ฟอนต์
+        <select value={style.font} onChange={(e) => onChange({ font: e.target.value })} className="mt-1 w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
+          <option value="">ตามค่ารวม</option>
+          {FONTS.map((f) => <option key={f.family} value={f.family}>{f.label}</option>)}
+        </select>
+      </label>
+      <label className="text-center text-[11px] text-neutral-500">
+        หัวข้อ
+        <input type="color" value={style.title} onChange={(e) => onChange({ title: e.target.value })} className="mt-1 block h-8 w-10 cursor-pointer rounded border border-neutral-200" />
+      </label>
+      <label className="text-center text-[11px] text-neutral-500">
+        ข้อความ
+        <input type="color" value={style.body} onChange={(e) => onChange({ body: e.target.value })} className="mt-1 block h-8 w-10 cursor-pointer rounded border border-neutral-200" />
+      </label>
+    </div>
+  );
+}
+
 export default function PosterEditor() {
   const [kind, setKind] = useState<PosterKind>("flow-a4");
   const [flow, setFlow] = useState<FlowConfig>(() => defaultFlowConfig());
   const [cab, setCab] = useState<CabinetConfig>(() => defaultCabinetConfig());
   const [lineId, setLineId] = useState(LINE_OA_ID);
   const [qr, setQr] = useState("");
+  const [printMargin, setPrintMargin] = useState(0); // ระยะขอบตอนพิมพ์ (มม.) · 0 = ชิดขอบ
   const [busy, setBusy] = useState<string | null>(null);
   const fontCss = useMemo(() => fontFaceCssLinked(), []);
   const isCab = kind === "cabinet";
@@ -73,6 +97,10 @@ export default function PosterEditor() {
   const patchC = (u: Partial<CabinetConfig>) => setCab((c) => ({ ...c, ...u }));
   const patchCStep = (i: number, u: Partial<CabinetConfig["steps"][number]>) =>
     setCab((c) => ({ ...c, steps: c.steps.map((s, k) => (k === i ? { ...s, ...u } : s)) }));
+  const setFStyle = (sec: keyof FlowStyles, u: Partial<SectionStyle>) =>
+    setFlow((c) => ({ ...c, styles: { ...c.styles, [sec]: { ...c.styles[sec], ...u } } }));
+  const setCStyle = (sec: keyof CabinetStyles, u: Partial<SectionStyle>) =>
+    setCab((c) => ({ ...c, styles: { ...c.styles, [sec]: { ...c.styles[sec], ...u } } }));
 
   const resolveExport = async (): Promise<BuiltSvg> => {
     if (kind === "cabinet") {
@@ -94,7 +122,7 @@ export default function PosterEditor() {
         downloadBlob(blob, `${spec.file}-print.png`);
       } else {
         const blob = await renderPng(b, font, spec.targetW);
-        if (mode === "print") printPng(blob, spec.landscape);
+        if (mode === "print") printPng(blob, spec.landscape, printMargin);
         else downloadBlob(blob, `${spec.file}.png`);
       }
     } catch (e) {
@@ -134,6 +162,12 @@ export default function PosterEditor() {
           </button>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-600">
+          <span className="font-medium">ระยะขอบตอนพิมพ์</span>
+          <input type="number" min={0} max={30} step={1} value={printMargin} onChange={(e) => setPrintMargin(Math.min(30, Math.max(0, Math.round(+e.target.value || 0))))} className="w-20 rounded-lg border border-neutral-300 px-2 py-1.5" />
+          <span className="text-neutral-400">มม. · 0 = ชิดขอบ (ต้องเปิด “ไร้ขอบ/Borderless” ที่เครื่องพิมพ์)</span>
+        </div>
+
         <div className="overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 p-3 shadow-inner">
           {built ? (
             <div className={`mx-auto ${isCab ? "max-w-[520px]" : ""} [&>svg]:h-auto [&>svg]:w-full [&>svg]:rounded-lg`} dangerouslySetInnerHTML={{ __html: built.svg }} />
@@ -168,11 +202,13 @@ export default function PosterEditor() {
         {!isCab && (
           <>
             <Section title="หัวโปสเตอร์">
+              <StyleRow style={flow.styles.header} onChange={(u) => setFStyle("header", u)} />
               <Field label="ชื่อ"><input value={flow.headerTitle} onChange={(e) => patchF({ headerTitle: e.target.value })} className={inputCls} /></Field>
               <Field label="คำโปรย"><input value={flow.headerSubtitle} onChange={(e) => patchF({ headerSubtitle: e.target.value })} className={inputCls} /></Field>
               <Field label="ข้อความมุมขวา"><input value={flow.headerRight} onChange={(e) => patchF({ headerRight: e.target.value })} className={inputCls} /></Field>
             </Section>
             <Section title="ขั้นตอน (5)">
+              <StyleRow style={flow.styles.steps} onChange={(u) => setFStyle("steps", u)} />
               {flow.steps.map((s, i) => (
                 <div key={i} className="rounded-lg border border-neutral-200 p-3">
                   <div className="mb-2 text-xs font-bold text-neutral-400">ขั้นตอน {i + 1}{i === 0 ? " (QR)" : ""}</div>
@@ -193,6 +229,7 @@ export default function PosterEditor() {
               ))}
             </Section>
             <Section title="วัสดุที่รับ (6)">
+              <StyleRow style={flow.styles.materials} onChange={(u) => setFStyle("materials", u)} />
               <Field label="หัวข้อ"><input value={flow.materialsHeading} onChange={(e) => patchF({ materialsHeading: e.target.value })} className={inputCls} /></Field>
               <Field label="คำอธิบายย่อย"><input value={flow.materialsSub} onChange={(e) => patchF({ materialsSub: e.target.value })} className={inputCls} /></Field>
               <Field label="ป้ายห้าม (แดง)"><input value={flow.warnPill} onChange={(e) => patchF({ warnPill: e.target.value })} className={inputCls} /></Field>
@@ -208,11 +245,14 @@ export default function PosterEditor() {
               ))}
             </Section>
             <Section title="แบนเนอร์ลุ้นโชค">
+              <StyleRow style={flow.styles.promo} onChange={(u) => setFStyle("promo", u)} />
               <Field label="หัวข้อ"><input value={flow.promo.heading} onChange={(e) => patchF({ promo: { ...flow.promo, heading: e.target.value } })} className={inputCls} /></Field>
               <Field label="คำอธิบาย"><input value={flow.promo.sub} onChange={(e) => patchF({ promo: { ...flow.promo, sub: e.target.value } })} className={inputCls} /></Field>
               <Field label="ป้าย"><input value={flow.promo.pill} onChange={(e) => patchF({ promo: { ...flow.promo, pill: e.target.value } })} className={inputCls} /></Field>
             </Section>
             <Section title="คำเตือน & ท้ายโปสเตอร์">
+              <StyleRow style={flow.styles.footer} onChange={(u) => setFStyle("footer", u)} />
+              <p className="text-[11px] text-neutral-400">“หัวข้อ” = สีคำเตือน · “ข้อความ” = สีท้ายโปสเตอร์</p>
               <Field label="คำเตือนบรรทัด 1"><input value={flow.legalWarn[0] ?? ""} onChange={(e) => patchF({ legalWarn: [e.target.value, flow.legalWarn[1] ?? ""] })} className={inputCls} /></Field>
               <Field label="คำเตือนบรรทัด 2"><input value={flow.legalWarn[1] ?? ""} onChange={(e) => patchF({ legalWarn: [flow.legalWarn[0] ?? "", e.target.value] })} className={inputCls} /></Field>
               <Field label="ท้าย: ซ้าย"><input value={flow.footerLeft} onChange={(e) => patchF({ footerLeft: e.target.value })} className={inputCls} /></Field>
@@ -225,12 +265,14 @@ export default function PosterEditor() {
         {isCab && (
           <>
             <Section title="หัวโปสเตอร์">
+              <StyleRow style={cab.styles.header} onChange={(u) => setCStyle("header", u)} />
               <Field label="ชื่อแบรนด์"><input value={cab.brand} onChange={(e) => patchC({ brand: e.target.value })} className={inputCls} /></Field>
               <Field label="พาดหัว"><input value={cab.headline} onChange={(e) => patchC({ headline: e.target.value })} className={inputCls} /></Field>
               <Field label="คำโปรย"><input value={cab.subheadline} onChange={(e) => patchC({ subheadline: e.target.value })} className={inputCls} /></Field>
               <Field label="ข้อความเหนือ QR"><input value={cab.qrCaption} onChange={(e) => patchC({ qrCaption: e.target.value })} className={inputCls} /></Field>
             </Section>
             <Section title="ขั้นตอน (4)">
+              <StyleRow style={cab.styles.steps} onChange={(u) => setCStyle("steps", u)} />
               {cab.steps.map((s, i) => (
                 <div key={i} className="rounded-lg border border-neutral-200 p-3">
                   <div className="mb-2 text-xs font-bold text-neutral-400">ขั้นตอน {s.n}</div>
@@ -242,6 +284,7 @@ export default function PosterEditor() {
               ))}
             </Section>
             <Section title="ท้ายโปสเตอร์">
+              <StyleRow style={cab.styles.footer} onChange={(u) => setCStyle("footer", u)} />
               <Field label="บรรทัดท้าย"><input value={cab.footer} onChange={(e) => patchC({ footer: e.target.value })} className={inputCls} /></Field>
               <Field label="เว็บไซต์"><input value={cab.site} onChange={(e) => patchC({ site: e.target.value })} className={inputCls} /></Field>
             </Section>
