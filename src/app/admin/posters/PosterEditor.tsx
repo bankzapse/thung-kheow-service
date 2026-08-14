@@ -7,7 +7,7 @@ import { buildCabinet } from "@/lib/posters/cabinet";
 import { defaultFlowConfig, defaultCabinetConfig, POSTER_SPECS, LINE_OA_ID } from "@/lib/posters/defaults";
 import { FONTS, fontFaceCssLinked } from "@/lib/posters/fonts";
 import { ICON_KEYS, ICONS } from "@/lib/posters/icons";
-import { qrDataUri, toDataUri, renderPng, renderPrintBleedPng, downloadBlob, printPng } from "@/lib/posters/render";
+import { qrDataUri, toDataUri, renderPng, renderPrintBleedPng, downloadBlob, printSvg } from "@/lib/posters/render";
 import { addSave, deleteSave, listSaves, savesShared, type PosterSave } from "@/lib/posters/saves";
 import type { BuiltSvg, CabinetConfig, CabinetStyles, FlowConfig, FlowStyles, Palette, PosterKind, SectionStyle } from "@/lib/posters/types";
 import { Printer, Download, FileImage, RotateCcw, Loader2, Save, Trash2, CornerDownLeft } from "lucide-react";
@@ -138,13 +138,14 @@ export default function PosterEditor({ userName = "ผู้ดูแล" }: { u
       setBusy(mode);
       const b = await resolveExport();
       const fonts = usedFonts();
-      if (mode === "bleed") {
+      if (mode === "print") {
+        await printSvg(b, fonts, spec.landscape, printMargin);
+      } else if (mode === "bleed") {
         const blob = await renderPrintBleedPng(b, fonts, spec.targetW, spec.physWidthMm);
         downloadBlob(blob, `${spec.file}-print.png`);
       } else {
         const blob = await renderPng(b, fonts, spec.targetW);
-        if (mode === "print") printPng(blob, spec.landscape, printMargin);
-        else downloadBlob(blob, `${spec.file}.png`);
+        downloadBlob(blob, `${spec.file}.png`);
       }
     } catch (e) {
       alert("เกิดข้อผิดพลาด: " + (e as Error).message);
