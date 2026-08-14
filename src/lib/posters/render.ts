@@ -139,18 +139,16 @@ export function downloadBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
-/** ปริ้น: วาง SVG ตรง ๆ ใน hidden iframe (เวกเตอร์ + ฝังฟอนต์ base64) แล้วสั่งพิมพ์เฉพาะ iframe
- *  ไม่ผ่าน canvas จึงไม่ตกฟอนต์ · ไม่ง้อ popup (กันโดนบล็อก) · built.svg ฝังรูปเป็น data URI มาแล้ว */
-export async function printSvg(built: BuiltSvg, fontFamilies: string[], landscape = true, marginMm = 0) {
-  const fontCss = await fontFaceCssEmbedded(fontFamilies);
-  // เอา width/height ออก เหลือ viewBox ให้ CSS คุมขนาดพอดีหน้า
-  const svg = built.svg.replace(/(<svg\b[^>]*?)\s+width="\d+"\s+height="\d+"/, "$1");
+/** ปริ้น: วางรูป PNG (ฟอนต์อบเป็นพิกเซลแล้ว) ใน hidden iframe แล้วสั่งพิมพ์เฉพาะ iframe
+ *  ใช้ PNG เพราะ print pipeline ของเบราว์เซอร์บางตัวไม่ใช้ webfont (base64) กับ SVG ตอนพิมพ์
+ *  → พิกเซลไม่มีทางตกฟอนต์ · ไม่ง้อ popup (กันโดนบล็อก) · marginMm 0 = ชิดขอบ */
+export async function printImage(blob: Blob, landscape = true, marginMm = 0) {
+  const url = URL.createObjectURL(blob);
   const m = Math.max(0, marginMm);
   const html =
     `<!doctype html><html><head><meta charset="utf-8"><title>พิมพ์โปสเตอร์</title>` +
-    `<style>${fontCss}</style>` +
-    `<style>@page{size:A4 ${landscape ? "landscape" : "portrait"};margin:${m}mm}html,body{margin:0;padding:0}body{width:100%;height:100vh;display:flex;align-items:center;justify-content:center}svg{max-width:100%;max-height:100vh}</style>` +
-    `</head><body>${svg}</body></html>`;
+    `<style>@page{size:A4 ${landscape ? "landscape" : "portrait"};margin:${m}mm}html,body{margin:0;padding:0}body{width:100%;height:100vh;display:flex;align-items:center;justify-content:center}img{max-width:100%;max-height:100vh}</style>` +
+    `</head><body><img src="${url}"></body></html>`;
 
   const iframe = document.createElement("iframe");
   iframe.setAttribute("aria-hidden", "true");
@@ -159,20 +157,27 @@ export async function printSvg(built: BuiltSvg, fontFamilies: string[], landscap
   const win = iframe.contentWindow;
   if (!win) {
     iframe.remove();
+    URL.revokeObjectURL(url);
     return;
   }
   win.document.open();
   win.document.write(html);
   win.document.close();
 
-  // รอฟอนต์ + รูป พร้อมก่อนพิมพ์
-  try {
-    await win.document.fonts.ready;
-  } catch {
-    /* บางเบราว์เซอร์ไม่มี fonts API */
-  }
-  await new Promise((r) => setTimeout(r, 250));
+  const img = win.document.querySelector("img");
+  await new Promise<void>((resolve) => {
+    if (img && img.complete) return resolve();
+    if (img) {
+      img.onload = () => resolve();
+      img.onerror = () => resolve();
+    }
+    setTimeout(resolve, 2000);
+  });
+  await new Promise((r) => setTimeout(r, 150));
   win.focus();
   win.print();
-  setTimeout(() => iframe.remove(), 1500);
+  setTimeout(() => {
+    iframe.remove();
+    URL.revokeObjectURL(url);
+  }, 2500);
 }
