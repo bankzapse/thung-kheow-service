@@ -5,28 +5,39 @@
  *   node scripts/build-cabinet-poster.mjs
  *
  * ขนาด A4 แนวตั้ง 300 DPI (2480×3508) — สั่งพิมพ์/ทำสติกเกอร์ได้เลย
+ * เข้าชุดกับ poster-flow: โลโก้ TK กระจกเงา + ฟอนต์ IBM Plex ฝัง (resvg)
  *
- * QR ชี้ไป "เพิ่มเพื่อน OA" ไม่ใช่ LIFF โดยตรง — เพราะ Add friend option
- * ตั้งเป็น normal ผู้ใช้กดข้ามได้ ถ้าเข้าทาง LIFF ตรงจะไม่ได้เป็นเพื่อน
- * → ไม่มี Rich Menu ครั้งหน้าหาทางเข้าไม่เจอ และส่งแจ้งเตือนไม่ได้
+ * QR ชี้ไป "เพิ่มเพื่อน OA" (ไม่ใช่ LIFF ตรง) — ผู้ใช้ต้องเป็นเพื่อนก่อนถึงมี Rich Menu
  */
 import sharp from "sharp";
 import QRCode from "qrcode";
-import { writeFile } from "node:fs/promises";
+import { Resvg } from "@resvg/resvg-js";
+import { readFile, writeFile } from "node:fs/promises";
+import { FONT_FILES, FONT_FAMILY } from "./lib/thai-font.mjs";
 
 const LINE_OA_ID = "@200iyzrg";
 const ADD_URL = `https://line.me/R/ti/p/${LINE_OA_ID}`;
+const SITE = "thung-kheow.com";
 
 const W = 2480;
 const H = 3508;
-const FONT = "IBM Plex Sans Thai, Noto Sans Thai, Thonburi, Sarabun, sans-serif";
-const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const FONT = FONT_FAMILY;
+// แตก "ำ" (U+0E33) → nikhahit + สระอา แก้บั๊ก resvg ที่ ำ เกยตัวถัดไป
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/ำ/g, "ํา");
 
-// การ์ด QR สีขาว
+async function dataUri(path, mime) {
+  const buf = await readFile(new URL(path, import.meta.url));
+  return `data:${mime};base64,${buf.toString("base64")}`;
+}
+const logoUri = await dataUri("../native/resources/logo.svg", "image/svg+xml");
+
+// QR (error correction สูงสุด เผื่อโปสเตอร์เปื้อน/ถลอกตอนติดนอกอาคาร) — ฝังเป็น data URI
 const QR_SIZE = 1000;
 const CARD = QR_SIZE + 190;
 const CARD_X = (W - CARD) / 2;
-const CARD_Y = 1180;
+const CARD_Y = 1200;
+const qrPng = await QRCode.toBuffer(ADD_URL, { errorCorrectionLevel: "H", margin: 1, width: QR_SIZE, color: { dark: "#14532d", light: "#ffffff" } });
+const qrUri = `data:image/png;base64,${qrPng.toString("base64")}`;
 
 const STEPS = [
   ["1", "คัดแยกขยะใส่ถุง", "ขวด · กระป๋อง · กระดาษ · พลาสติก"],
@@ -34,8 +45,7 @@ const STEPS = [
   ["3", "ทีมงานคัดแยก & ตีราคา", "คะแนนเข้าบัญชีอัตโนมัติ"],
   ["4", "แลกเป็นเงินเข้าพร้อมเพย์", "1 คะแนน = 1 บาท"],
 ];
-
-const stepY = (i) => 2640 + i * 175;
+const stepY = (i) => 2660 + i * 178;
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
   <defs>
@@ -47,59 +57,50 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
   <circle cx="${W - 120}" cy="220" r="420" fill="#ffffff" opacity="0.06"/>
   <circle cx="90" cy="${H - 260}" r="360" fill="#ffffff" opacity="0.05"/>
 
-  <!-- โลโก้ + แบรนด์ -->
-  <g transform="translate(${W / 2 - 105} 190)">
-    <rect width="210" height="210" rx="54" fill="#ffffff"/>
-    <text x="105" y="143" font-family="${FONT}" font-size="100" font-weight="700"
-          fill="#16a34a" text-anchor="middle" letter-spacing="-4">TK</text>
-  </g>
-  <text x="${W / 2}" y="560" font-family="${FONT}" font-size="150" font-weight="700"
+  <!-- โลโก้ TK กระจกเงา (มี halo อ่อน ๆ ให้เด่นบนพื้นเขียว) -->
+  <rect x="${W / 2 - 168}" y="150" width="336" height="336" rx="84" fill="#ffffff" opacity="0.14"/>
+  <image href="${logoUri}" x="${W / 2 - 148}" y="170" width="296" height="296"/>
+  <text x="${W / 2}" y="610" font-family="${FONT}" font-size="150" font-weight="700"
         fill="#ffffff" text-anchor="middle">ถุงเขียว</text>
 
   <!-- พาดหัว -->
-  <text x="${W / 2}" y="750" font-family="${FONT}" font-size="112" font-weight="700"
+  <text x="${W / 2}" y="770" font-family="${FONT}" font-size="112" font-weight="700"
         fill="#ffffff" text-anchor="middle">${esc("เปลี่ยนขยะรีไซเคิลให้เป็นเงิน")}</text>
-  <text x="${W / 2}" y="870" font-family="${FONT}" font-size="66"
+  <text x="${W / 2}" y="888" font-family="${FONT}" font-size="66"
         fill="#ffffff" opacity="0.92" text-anchor="middle">${esc("หย่อนถุงที่ตู้นี้ · สะสมแต้ม · แลกเงินเข้าพร้อมเพย์")}</text>
 
   <!-- คำสั่งเหนือ QR -->
-  <rect x="${W / 2 - 560}" y="960" width="1120" height="120" rx="60" fill="#ffffff" opacity="0.18"/>
-  <text x="${W / 2}" y="1042" font-family="${FONT}" font-size="62" font-weight="700"
+  <rect x="${W / 2 - 580}" y="980" width="1160" height="124" rx="62" fill="#ffffff" opacity="0.18"/>
+  <text x="${W / 2}" y="1064" font-family="${FONT}" font-size="64" font-weight="700"
         fill="#ffffff" text-anchor="middle">${esc("สแกน QR นี้เพื่อเริ่มใช้งาน")}</text>
 
-  <!-- การ์ดขาวรอง QR -->
+  <!-- การ์ดขาวรอง QR + QR -->
   <rect x="${CARD_X}" y="${CARD_Y}" width="${CARD}" height="${CARD + 130}" rx="70" fill="#ffffff"/>
-  <text x="${W / 2}" y="${CARD_Y + CARD + 62}" font-family="${FONT}" font-size="58" font-weight="700"
+  <image href="${qrUri}" x="${CARD_X + 95}" y="${CARD_Y + 95}" width="${QR_SIZE}" height="${QR_SIZE}"/>
+  <text x="${W / 2}" y="${CARD_Y + CARD + 66}" font-family="${FONT}" font-size="60" font-weight="700"
         fill="#16a34a" text-anchor="middle">LINE: ${esc(LINE_OA_ID)}</text>
 
   <!-- ขั้นตอน -->
   ${STEPS.map(([n, t, s], i) => `
-    <circle cx="330" cy="${stepY(i) - 22}" r="46" fill="#ffffff" opacity="0.22"/>
-    <text x="330" y="${stepY(i) - 2}" font-family="${FONT}" font-size="50" font-weight="700"
+    <circle cx="330" cy="${stepY(i) - 22}" r="48" fill="#ffffff" opacity="0.22"/>
+    <text x="330" y="${stepY(i) - 2}" font-family="${FONT}" font-size="52" font-weight="700"
           fill="#ffffff" text-anchor="middle">${n}</text>
-    <text x="420" y="${stepY(i)}" font-family="${FONT}" font-size="62" font-weight="700" fill="#ffffff">${esc(t)}</text>
-    <text x="420" y="${stepY(i) + 66}" font-family="${FONT}" font-size="44"
-          fill="#ffffff" opacity="0.8">${esc(s)}</text>`).join("")}
+    <text x="424" y="${stepY(i)}" font-family="${FONT}" font-size="64" font-weight="700" fill="#ffffff">${esc(t)}</text>
+    <text x="424" y="${stepY(i) + 68}" font-family="${FONT}" font-size="46"
+          fill="#ffffff" opacity="0.82">${esc(s)}</text>`).join("")}
 
   <!-- ท้ายโปสเตอร์ -->
-  <text x="${W / 2}" y="${H - 150}" font-family="${FONT}" font-size="46"
-        fill="#ffffff" opacity="0.78" text-anchor="middle">${esc("ไม่ต้องติดตั้งแอป · ใช้ผ่าน LINE ได้เลย")}</text>
+  <text x="${W / 2}" y="${H - 170}" font-family="${FONT}" font-size="46"
+        fill="#ffffff" opacity="0.8" text-anchor="middle">${esc("ไม่ต้องติดตั้งแอป · ใช้ผ่าน LINE ได้เลย")}</text>
+  <text x="${W / 2}" y="${H - 88}" font-family="${FONT}" font-size="44" font-weight="600"
+        fill="#ffffff" opacity="0.9" text-anchor="middle">${SITE}</text>
 </svg>`;
 
-// QR: error correction สูงสุด เผื่อโปสเตอร์เปื้อน/ถลอกตอนติดนอกอาคาร
-const qr = await QRCode.toBuffer(ADD_URL, {
-  errorCorrectionLevel: "H",
-  margin: 1,
-  width: QR_SIZE,
-  color: { dark: "#14532d", light: "#ffffff" },
-});
-
 const out = new URL("../public/poster-cabinet.png", import.meta.url).pathname;
-const buf = await sharp(Buffer.from(svg))
-  .composite([{ input: qr, left: Math.round(CARD_X + 95), top: CARD_Y + 95 }])
-  .png({ compressionLevel: 9 })
-  .toBuffer();
+const raw = new Resvg(svg, {
+  font: { fontFiles: FONT_FILES, loadSystemFonts: false, defaultFontFamily: FONT_FAMILY },
+}).render().asPng();
+const buf = await sharp(raw).png({ compressionLevel: 9 }).toBuffer();
 await writeFile(out, buf);
 
 console.log(`สร้าง ${out} — ${(buf.length / 1024 / 1024).toFixed(1)} MB (${W}×${H} · A4 300dpi)`);
-console.log(`QR ชี้ไป: ${ADD_URL}`);
