@@ -27,24 +27,30 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
 );
 const KINDS: PosterKind[] = ["flow-a4", "flow-wide", "cabinet"];
 
-/** แถวปรับฟอนต์ + สี ต่อ section */
+/** แถวปรับฟอนต์ + สี + ขนาด ต่อ section */
 function StyleRow({ style, onChange }: { style: SectionStyle; onChange: (u: Partial<SectionStyle>) => void }) {
   return (
-    <div className="mb-1 flex items-end gap-2 rounded-lg bg-neutral-50 p-2">
-      <label className="flex-1 text-[11px] text-neutral-500">
-        ฟอนต์
-        <select value={style.font} onChange={(e) => onChange({ font: e.target.value })} className="mt-1 w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
-          <option value="">ตามค่ารวม</option>
-          {FONTS.map((f) => <option key={f.family} value={f.family}>{f.label}</option>)}
-        </select>
-      </label>
-      <label className="text-center text-[11px] text-neutral-500">
-        หัวข้อ
-        <input type="color" value={style.title} onChange={(e) => onChange({ title: e.target.value })} className="mt-1 block h-8 w-10 cursor-pointer rounded border border-neutral-200" />
-      </label>
-      <label className="text-center text-[11px] text-neutral-500">
-        ข้อความ
-        <input type="color" value={style.body} onChange={(e) => onChange({ body: e.target.value })} className="mt-1 block h-8 w-10 cursor-pointer rounded border border-neutral-200" />
+    <div className="mb-1 space-y-2 rounded-lg bg-neutral-50 p-2">
+      <div className="flex items-end gap-2">
+        <label className="flex-1 text-[11px] text-neutral-500">
+          ฟอนต์
+          <select value={style.font} onChange={(e) => onChange({ font: e.target.value })} className="mt-1 w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
+            <option value="">ตามค่ารวม</option>
+            {FONTS.map((f) => <option key={f.family} value={f.family}>{f.label}</option>)}
+          </select>
+        </label>
+        <label className="text-center text-[11px] text-neutral-500">
+          หัวข้อ
+          <input type="color" value={style.title} onChange={(e) => onChange({ title: e.target.value })} className="mt-1 block h-8 w-10 cursor-pointer rounded border border-neutral-200" />
+        </label>
+        <label className="text-center text-[11px] text-neutral-500">
+          ข้อความ
+          <input type="color" value={style.body} onChange={(e) => onChange({ body: e.target.value })} className="mt-1 block h-8 w-10 cursor-pointer rounded border border-neutral-200" />
+        </label>
+      </div>
+      <label className="block text-[11px] text-neutral-500">
+        ขนาดตัวอักษร: {Math.round(style.scale * 100)}%
+        <input type="range" min={0.6} max={1.6} step={0.02} value={style.scale} onChange={(e) => onChange({ scale: +e.target.value })} className="w-full" />
       </label>
     </div>
   );
@@ -121,15 +127,22 @@ export default function PosterEditor({ userName = "ผู้ดูแล" }: { u
     return kind === "flow-wide" ? buildFlowWide(b) : buildFlowA4(b);
   };
 
+  // ฟอนต์ทุกตัวที่ใช้จริง (รวม + ราย section) — ต้องฝังครบตอน export ไม่งั้น section ที่ตั้งฟอนต์ต่างจะตกฟอนต์
+  const usedFonts = (): string[] => {
+    const styles: SectionStyle[] = Object.values(isCab ? cab.styles : flow.styles);
+    return [...new Set([font, ...styles.map((s) => s.font).filter(Boolean)])];
+  };
+
   const doExport = async (mode: "png" | "print" | "bleed") => {
     try {
       setBusy(mode);
       const b = await resolveExport();
+      const fonts = usedFonts();
       if (mode === "bleed") {
-        const blob = await renderPrintBleedPng(b, font, spec.targetW, spec.physWidthMm);
+        const blob = await renderPrintBleedPng(b, fonts, spec.targetW, spec.physWidthMm);
         downloadBlob(blob, `${spec.file}-print.png`);
       } else {
-        const blob = await renderPng(b, font, spec.targetW);
+        const blob = await renderPng(b, fonts, spec.targetW);
         if (mode === "print") printPng(blob, spec.landscape, printMargin);
         else downloadBlob(blob, `${spec.file}.png`);
       }
@@ -157,11 +170,27 @@ export default function PosterEditor({ userName = "ผู้ดูแล" }: { u
   };
   const restoreSave = (s: PosterSave) => {
     if (s.kind === "cabinet") {
+      const d = defaultCabinetConfig();
+      const c = s.config as CabinetConfig;
+      const styles: CabinetStyles = {
+        header: { ...d.styles.header, ...c.styles?.header },
+        steps: { ...d.styles.steps, ...c.styles?.steps },
+        footer: { ...d.styles.footer, ...c.styles?.footer },
+      };
       setKind("cabinet");
-      setCab({ ...defaultCabinetConfig(), ...(s.config as CabinetConfig) });
+      setCab({ ...d, ...c, palette: { ...d.palette, ...c.palette }, styles });
     } else {
+      const d = defaultFlowConfig();
+      const c = s.config as FlowConfig;
+      const styles: FlowStyles = {
+        header: { ...d.styles.header, ...c.styles?.header },
+        steps: { ...d.styles.steps, ...c.styles?.steps },
+        materials: { ...d.styles.materials, ...c.styles?.materials },
+        promo: { ...d.styles.promo, ...c.styles?.promo },
+        footer: { ...d.styles.footer, ...c.styles?.footer },
+      };
       setKind(s.kind);
-      setFlow({ ...defaultFlowConfig(), ...(s.config as FlowConfig) });
+      setFlow({ ...d, ...c, palette: { ...d.palette, ...c.palette }, styles });
     }
   };
   const removeSave = async (id: string) => {

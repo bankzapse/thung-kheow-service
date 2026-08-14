@@ -47,16 +47,16 @@ async function svgToCanvas(svg: string, targetW: number, vbW: number, vbH: numbe
 }
 
 /** ฝังฟอนต์ + rasterize เป็น PNG blob (trim) */
-export async function renderPng(built: BuiltSvg, fontFamily: string, targetW: number): Promise<Blob> {
-  const fontCss = await fontFaceCssEmbedded(fontFamily);
+export async function renderPng(built: BuiltSvg, fontFamilies: string[], targetW: number): Promise<Blob> {
+  const fontCss = await fontFaceCssEmbedded(fontFamilies);
   const svg = built.svg.replace("</defs>", `<style>${fontCss}</style></defs>`);
   const canvas = await svgToCanvas(svg, targetW, built.width, built.height);
   return await new Promise((resolve) => canvas.toBlob((b) => resolve(b!), "image/png"));
 }
 
 /** ห่อ canvas ด้วย bleed 3mm (ยืดขอบ) + crop marks → PNG blob สำหรับส่งโรงพิมพ์ */
-export async function renderPrintBleedPng(built: BuiltSvg, fontFamily: string, targetW: number, physWidthMm: number): Promise<Blob> {
-  const fontCss = await fontFaceCssEmbedded(fontFamily);
+export async function renderPrintBleedPng(built: BuiltSvg, fontFamilies: string[], targetW: number, physWidthMm: number): Promise<Blob> {
+  const fontCss = await fontFaceCssEmbedded(fontFamilies);
   const svg = built.svg.replace("</defs>", `<style>${fontCss}</style></defs>`);
   const trim = await svgToCanvas(svg, targetW, built.width, built.height);
   const TW = trim.width;
