@@ -139,27 +139,40 @@ export function downloadBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
-/** ปริ้น: เปิดหน้าต่างใหม่แล้ววาง SVG ตรง ๆ (เวกเตอร์ + ฝังฟอนต์ base64 ในหัวหน้า)
- *  เบราว์เซอร์เรนเดอร์ฟอนต์จริงตอนพิมพ์ ไม่ผ่าน canvas จึงไม่ตกฟอนต์
- *  built.svg ควรฝังรูปเป็น data URI มาแล้ว (resolveExport) · marginMm 0 = ชิดขอบ */
+/** ปริ้น: วาง SVG ตรง ๆ ใน hidden iframe (เวกเตอร์ + ฝังฟอนต์ base64) แล้วสั่งพิมพ์เฉพาะ iframe
+ *  ไม่ผ่าน canvas จึงไม่ตกฟอนต์ · ไม่ง้อ popup (กันโดนบล็อก) · built.svg ฝังรูปเป็น data URI มาแล้ว */
 export async function printSvg(built: BuiltSvg, fontFamilies: string[], landscape = true, marginMm = 0) {
   const fontCss = await fontFaceCssEmbedded(fontFamilies);
   // เอา width/height ออก เหลือ viewBox ให้ CSS คุมขนาดพอดีหน้า
   const svg = built.svg.replace(/(<svg\b[^>]*?)\s+width="\d+"\s+height="\d+"/, "$1");
   const m = Math.max(0, marginMm);
-  const primary = fontFamilies[0] ?? "IBM Plex Sans Thai";
-  const w = window.open("", "_blank");
-  if (!w) {
-    alert("เปิดหน้าต่างพิมพ์ไม่ได้ — โปรดอนุญาตป็อปอัป (popup) ของเว็บนี้แล้วลองใหม่");
+  const html =
+    `<!doctype html><html><head><meta charset="utf-8"><title>พิมพ์โปสเตอร์</title>` +
+    `<style>${fontCss}</style>` +
+    `<style>@page{size:A4 ${landscape ? "landscape" : "portrait"};margin:${m}mm}html,body{margin:0;padding:0}body{width:100%;height:100vh;display:flex;align-items:center;justify-content:center}svg{max-width:100%;max-height:100vh}</style>` +
+    `</head><body>${svg}</body></html>`;
+
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.style.cssText = "position:fixed;right:0;bottom:0;width:1px;height:1px;opacity:0;border:0;pointer-events:none";
+  document.body.appendChild(iframe);
+  const win = iframe.contentWindow;
+  if (!win) {
+    iframe.remove();
     return;
   }
-  w.document.write(
-    `<!doctype html><html><head><meta charset="utf-8"><title>พิมพ์โปสเตอร์</title>` +
-      `<style>${fontCss}</style>` +
-      `<style>@page{size:A4 ${landscape ? "landscape" : "portrait"};margin:${m}mm}html,body{margin:0;padding:0}body{width:100%;height:100vh;display:flex;align-items:center;justify-content:center}svg{max-width:100%;max-height:100vh}</style>` +
-      `</head><body>${svg}` +
-      `<script>function go(){window.focus();window.print();}if(document.fonts){document.fonts.load('700 64px "${primary}"').catch(function(){}).then(function(){return document.fonts.ready;}).then(function(){setTimeout(go,300);});}else{setTimeout(go,600);}<\/script>` +
-      `</body></html>`,
-  );
-  w.document.close();
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+
+  // รอฟอนต์ + รูป พร้อมก่อนพิมพ์
+  try {
+    await win.document.fonts.ready;
+  } catch {
+    /* บางเบราว์เซอร์ไม่มี fonts API */
+  }
+  await new Promise((r) => setTimeout(r, 250));
+  win.focus();
+  win.print();
+  setTimeout(() => iframe.remove(), 1500);
 }
