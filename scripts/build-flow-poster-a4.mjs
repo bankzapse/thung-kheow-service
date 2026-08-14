@@ -81,7 +81,7 @@ function step(i) {
   const desc = s.lines
     .map(
       (l, k) =>
-        `<text x="${x}" y="${CIRCLE_Y + R + 178 + k * 68}" font-family="${FONT}" font-size="50"
+        `<text x="${x}" y="${CIRCLE_Y + R + 178 + k * 80}" font-family="${FONT}" font-size="50"
            fill="#5b6b60" text-anchor="middle">${esc(l)}</text>`,
     )
     .join("");
@@ -183,7 +183,7 @@ function rightColumn() {
   const warnCard = `
     <rect x="${cardX}" y="${wcY}" width="${cardW}" height="${wcH}" rx="40" fill="#fff5f5" stroke="#f2b5b5" stroke-width="3"/>
     ${tri}
-    <text x="${wtx}" y="${wcY + wcH / 2 - 10}" font-family="${FONT}" font-size="52" font-weight="700" fill="#991b1b">คำเตือน! การขโมยถุง</text>
+    <text x="${wtx}" y="${wcY + wcH / 2 - 24}" font-family="${FONT}" font-size="52" font-weight="700" fill="#991b1b">คำเตือน! การขโมยถุง</text>
     <text x="${wtx}" y="${wcY + wcH / 2 + 58}" font-family="${FONT}" font-size="52" font-weight="700" fill="#991b1b">มีโทษตามกฎหมาย</text>`;
 
   return qrCard + warnCard;
