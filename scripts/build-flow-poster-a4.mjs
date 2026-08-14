@@ -96,12 +96,12 @@ function step(i) {
   // ขั้นตอน 1: การ์ด QR (พระเอก) — ใหญ่กว่าวงอื่น QR กลางการ์ดขอบเท่ากัน
   // เลขลำดับอยู่มุมขวาบนของการ์ด ไม่ทับ finder ของ QR
   if (i === 0) {
-    const q = 380;
-    const pad = (2 * R1 - q) / 2;
+    const pad = 60; // กรอบขาวบาง (เป็น quiet zone ของ QR ในตัว)
+    const q = 2 * R1 - 2 * pad;
     const qx = x - q / 2;
     const qy = CIRCLE_Y - R1 + pad;
-    const b1x = x + R1 - 34;
-    const b1y = CIRCLE_Y - R1 + 34;
+    const b1x = x + R1; // คร่อมมุมขวาบนของการ์ดพอดี ไม่ทับ finder
+    const b1y = CIRCLE_Y - R1;
     const badge1 = `
       <circle cx="${b1x}" cy="${b1y}" r="80" fill="#fff"/>
       <circle cx="${b1x}" cy="${b1y}" r="80" fill="none" stroke="#15803d" stroke-width="7"/>
