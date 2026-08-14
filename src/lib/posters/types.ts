@@ -22,6 +22,27 @@ export interface Palette {
   sub: string;
 }
 
+/** ฟอนต์ + สี ต่อ section — font "" = ใช้ฟอนต์ตามค่ารวม */
+export interface SectionStyle {
+  font: string;
+  title: string; // สีหัวข้อ/ตัวเด่น
+  body: string; // สีข้อความรอง
+}
+
+export interface FlowStyles {
+  header: SectionStyle;
+  steps: SectionStyle;
+  materials: SectionStyle;
+  promo: SectionStyle;
+  footer: SectionStyle; // ครอบ คำเตือน + ท้ายโปสเตอร์
+}
+
+export interface CabinetStyles {
+  header: SectionStyle;
+  steps: SectionStyle;
+  footer: SectionStyle;
+}
+
 /** ค่าปรับแต่งโปสเตอร์ flow (ใช้ทั้ง flow-a4 และ flow-wide) */
 export interface FlowConfig {
   fontFamily: string;
@@ -40,6 +61,7 @@ export interface FlowConfig {
   footerLeft: string;
   footerCenter: string;
   footerRight: string;
+  styles: FlowStyles;
   logoUri: string;
   qrUri: string;
 }
@@ -57,6 +79,7 @@ export interface CabinetConfig {
   footer: string;
   site: string;
   lineId: string;
+  styles: CabinetStyles;
   logoUri: string;
   qrUri: string;
 }

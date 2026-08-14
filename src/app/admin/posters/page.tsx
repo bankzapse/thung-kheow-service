@@ -1,9 +1,11 @@
 "use client";
 
 import { Printer } from "lucide-react";
+import { useStore } from "@/lib/store";
 import PosterEditor from "./PosterEditor";
 
 export default function PostersPage() {
+  const { currentUser } = useStore();
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
@@ -15,7 +17,7 @@ export default function PostersPage() {
           <p className="text-sm text-neutral-500">แก้ข้อความ ฟอนต์ ขนาด รูป ไอคอน แล้วพิมพ์หรือดาวน์โหลด</p>
         </div>
       </div>
-      <PosterEditor />
+      <PosterEditor userName={currentUser?.name || "ผู้ดูแล"} />
     </div>
   );
 }

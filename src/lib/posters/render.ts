@@ -125,13 +125,15 @@ export function downloadBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
-/** ปริ้น: เปิดหน้าต่างใหม่ด้วยรูป PNG ขนาด A4 แล้วสั่งพิมพ์ */
-export function printPng(blob: Blob, landscape = true) {
+/** ปริ้น: เปิดหน้าต่างใหม่ด้วยรูป PNG ขนาด A4 แล้วสั่งพิมพ์
+ *  marginMm = ระยะเว้นขอบกระดาษ (0 = ชิดขอบ/ไร้ขอบ) */
+export function printPng(blob: Blob, landscape = true, marginMm = 0) {
   const url = URL.createObjectURL(blob);
   const w = window.open("", "_blank");
   if (!w) return;
+  const m = Math.max(0, marginMm);
   w.document.write(
-    `<!doctype html><html><head><meta charset="utf-8"><title>พิมพ์โปสเตอร์</title><style>@page{size:A4 ${landscape ? "landscape" : "portrait"};margin:0}html,body{margin:0;padding:0}img{display:block;width:100%;height:100%;object-fit:contain}</style></head><body><img src="${url}" onload="setTimeout(()=>{window.focus();window.print();},150)"></body></html>`,
+    `<!doctype html><html><head><meta charset="utf-8"><title>พิมพ์โปสเตอร์</title><style>@page{size:A4 ${landscape ? "landscape" : "portrait"};margin:${m}mm}html,body{margin:0;padding:0}img{display:block;width:100%;height:100%;object-fit:contain}</style></head><body><img src="${url}" onload="setTimeout(()=>{window.focus();window.print();},150)"></body></html>`,
   );
   w.document.close();
 }
