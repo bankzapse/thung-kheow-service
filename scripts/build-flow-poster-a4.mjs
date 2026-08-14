@@ -22,7 +22,8 @@ const SITE = "thung-kheow.com";
 const W = 4800;
 const H = 3394;
 const FONT = FONT_FAMILY;
-const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+// แตก "ำ" (U+0E33) → nikhahit + สระอา (U+0E4D U+0E32) แก้บั๊ก resvg ที่ ำ เกยตัวถัดไป (เช่น "คำเตือน")
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/ำ/g, "ํา");
 
 const ICONS = {
   addline: `<path d="M-40-30h80a10 10 0 0110 10v36a10 10 0 01-10 10H4L-16 52V36h-24a10 10 0 01-10-10v-36a10 10 0 0110-10z" fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round"/><path d="M0-14v28M-14 0h28" stroke="#fff" stroke-width="7" stroke-linecap="round"/>`,
@@ -183,8 +184,8 @@ function rightColumn() {
   const warnCard = `
     <rect x="${cardX}" y="${wcY}" width="${cardW}" height="${wcH}" rx="40" fill="#fff5f5" stroke="#f2b5b5" stroke-width="3"/>
     ${tri}
-    <text x="${wtx}" y="${wcY + wcH / 2 - 24}" font-family="${FONT}" font-size="52" font-weight="700" fill="#991b1b">คำเตือน! การขโมยถุง</text>
-    <text x="${wtx}" y="${wcY + wcH / 2 + 58}" font-family="${FONT}" font-size="52" font-weight="700" fill="#991b1b">มีโทษตามกฎหมาย</text>`;
+    <text x="${wtx}" y="${wcY + wcH / 2 - 24}" font-family="${FONT}" font-size="52" font-weight="700" fill="#991b1b">${esc("คำเตือน! การขโมยถุง")}</text>
+    <text x="${wtx}" y="${wcY + wcH / 2 + 58}" font-family="${FONT}" font-size="52" font-weight="700" fill="#991b1b">${esc("มีโทษตามกฎหมาย")}</text>`;
 
   return qrCard + warnCard;
 }

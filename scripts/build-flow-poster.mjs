@@ -23,7 +23,8 @@ const SITE = "thung-kheow.com";
 const W = 4800;
 const H = 2400;
 const FONT = FONT_FAMILY;
-const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+// แตก "ำ" (U+0E33) → nikhahit + สระอา (U+0E4D U+0E32) แก้บั๊ก resvg ที่ ำ เกยตัวถัดไป (เช่น "คำเตือน")
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/ำ/g, "ํา");
 
 /* ---------- ไอคอนเส้นสีขาว (วาด path เอง วางที่จุดกำเนิด ~ -40..40) ---------- */
 const ICONS = {
@@ -200,8 +201,8 @@ function rightColumn() {
   const warnCard = `
     <rect x="${cardX}" y="${wcY}" width="${cardW}" height="${wcH}" rx="40" fill="#fff5f5" stroke="#f2b5b5" stroke-width="3"/>
     ${tri}
-    <text x="${wtx}" y="${wcY + wcH / 2 - 24}" font-family="${FONT}" font-size="52" font-weight="700" fill="#991b1b">คำเตือน! การขโมยถุง</text>
-    <text x="${wtx}" y="${wcY + wcH / 2 + 58}" font-family="${FONT}" font-size="52" font-weight="700" fill="#991b1b">มีโทษตามกฎหมาย</text>`;
+    <text x="${wtx}" y="${wcY + wcH / 2 - 24}" font-family="${FONT}" font-size="52" font-weight="700" fill="#991b1b">${esc("คำเตือน! การขโมยถุง")}</text>
+    <text x="${wtx}" y="${wcY + wcH / 2 + 58}" font-family="${FONT}" font-size="52" font-weight="700" fill="#991b1b">${esc("มีโทษตามกฎหมาย")}</text>`;
 
   return qrCard + warnCard;
 }
