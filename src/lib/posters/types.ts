@@ -22,11 +22,12 @@ export interface Palette {
   sub: string;
 }
 
-/** ฟอนต์ + สี ต่อ section — font "" = ใช้ฟอนต์ตามค่ารวม */
+/** ฟอนต์ + สี + ขนาด ต่อ section — font "" = ใช้ฟอนต์ตามค่ารวม, scale = ตัวคูณขนาดเฉพาะ section (1 = ปกติ) */
 export interface SectionStyle {
   font: string;
   title: string; // สีหัวข้อ/ตัวเด่น
   body: string; // สีข้อความรอง
+  scale: number;
 }
 
 export interface FlowStyles {
