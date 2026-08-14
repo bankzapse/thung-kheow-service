@@ -8,8 +8,9 @@ import { defaultFlowConfig, defaultCabinetConfig, POSTER_SPECS, LINE_OA_ID } fro
 import { FONTS, fontFaceCssLinked } from "@/lib/posters/fonts";
 import { ICON_KEYS, ICONS } from "@/lib/posters/icons";
 import { qrDataUri, toDataUri, renderPng, renderPrintBleedPng, downloadBlob, printPng } from "@/lib/posters/render";
+import { addSave, deleteSave, listSaves, savesShared, type PosterSave } from "@/lib/posters/saves";
 import type { BuiltSvg, CabinetConfig, CabinetStyles, FlowConfig, FlowStyles, Palette, PosterKind, SectionStyle } from "@/lib/posters/types";
-import { Printer, Download, FileImage, RotateCcw, Loader2 } from "lucide-react";
+import { Printer, Download, FileImage, RotateCcw, Loader2, Save, Trash2, CornerDownLeft } from "lucide-react";
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <label className="block">
@@ -49,7 +50,7 @@ function StyleRow({ style, onChange }: { style: SectionStyle; onChange: (u: Part
   );
 }
 
-export default function PosterEditor() {
+export default function PosterEditor({ userName = "ผู้ดูแล" }: { userName?: string }) {
   const [kind, setKind] = useState<PosterKind>("flow-a4");
   const [flow, setFlow] = useState<FlowConfig>(() => defaultFlowConfig());
   const [cab, setCab] = useState<CabinetConfig>(() => defaultCabinetConfig());
@@ -57,6 +58,13 @@ export default function PosterEditor() {
   const [qr, setQr] = useState("");
   const [printMargin, setPrintMargin] = useState(0); // ระยะขอบตอนพิมพ์ (มม.) · 0 = ชิดขอบ
   const [busy, setBusy] = useState<string | null>(null);
+  const [saves, setSaves] = useState<PosterSave[]>([]);
+  const [saveName, setSaveName] = useState("");
+  const [savesBusy, setSavesBusy] = useState(false);
+
+  useEffect(() => {
+    listSaves().then(setSaves).catch(() => {});
+  }, []);
   const fontCss = useMemo(() => fontFaceCssLinked(), []);
   const isCab = kind === "cabinet";
   const spec = POSTER_SPECS[kind];
@@ -134,6 +142,46 @@ export default function PosterEditor() {
 
   const resetCurrent = () => (isCab ? setCab(defaultCabinetConfig()) : setFlow(defaultFlowConfig()));
 
+  const doSave = async () => {
+    try {
+      setSavesBusy(true);
+      const name = saveName.trim() || `${spec.label} · ${new Date().toLocaleString("th-TH")}`;
+      const list = await addSave({ kind, name, config: isCab ? cab : flow, savedBy: userName });
+      setSaves(list);
+      setSaveName("");
+    } catch (e) {
+      alert("บันทึกไม่สำเร็จ: " + (e as Error).message);
+    } finally {
+      setSavesBusy(false);
+    }
+  };
+  const restoreSave = (s: PosterSave) => {
+    if (s.kind === "cabinet") {
+      setKind("cabinet");
+      setCab({ ...defaultCabinetConfig(), ...(s.config as CabinetConfig) });
+    } else {
+      setKind(s.kind);
+      setFlow({ ...defaultFlowConfig(), ...(s.config as FlowConfig) });
+    }
+  };
+  const removeSave = async (id: string) => {
+    try {
+      setSavesBusy(true);
+      setSaves(await deleteSave(id));
+    } catch (e) {
+      alert("ลบไม่สำเร็จ: " + (e as Error).message);
+    } finally {
+      setSavesBusy(false);
+    }
+  };
+  const shortTime = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleString("th-TH", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return "";
+    }
+  };
+
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
       <style dangerouslySetInnerHTML={{ __html: fontCss }} />
@@ -179,6 +227,31 @@ export default function PosterEditor() {
       </div>
 
       <div className="max-h-[calc(100vh-160px)] space-y-4 overflow-y-auto pr-1 lg:sticky lg:top-4">
+        <Section title="บันทึกการแก้ไข">
+          <div className="flex gap-2">
+            <input value={saveName} onChange={(e) => setSaveName(e.target.value)} placeholder="ตั้งชื่อเวอร์ชัน (ไม่บังคับ)" className={inputCls} />
+            <button onClick={doSave} disabled={savesBusy} className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">
+              {savesBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} บันทึก
+            </button>
+          </div>
+          <p className="text-[11px] text-neutral-400">{savesShared ? "เก็บบน Supabase · แชร์ทุก admin" : "เก็บในเบราว์เซอร์นี้ (ยังไม่ได้ตั้ง Supabase)"}</p>
+          {saves.length === 0 ? (
+            <p className="text-xs text-neutral-400">ยังไม่มีเวอร์ชันที่บันทึก</p>
+          ) : (
+            <ul className="space-y-2">
+              {saves.map((s) => (
+                <li key={s.id} className="flex items-center gap-2 rounded-lg border border-neutral-200 p-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium text-neutral-800">{s.name}</div>
+                    <div className="truncate text-[11px] text-neutral-400">{POSTER_SPECS[s.kind].label} · {s.savedBy} · {shortTime(s.savedAt)}</div>
+                  </div>
+                  <button onClick={() => restoreSave(s)} title="ใช้เวอร์ชันนี้" className="inline-flex shrink-0 items-center gap-1 rounded-md border border-neutral-300 px-2 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50"><CornerDownLeft className="h-3.5 w-3.5" /> ใช้</button>
+                  <button onClick={() => removeSave(s.id)} title="ลบ" className="shrink-0 rounded-md border border-neutral-300 p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
         <Section title="ตัวอักษร & สี">
           <Field label="ฟอนต์">
             <select value={font} onChange={(e) => setFont(e.target.value)} className={inputCls}>
