@@ -119,16 +119,16 @@ function materialStrip() {
   const innerX = MARGIN + 60;
   const usable = SPLIT - 90 - innerX;
   const step = usable / MATERIALS.length;
-  const thumb = 150;
+  const thumb = 236;
   const items = MATERIALS.map(([id, label], i) => {
     const mx = innerX + step / 2 + i * step;
-    const ty = BOT_Y + 190;
+    const ty = BOT_Y + 234;
     return `
-      <clipPath id="mclip${i}"><rect x="${mx - thumb / 2}" y="${ty}" width="${thumb}" height="${thumb}" rx="34"/></clipPath>
+      <clipPath id="mclip${i}"><rect x="${mx - thumb / 2}" y="${ty}" width="${thumb}" height="${thumb}" rx="46"/></clipPath>
       <image href="${matUri[id]}" x="${mx - thumb / 2}" y="${ty}" width="${thumb}" height="${thumb}"
              preserveAspectRatio="xMidYMid slice" clip-path="url(#mclip${i})"/>
-      <rect x="${mx - thumb / 2}" y="${ty}" width="${thumb}" height="${thumb}" rx="34" fill="none" stroke="#e3ece6" stroke-width="3"/>
-      <text x="${mx}" y="${ty + thumb + 58}" font-family="${FONT}" font-size="42" font-weight="600"
+      <rect x="${mx - thumb / 2}" y="${ty}" width="${thumb}" height="${thumb}" rx="46" fill="none" stroke="#e3ece6" stroke-width="4"/>
+      <text x="${mx}" y="${ty + thumb + 70}" font-family="${FONT}" font-size="54" font-weight="600"
             fill="#33463b" text-anchor="middle">${esc(label)}</text>`;
   }).join("");
   const cardRight = MARGIN + (SPLIT - MARGIN - 60);
@@ -146,7 +146,7 @@ function materialStrip() {
     <text x="${icx + 46}" y="${icy + 17}" font-family="${FONT}" font-size="44" font-weight="700" fill="#ffffff">ห้ามทิ้งขยะทั่วไป · ขยะเปียก</text>`;
   return `
     <rect x="${MARGIN}" y="${BOT_Y}" width="${SPLIT - MARGIN - 60}" height="${BOT_H}" rx="44" fill="#ffffff" stroke="#e3ece6" stroke-width="3"/>
-    <text x="${innerX}" y="${BOT_Y + 78}" font-family="${FONT}" font-size="54" font-weight="700" fill="#153d29">รับเฉพาะวัสดุเหล่านี้</text>
+    <text x="${innerX}" y="${BOT_Y + 82}" font-family="${FONT}" font-size="62" font-weight="700" fill="#153d29">รับเฉพาะวัสดุเหล่านี้</text>
     ${warn}
     ${items}`;
 }
@@ -207,11 +207,11 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
   <rect width="${W}" height="${H}" fill="#f6fbf8"/>
 
   <!-- header -->
-  <rect x="0" y="0" width="${W}" height="340" fill="url(#gband)"/>
-  <image href="${logoUri}" x="${MARGIN}" y="86" width="168" height="168"/>
-  <text x="${MARGIN + 210}" y="170" font-family="${FONT}" font-size="92" font-weight="700" fill="#ffffff">ถุงเขียว</text>
-  <text x="${MARGIN + 210}" y="252" font-family="${FONT}" font-size="50" fill="#d9f4e3">เปลี่ยนขยะรีไซเคิลเป็นเงิน · หย่อนถุงที่ตู้ สะสมแต้ม แลกเงิน</text>
-  <text x="${W - MARGIN}" y="212" font-family="${FONT}" font-size="80" font-weight="700" fill="#ffffff" text-anchor="end">ขั้นตอนการใช้งาน</text>
+  <rect x="0" y="0" width="${W}" height="380" fill="url(#gband)"/>
+  <image href="${logoUri}" x="${MARGIN}" y="84" width="212" height="212"/>
+  <text x="${MARGIN + 262}" y="188" font-family="${FONT}" font-size="124" font-weight="700" fill="#ffffff">ถุงเขียว</text>
+  <text x="${MARGIN + 262}" y="274" font-family="${FONT}" font-size="52" fill="#d9f4e3">เปลี่ยนขยะรีไซเคิลเป็นเงิน · หย่อนถุงที่ตู้ สะสมแต้ม แลกเงิน</text>
+  <text x="${W - MARGIN}" y="234" font-family="${FONT}" font-size="88" font-weight="700" fill="#ffffff" text-anchor="end">ขั้นตอนการใช้งาน</text>
 
   <!-- flow -->
   ${connectors()}
