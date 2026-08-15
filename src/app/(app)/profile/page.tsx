@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { AppHeader } from "@/components/AppHeader";
 import { Modal } from "@/components/ui";
+import { VerifyPhoneModal } from "@/components/VerifyPhoneModal";
 import { PayoutCard } from "@/components/PayoutCard";
 import { pointsOf } from "@/lib/selectors";
 import { monthlyRewards } from "@/lib/rewards";
@@ -23,6 +24,7 @@ export default function ProfilePage() {
   const [delAck, setDelAck] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [phoneOpen, setPhoneOpen] = useState(false);
+  const [verifyOpen, setVerifyOpen] = useState(false);
   const [newPhone, setNewPhone] = useState("");
   const [savingPhone, setSavingPhone] = useState(false);
   const savePhone = async () => {
@@ -66,7 +68,9 @@ export default function ProfilePage() {
                   u.phoneVerified ? (
                     <span className="flex items-center justify-end gap-0.5 text-[11px] font-medium text-brand-600"><CheckCircle2 className="h-3 w-3" /> ยืนยันแล้ว</span>
                   ) : (
-                    <span className="flex items-center justify-end gap-0.5 text-[11px] font-medium text-amber-600"><AlertTriangle className="h-3 w-3" /> ยังไม่ยืนยัน</span>
+                    <button onClick={() => setVerifyOpen(true)} className="flex items-center justify-end gap-0.5 text-[11px] font-semibold text-amber-600 hover:text-amber-700 hover:underline">
+                      <AlertTriangle className="h-3 w-3" /> ยังไม่ยืนยัน · แตะเพื่อยืนยัน
+                    </button>
                   )
                 )}
               </div>
@@ -111,6 +115,9 @@ export default function ProfilePage() {
           </button>
         </div>
       </div>
+
+      {/* ยืนยันเบอร์ด้วย OTP (จากหน้าโปรไฟล์) — reuse โมดัลเดียวกับหน้าถอนเงิน */}
+      <VerifyPhoneModal phone={u.phone || ""} open={verifyOpen} onClose={() => setVerifyOpen(false)} onVerified={() => setVerifyOpen(false)} />
 
       {/* แก้เบอร์โทรศัพท์ */}
       <Modal
