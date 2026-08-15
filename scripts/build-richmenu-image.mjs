@@ -33,7 +33,7 @@ const cellBox = (i) => (i < 2 ? { ...TOP[i], y: 0 } : { ...BOTTOM[i - 2], y: ROW
 // ไล่สีต่อช่อง (โทนเขียว-เทียลชุดเดียวกัน) + 2 ปุ่มบนมีรูปประกอบ
 // ⚠️ ลำดับต้องตรงกับ CELLS ใน scripts/line-richmenu.mjs
 const CELLS = [
-  { label: "หย่อนถุง", sub: "สแกน QR บนถุง", icon: "scan", from: "#22c55e", to: "#15803d", photo: "hero" },
+  { label: "สแกน QR บนถุง", sub: "หย่อนถุงลงตู้", icon: "scan", from: "#22c55e", to: "#15803d", photo: "hero" },
   { label: "คะแนน & แลกเงิน", sub: "ดูยอด · โอนพร้อมเพย์", icon: "coin", from: "#14b8a6", to: "#0f766e", photo: "coins" },
   { label: "สถานะถุง", sub: "ติดตามการคัดแยก", icon: "box", from: "#22d3ee", to: "#0e7490" },
   { label: "หน้าแรก", sub: "ภาพรวมบัญชี", icon: "home", from: "#34d399", to: "#047857" },

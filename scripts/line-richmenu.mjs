@@ -48,7 +48,7 @@ const TOP = [{ x: 0, w: 1250 }, { x: 1250, w: 1250 }];
 const BOTTOM = [{ x: 0, w: 833 }, { x: 833, w: 833 }, { x: 1666, w: 834 }];
 const cellBox = (i) => (i < 2 ? { ...TOP[i], y: 0 } : { ...BOTTOM[i - 2], y: ROW });
 const CELLS = [
-  { label: "หย่อนถุง", path: "/drop" },
+  { label: "สแกน QR บนถุง", path: "/drop" },
   { label: "คะแนน & แลกเงิน", path: "/points" },
   { label: "สถานะถุง", path: "/status" },
   { label: "หน้าแรก", path: "/home" },
