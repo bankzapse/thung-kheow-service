@@ -19,6 +19,7 @@ const isPublic = (path: string) =>
   path.startsWith("/terms") ||
   path.startsWith("/privacy") ||
   path.startsWith("/delete-account") ||
+  path.startsWith("/deck-final") || // สไลด์วิธีใช้งาน (public แชร์ได้)
   path.startsWith("/auth") ||
   path.startsWith("/api");
 

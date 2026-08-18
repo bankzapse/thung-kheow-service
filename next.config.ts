@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
       // images.unsplash.com เอาออกแล้ว — รูป landing เก็บไว้ใน public/img เอง
     ],
   },
+  // URL สวย: /deck-final → ไฟล์สไลด์ static (public/deck-final.html)
+  async rewrites() {
+    return [{ source: "/deck-final", destination: "/deck-final.html" }];
+  },
   // HTTP security headers ทุก route
   // ⚠️ ตั้งใจไม่ใส่ X-Frame-Options / frame-ancestors — LIFF ต้องฝังแอปใน webview ของ LINE
   async headers() {
