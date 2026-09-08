@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useStore } from "@/lib/store";
@@ -22,6 +22,16 @@ export default function CabinetDetailPage() {
   const [valuing, setValuing] = useState<MeshBag | null>(null);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [valuingBusy, setValuingBusy] = useState(false);
+
+  // ชั่งเร็ว: กด Enter ที่ช่องน้ำหนัก → เด้งไปช่องวัสดุถัดไป (ถ้าอยู่ช่องสุดท้ายก็ปิดคีย์บอร์ด)
+  // → ชั่งทีละวัสดุ พิมพ์ตัวเลข เคาะ Enter รัว ๆ ไม่ต้องละมือไปแตะจอ
+  // อ่าน input สด ๆ จาก DOM ตอนกด (แทน ref array — กันปัญหา inline-ref identity เปลี่ยนทุก render)
+  const listRef = useRef<HTMLDivElement>(null);
+  const focusNextWeight = (el: HTMLInputElement) => {
+    const inputs = Array.from(listRef.current?.querySelectorAll<HTMLInputElement>("input") ?? []);
+    const next = inputs[inputs.indexOf(el) + 1];
+    if (next) { next.focus(); next.select(); } else { el.blur(); } // ช่องสุดท้าย → ปิดคีย์บอร์ด
+  };
 
   if (!cab) {
     return (
@@ -142,27 +152,33 @@ export default function CabinetDetailPage() {
           </>
         }
       >
-        <div className="space-y-2">
-          <p className="text-xs text-neutral-500">กรอกน้ำหนัก (กก.) ของแต่ละวัสดุที่คัดแยกได้จากถุงนี้</p>
-          {MATERIALS.map((m) => (
-            <div key={m.id} className="flex items-center gap-2.5 rounded-xl border border-neutral-200 p-2">
+        <div className="space-y-2" ref={listRef}>
+          <p className="text-xs text-neutral-500">ชั่งแล้วพิมพ์น้ำหนัก (กก.) ของแต่ละวัสดุ · กด <kbd className="rounded border border-neutral-300 bg-neutral-50 px-1 font-sans text-[11px] text-neutral-600">Enter</kbd> ไปวัสดุถัดไป</p>
+          {MATERIALS.map((m) => {
+            const filled = (qty[m.id] || 0) > 0;
+            return (
+            <div key={m.id} className={`flex items-center gap-2.5 rounded-xl border p-2 transition ${filled ? "border-brand-300 bg-brand-50/40" : "border-neutral-200"}`}>
               <MaterialThumb id={m.id} emoji={m.emoji} size="h-9 w-9" rounded="rounded-lg" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-neutral-700">{m.name}</p>
-                <p className="text-[11px] text-neutral-400">฿{formatBaht(centralPrice(db, m.id))}/กก.</p>
+                <p className="text-[11px] text-neutral-400">฿{formatBaht(centralPrice(db, m.id))}/กก.{filled && <span className="ml-1 font-semibold text-brand-600">= ฿{formatBaht(Math.round(centralPrice(db, m.id) * (qty[m.id] || 0)))}</span>}</p>
               </div>
               <div className="relative w-24">
                 <input
-                  className="input !py-1.5 pr-8 text-right text-sm font-bold"
+                  className="input !py-1.5 pr-8 text-right text-base font-bold"
                   inputMode="decimal"
                   value={qty[m.id] ? String(qty[m.id]) : ""}
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setQty((q) => ({ ...q, [m.id]: Number(e.target.value.replace(/[^0-9.]/g, "")) || 0 }))}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); focusNextWeight(e.currentTarget); } }}
                   placeholder="0"
+                  aria-label={`น้ำหนัก ${m.name} (กก.)`}
                 />
                 <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-neutral-400">กก.</span>
               </div>
             </div>
-          ))}
+            );
+          })}
           <div className="mt-2 space-y-1.5 rounded-xl bg-brand-50 p-3 ring-1 ring-brand-100">
             <div className="flex items-center justify-between text-sm">
               <span className="text-neutral-600">มูลค่ารวม</span>
