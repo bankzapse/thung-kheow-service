@@ -19,14 +19,24 @@ if [[ -z "$DB" ]]; then
   exit 1
 fi
 
+# หา psql — libpq จาก brew ไม่อยู่ใน PATH default → เผื่อ path ไว้ให้ (ไม่ต้องแก้ ~/.zshrc)
+PSQL="$(command -v psql || true)"
+for p in /opt/homebrew/opt/libpq/bin/psql /usr/local/opt/libpq/bin/psql; do
+  [[ -z "$PSQL" && -x "$p" ]] && PSQL="$p"
+done
+if [[ -z "$PSQL" ]]; then
+  echo "❌ ไม่พบ psql — ติดตั้งด้วย: brew install libpq" >&2
+  exit 1
+fi
+
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 echo "▶ schema.sql (base)"
-psql "$DB" -v ON_ERROR_STOP=1 -q -f "$DIR/supabase/schema.sql"
+"$PSQL" "$DB" -v ON_ERROR_STOP=1 -q -f "$DIR/supabase/schema.sql"
 
 n=0
 for f in "$DIR"/supabase/migrations/*.sql; do
   echo "▶ $(basename "$f")"
-  psql "$DB" -v ON_ERROR_STOP=1 -q -f "$f"
+  "$PSQL" "$DB" -v ON_ERROR_STOP=1 -q -f "$f"
   n=$((n + 1))
 done
 
