@@ -25,17 +25,18 @@ body{
   background:var(--forest-3); overflow:hidden;
   -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
 }
-.deck{position:fixed; inset:0; overflow:hidden; background:var(--paper)}
+.deck{position:fixed; inset:0; overflow:hidden; background:var(--paper);
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; touch-action:pan-y}
 
 /* ---------- slides ---------- */
 .slide{
-  position:absolute; inset:0; display:grid; place-items:center;
-  padding:clamp(28px,5vw,84px);
+  position:absolute; inset:0; display:grid; place-items:safe center;
+  padding:clamp(28px,5vw,84px); overflow-y:auto; overscroll-behavior:contain;
   opacity:0; visibility:hidden; transform:translateY(14px) scale(.994);
   transition:opacity .5s ease, transform .5s ease, visibility .5s;
 }
 .slide.is-active{opacity:1; visibility:visible; transform:none}
-.slide__in{width:min(1120px,94vw); margin:0 auto}
+.slide__in{width:min(1120px,100%); margin:0 auto}
 .slide.is-active .anim{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
 .slide.is-active .anim:nth-child(2){animation-delay:.06s}
 .slide.is-active .anim:nth-child(3){animation-delay:.12s}
@@ -167,14 +168,45 @@ h2{font-size:clamp(30px,5.4vw,68px);line-height:1.02;font-weight:700;letter-spac
 kbd{font-family:var(--ff);font-weight:700;background:var(--paper-2);border:1px solid var(--line);border-radius:6px;padding:1px 7px;font-size:12px}
 
 @media (max-width:720px){
-  .step{grid-template-columns:1fr;text-align:center;justify-items:center}
+  .slide{padding:clamp(26px,7vw,46px)}
+  h1{font-size:clamp(46px,13.5vw,78px)}
+  h2{font-size:clamp(33px,8.8vw,54px)}
+  .lead{font-size:clamp(17px,4.6vw,21px);max-width:100%}
+  .cover .kicker{font-size:clamp(19px,5.6vw,27px)}
+  .eyebrow{font-size:12px;letter-spacing:.16em}
+  .step{grid-template-columns:1fr;text-align:center;justify-items:center;gap:clamp(20px,6vw,30px)}
   .badge-col{order:-1}
-  .flow{grid-template-columns:repeat(2,1fr)}
+  .disc,.qrframe{width:clamp(170px,48vw,236px)}
+  .flow{grid-template-columns:repeat(2,1fr);gap:26px 14px;margin-top:clamp(26px,7vw,38px)}
   .flow .node:last-child{grid-column:1/-1}
-  .flow .num{right:calc(50% - 46px)}
-  .cards3,.mats{grid-template-columns:1fr}
-  .giftwrap,.cta{grid-template-columns:1fr;text-align:center;justify-items:center}
-  .notecard{max-width:100%}
+  .mini{width:clamp(86px,23vw,106px)}
+  .flow .num{right:calc(50% - clamp(42px,12vw,54px));top:-6px}
+  .flow .t{font-size:16px}.flow .s{font-size:13px}
+  /* value cards → แนวนอนกระชับ (ไอคอนซ้าย · หัวข้อ+คำอธิบายขวา) */
+  .cards3{grid-template-columns:1fr;gap:12px;margin-top:26px}
+  .vcard{grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:16px;row-gap:2px;align-items:center;padding:16px 18px}
+  .vcard .ic{grid-row:1/3;align-self:center;width:50px;height:50px}
+  .vcard h3{font-size:20px}.vcard p{font-size:14.5px}
+  /* วัสดุ → 2 คอลัมน์ การ์ดตั้ง */
+  .mats{grid-template-columns:1fr 1fr;gap:12px;margin-top:24px}
+  .mat{flex-direction:column;align-items:flex-start;gap:10px;padding:16px}
+  .mat .ic{width:48px;height:48px}
+  .giftwrap,.cta{grid-template-columns:1fr;text-align:center;justify-items:center;gap:clamp(22px,6vw,30px)}
+  .giftdisc{width:clamp(150px,42vw,210px)}
+  .notecard{max-width:100%;text-align:left}
+  .warn{margin-top:18px}
+  .cta h1{font-size:clamp(40px,12vw,72px)}
+}
+/* จอเตี้ย (มือถือแนวนอน) — ย่อลงให้พอดี ไม่ล้น */
+@media (max-height:560px){
+  .slide{padding:16px clamp(20px,5vw,48px)}
+  h1{font-size:clamp(28px,8vh,54px)}
+  h2{font-size:clamp(24px,7vh,44px)}
+  .lead{font-size:15px}
+  .disc,.qrframe,.giftdisc{width:clamp(96px,26vh,168px)}
+  .mini{width:clamp(60px,16vh,88px)}
+  .flow,.cards3,.mats{margin-top:12px}
+  .chips{margin-top:4px}
 }
 @media (prefers-reduced-motion:reduce){
   .slide,.slide .anim{transition:opacity .2s !important;animation:none !important}
