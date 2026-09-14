@@ -68,9 +68,13 @@ export default function AdminFranchisesPage() {
   const phoneOk = !phone || /^0\d{8,9}$/.test(phone);
   const canSaveFr = !!name.trim() && isValidUsername(username) && password.length >= 4 && phoneOk;
 
-  const save = () => {
-    if (!canSaveFr) return;
-    addFranchise({ code: nextTh, name, ownerName, username, phone, password });
+  const [savingFr, setSavingFr] = useState(false);
+  const save = async () => {
+    if (!canSaveFr || savingFr) return;
+    setSavingFr(true);
+    const ok = await addFranchise({ code: nextTh, name, ownerName, username, phone, password });
+    setSavingFr(false);
+    if (!ok) return; // ล้มเหลว → ค้างฟอร์มไว้ (toast บอกเหตุผลแล้ว) ไม่ล้าง/ไม่ปิด
     setName(""); setOwnerName(""); setUsername(""); setPhone(""); setPassword(""); setOpen(false);
   };
 
@@ -303,12 +307,12 @@ export default function AdminFranchisesPage() {
       {/* เพิ่มแฟรนไชส์ */}
       <Modal
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={() => !savingFr && setOpen(false)}
         title="เพิ่มแฟรนไชส์"
         footer={
           <>
-            <button className="btn-outline flex-1" onClick={() => setOpen(false)}>ยกเลิก</button>
-            <button className="btn-primary flex-1" disabled={!canSaveFr} onClick={save}>บันทึก</button>
+            <button className="btn-outline flex-1" disabled={savingFr} onClick={() => setOpen(false)}>ยกเลิก</button>
+            <button className="btn-primary flex-1 disabled:opacity-50" disabled={!canSaveFr || savingFr} onClick={save}>{savingFr ? "กำลังบันทึก…" : "บันทึก"}</button>
           </>
         }
       >
