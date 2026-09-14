@@ -146,7 +146,7 @@ interface StoreValue {
   redeemPoints: (amountBaht: number, points: number, method: "promptpay" | "bank", account: string) => Promise<boolean>;
   markRedemptionPaid: (id: string) => void;
   rejectRedemption: (id: string) => void;
-  addCabinet: (input: { code?: string; name: string; address: string; province?: string; district?: string; subdistrict?: string; franchiseId: string; franchiseCode: string; lat?: number; lng?: number }) => void;
+  addCabinet: (input: { code?: string; name: string; address: string; province?: string; district?: string; subdistrict?: string; franchiseId: string; franchiseCode: string; lat?: number; lng?: number }) => Promise<boolean>;
   createCabinet: (input: { name: string; address: string; province?: string; district?: string; subdistrict?: string; franchiseId?: string; franchiseCode?: string; lat?: number; lng?: number }) => void;
   bulkCreateCabinets: (count: number, namePrefix?: string) => void;
   reassignCabinet: (id: string, franchiseId: string, franchiseCode: string) => void;
@@ -1446,7 +1446,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const addCabinet = useCallback(
-    (input: { code?: string; name: string; address: string; province?: string; district?: string; subdistrict?: string; franchiseId: string; franchiseCode: string; lat?: number; lng?: number }) => {
+    async (input: { code?: string; name: string; address: string; province?: string; district?: string; subdistrict?: string; franchiseId: string; franchiseCode: string; lat?: number; lng?: number }): Promise<boolean> => {
       const fr = (input.franchiseCode || "").trim().toUpperCase();
       // รหัสตู้อัตโนมัติ TK01, TK02, … (รันทั้งระบบ) ถ้าไม่ได้ระบุมา
       let code = (input.code ?? "").trim().toUpperCase();
@@ -1456,8 +1456,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         code = "TK" + String(next).padStart(2, "0");
       }
       const full = fr ? `${fr}-${code}` : code;
-      if (supabaseConfigured) return sbWrite((sb) => repo.addCabinet(sb, { ...input, code, franchiseCode: fr }), `เพิ่มตู้ ${full} แล้ว`, "success");
-      if (db.cabinets.some((c) => c.code === code && c.franchiseCode === fr)) { pushToast(`มีตู้ ${full} อยู่แล้ว`, "info"); return; }
+      // cabinets เขียนตรงไม่ได้ (RLS อ่านอย่างเดียว) → ผ่าน service-role เหมือน createCabinet/updateCabinet
+      // เดิมใช้ RPC add_cabinet + direct update จังหวัด ซึ่ง RLS บล็อกเงียบ ๆ → จังหวัด/อำเภอ/ตำบล ไม่ถูกบันทึก
+      if (supabaseConfigured) return adminUsersApi("createCabinet", { name: input.name, address: input.address, province: input.province, district: input.district, subdistrict: input.subdistrict, franchiseId: input.franchiseId, lat: input.lat, lng: input.lng }, `เพิ่มตู้ให้แฟรนไชส์ ${fr} แล้ว`);
+      if (db.cabinets.some((c) => c.code === code && c.franchiseCode === fr)) { pushToast(`มีตู้ ${full} อยู่แล้ว`, "info"); return false; }
       const cab: Cabinet = {
         id: uid("cab-"), code, franchiseId: input.franchiseId, franchiseCode: fr, name: input.name.trim() || full,
         location: { lat: input.lat ?? 13.7563, lng: input.lng ?? 100.5018, address: input.address.trim() },
@@ -1466,8 +1468,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       };
       setDb((d) => ({ ...d, cabinets: [...d.cabinets, cab] }));
       pushToast(`เพิ่มตู้ ${full} แล้ว`, "success");
+      return true;
     },
-    [db.cabinets, pushToast],
+    [db.cabinets, pushToast, adminUsersApi],
   );
 
   // สร้างตู้เข้าคลัง (บริษัท) — สังกัดแฟรนไชส์ก็ได้ หรือปล่อย "ว่าง" (franchiseId="") ไว้มอบให้ทีหลัง
