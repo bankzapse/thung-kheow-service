@@ -71,10 +71,11 @@ export function Modal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
       <div className="absolute inset-0 bg-neutral-900/40 backdrop-blur-[2px] animate-backdrop-in" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-sm animate-scale-in rounded-3xl bg-white p-5 shadow-float ring-1 ring-neutral-900/5">
-        {title && <h3 className="mb-2 text-lg font-bold text-neutral-900">{title}</h3>}
-        <div className="text-sm text-neutral-600">{children}</div>
-        {footer && <div className="mt-5 flex gap-3">{footer}</div>}
+      {/* จำกัดสูงไม่เกินจอ + ให้เนื้อหาเลื่อนในตัว (หัว/ปุ่มค้างไว้) — กันฟอร์มยาว ๆ (เช่น เพิ่มตู้ + แผนที่) ล้นจอจนกดปุ่มไม่ได้ */}
+      <div className="relative z-10 flex max-h-[90dvh] w-full max-w-sm flex-col animate-scale-in rounded-3xl bg-white p-5 shadow-float ring-1 ring-neutral-900/5">
+        {title && <h3 className="mb-2 shrink-0 text-lg font-bold text-neutral-900">{title}</h3>}
+        <div className="-mx-1 flex-1 overflow-y-auto px-1 text-sm text-neutral-600">{children}</div>
+        {footer && <div className="mt-5 flex shrink-0 gap-3">{footer}</div>}
       </div>
     </div>
   );
