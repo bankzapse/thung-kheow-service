@@ -7,7 +7,7 @@ import { Modal, Segmented } from "@/components/ui";
 import { AddressPicker } from "@/components/AddressPicker";
 import { LocationPicker } from "@/components/LocationPicker";
 import { hasGeo } from "@/lib/geo";
-import { franchisesWithStats, franchiseRevenue, cabinetsWithCounts, cabinetsForFranchise, type FranchiseWithStats } from "@/lib/selectors";
+import { franchisesWithStats, franchiseRevenue, cabinetsWithCounts, cabinetsForFranchise, bagsForCabinet, type FranchiseWithStats } from "@/lib/selectors";
 import { cabinetFullCode, displayCabinetCode } from "@/lib/types";
 import { isValidUsername } from "@/lib/username";
 import { PROVINCES } from "@/lib/thai-address";
@@ -22,7 +22,7 @@ type CabForm = { name: string; address: string; province: string; district: stri
 const EMPTY_CAB: CabForm = { name: "", address: "", province: "", district: "", subdistrict: "" };
 
 export default function AdminFranchisesPage() {
-  const { db, addFranchise, addCabinet, reassignCabinet, editFranchise, removeFranchise, setCabinetLocation, updateCabinetInfo } = useStore();
+  const { db, addFranchise, addCabinet, reassignCabinet, editFranchise, removeFranchise, setCabinetLocation, updateCabinetInfo, deleteCabinet } = useStore();
   const allFranchises = franchisesWithStats(db);
   const nearFull = cabinetsWithCounts(db)
     .filter((c) => c.pending >= NEAR_FULL)
@@ -126,6 +126,10 @@ export default function AdminFranchisesPage() {
     updateCabinetInfo(editCab.id, { name: ec.name, address: ec.address, province: ec.province, district: ec.district, subdistrict: ec.subdistrict });
     setEditCab(null);
   };
+
+  // ลบตู้ (บริษัท) — ถุงในตู้จะถูกปลดออกจากตู้ (ไม่ถูกลบ)
+  const [delCab, setDelCab] = useState<{ id: string; code: string; name: string; bags: number } | null>(null);
+  const doDeleteCab = () => { if (delCab) { deleteCabinet(delCab.id); setDelCab(null); } };
 
   // พิมพ์ QR ตู้ของแฟรนไชส์ (บริษัทพิมพ์ให้ได้)
   const [qrFor, setQrFor] = useState<FranchiseWithStats | null>(null);
@@ -505,6 +509,13 @@ export default function AdminFranchisesPage() {
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button
+                    onClick={() => setDelCab({ id: c.id, code: displayCabinetCode(c.code), name: c.name, bags: bagsForCabinet(db, c.id).length })}
+                    className="shrink-0 rounded-lg bg-neutral-100 p-2 text-neutral-500 hover:bg-red-50 hover:text-red-500"
+                    title="ลบตู้"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                  <button
                     onClick={() => setLocCab({ id: c.id, name: c.name, code: displayCabinetCode(c.code), address: [c.name, c.location.address, c.subdistrict, c.district, c.province].filter(Boolean).join(" "), geo: hasGeo(c.location.lat, c.location.lng) ? { lat: c.location.lat, lng: c.location.lng } : null })}
                     className={`shrink-0 rounded-lg px-2.5 py-2 text-xs font-semibold ${hasGeo(c.location.lat, c.location.lng) ? "bg-neutral-100 text-neutral-500" : "bg-amber-100 text-amber-700"}`}
                     title="ตั้งตำแหน่งบนแผนที่"
@@ -563,6 +574,24 @@ export default function AdminFranchisesPage() {
           <AddressPicker province={ec.province} district={ec.district} subdistrict={ec.subdistrict} onChange={(v) => setEc({ ...ec, ...v })} />
           {!ecComplete && <p className="text-xs text-amber-600">* กรอกให้ครบทุกช่อง (ชื่อ · ที่อยู่ · จังหวัด · อำเภอ · ตำบล)</p>}
           <p className="text-[11px] text-neutral-400">ปรับตำแหน่งบนแผนที่ได้ที่ปุ่ม “ปักหมุด” ในรายการตู้</p>
+        </div>
+      </Modal>
+
+      {/* ยืนยันลบตู้ — วางท้ายสุดให้ซ้อนบน modal "ตู้ & QR" (z เท่ากัน = ตัวหลังใน DOM อยู่บน) */}
+      <Modal
+        open={!!delCab}
+        onClose={() => setDelCab(null)}
+        title="ลบตู้"
+        footer={
+          <>
+            <button className="btn-outline flex-1" onClick={() => setDelCab(null)}>ยกเลิก</button>
+            <button className="btn flex-1 bg-red-500 text-white hover:bg-red-600" onClick={doDeleteCab}><Trash2 className="h-4 w-4" /> ลบถาวร</button>
+          </>
+        }
+      >
+        <div className="flex items-start gap-2.5 text-sm text-neutral-600">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+          <p>ลบตู้ <b className="text-neutral-800">{delCab?.name} ({delCab?.code})</b>{delCab && delCab.bags > 0 ? <> — ถุงในตู้ <b>{delCab.bags} ถุง</b> จะถูกปลดออกจากตู้ (ไม่ถูกลบ)</> : ""} · <span className="text-red-500">ย้อนกลับไม่ได้</span></p>
         </div>
       </Modal>
     </div>
