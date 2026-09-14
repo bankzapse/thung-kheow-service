@@ -131,16 +131,23 @@ export default function AdminFranchisesPage() {
   const [qrFor, setQrFor] = useState<FranchiseWithStats | null>(null);
   const qrCabinets = qrFor ? cabinetsForFranchise(db, qrFor.id) : [];
   const canSaveCab = cabMode === "new" ? cabComplete : !!pickCabId;
-  const saveCab = () => {
-    if (!cabFor) return;
-    if (cabMode === "existing") {
-      if (!pickCabId) return;
-      reassignCabinet(pickCabId, cabFor.id, cabFor.code);
-    } else {
-      if (!cabComplete || !cabGeo) return;
-      addCabinet({ name: cab.name, address: cab.address, province: cab.province, district: cab.district, subdistrict: cab.subdistrict, franchiseId: cabFor.id, franchiseCode: cabFor.code, lat: cabGeo.lat, lng: cabGeo.lng });
+  const [savingCab, setSavingCab] = useState(false);
+  const saveCab = async () => {
+    if (!cabFor || savingCab) return;
+    setSavingCab(true);
+    try {
+      if (cabMode === "existing") {
+        if (!pickCabId) return;
+        reassignCabinet(pickCabId, cabFor.id, cabFor.code);
+      } else {
+        if (!cabComplete || !cabGeo) return;
+        const ok = await addCabinet({ name: cab.name, address: cab.address, province: cab.province, district: cab.district, subdistrict: cab.subdistrict, franchiseId: cabFor.id, franchiseCode: cabFor.code, lat: cabGeo.lat, lng: cabGeo.lng });
+        if (!ok) return; // ล้มเหลว → ค้างฟอร์มไว้ (toast บอกเหตุผล) ไม่ปิด
+      }
+      setCabFor(null);
+    } finally {
+      setSavingCab(false);
     }
-    setCabFor(null);
   };
 
   return (
@@ -413,12 +420,12 @@ export default function AdminFranchisesPage() {
       {/* เพิ่มตู้ (บริษัทเท่านั้น) */}
       <Modal
         open={!!cabFor}
-        onClose={() => setCabFor(null)}
+        onClose={() => !savingCab && setCabFor(null)}
         title={cabFor ? `เพิ่มตู้ให้แฟรนไชส์ ${cabFor.code}` : "เพิ่มตู้"}
         footer={
           <>
-            <button className="btn-outline flex-1" onClick={() => setCabFor(null)}>ยกเลิก</button>
-            <button className="btn-primary flex-1 disabled:opacity-50" disabled={!canSaveCab} onClick={saveCab}>บันทึก</button>
+            <button className="btn-outline flex-1" disabled={savingCab} onClick={() => setCabFor(null)}>ยกเลิก</button>
+            <button className="btn-primary flex-1 disabled:opacity-50" disabled={!canSaveCab || savingCab} onClick={saveCab}>{savingCab ? "กำลังบันทึก…" : "บันทึก"}</button>
           </>
         }
       >
