@@ -31,8 +31,9 @@ export const metadata: Metadata = {
     url: "/",
     title: SITE_TITLE,
     description: SITE_DESC,
+    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "ถุงเขียว — Thung Khiao" }],
   },
-  twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESC },
+  twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESC, images: ["/og.jpg"] },
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [{ url: "/icon.svg", type: "image/svg+xml" }, { url: "/favicon-48.png", sizes: "48x48" }],

@@ -25,12 +25,13 @@ const STATS = {
   paid: 1_240_000,
 };
 
-// รูปประกอบ (Unsplash License — ใช้เชิงพาณิชย์ได้) เก็บไว้ในเครื่องเอง
-// ไม่ hotlink เพราะเป็น dependency ภายนอกใน LCP path + เสี่ยงรูปหาย
+// รูปประกอบแบรนด์ (สร้างด้วย Gemini — ใช้เชิงพาณิชย์ได้) เก็บในเครื่อง ไม่ hotlink
+// ชื่อไฟล์เป็นคีย์เวิร์ด SEO (Google Images) + ใส่ alt ไทยทุกรูป
 const IMG = {
-  hero: "/img/hero.jpg",
-  nature: "/img/nature.jpg",
-  bottles: "/img/bottles.jpg",
+  hero: "/img/hero-recycling-dropbag.webp",
+  cabinet: "/img/drop-bag-cabinet.webp",
+  bottles: "/img/recyclables-mesh-bag.webp",
+  nature: "/img/scan-qr-recycling.webp",
 };
 
 const th = (n: number) => n.toLocaleString("en-US");
@@ -174,6 +175,26 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* DROP BAG CABINET SHOWCASE */}
+      <section className="mx-auto max-w-6xl scroll-mt-20 px-5 pb-4 md:pb-8">
+        <div className="grid items-center gap-10 md:grid-cols-2">
+          <div className="relative mx-auto w-full max-w-sm overflow-hidden rounded-3xl">
+            <Photo src={IMG.cabinet} alt="ตู้ Drop Bag รับหย่อนถุงรีไซเคิลของถุงเขียว ตั้งริมทางเดินในชุมชน" className="aspect-[3/4] w-full shadow-xl ring-1 ring-black/5" grad="from-brand-400 to-emerald-600" sizes="(max-width: 768px) 100vw, 400px" />
+          </div>
+          <div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold text-brand-700"><Boxes className="h-3.5 w-3.5" /> ตู้ Drop Bag</span>
+            <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-neutral-900">ตู้รับหย่อนถุง ใกล้บ้านคุณ</h2>
+            <p className="mt-3 max-w-md text-neutral-500">ดีไซน์ทันสมัย ตั้งในจุดชุมชน หย่อนถุงรีไซเคิลได้ทุกเมื่อ ไม่ต้องรอรถรับซื้อ — สะดวก ปลอดภัย และสะอาด</p>
+            <ul className="mt-5 space-y-2.5 text-sm text-neutral-600">
+              <li className="flex items-center gap-2"><PackageCheck className="h-4 w-4 text-brand-600" /> หย่อนได้ 24 ชั่วโมง ไม่มีวันหยุด</li>
+              <li className="flex items-center gap-2"><ScanLine className="h-4 w-4 text-brand-600" /> สแกน QR บนถุง สะสมแต้มทันที</li>
+              <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-brand-600" /> กระจายทั่วชุมชน หาจุดใกล้คุณได้ในแอป</li>
+            </ul>
+            <Link href="/app" className="btn-primary mt-6 !px-5 !py-3 text-base">หาตู้ใกล้ฉัน <ArrowRight className="h-4 w-4" /></Link>
+          </div>
+        </div>
+      </section>
+
       {/* HOW IT WORKS */}
       <section id="how" className="scroll-mt-20 bg-neutral-50 py-16 md:py-20">
         <div className="mx-auto max-w-6xl px-5">
@@ -229,7 +250,7 @@ export default function Landing() {
       <section className="bg-neutral-50 py-16 md:py-20">
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 md:grid-cols-2">
           <div className="relative order-2 overflow-hidden rounded-3xl md:order-1">
-            <Photo src={IMG.nature} alt="ธรรมชาติสีเขียว — ลดขยะเพื่อสิ่งแวดล้อม" className="aspect-[5/4] w-full shadow-xl ring-1 ring-black/5" grad="from-brand-400 to-emerald-600" sizes="(max-width: 1024px) 100vw, 480px" />
+            <Photo src={IMG.nature} alt="สแกน QR บนถุงรีไซเคิลด้วยแอปถุงเขียว เพื่อสะสมแต้มแลกเงิน" className="aspect-[5/4] w-full shadow-xl ring-1 ring-black/5" grad="from-brand-400 to-emerald-600" sizes="(max-width: 1024px) 100vw, 480px" />
           </div>
           <div className="order-1 md:order-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold text-brand-700"><Smartphone className="h-3.5 w-3.5" /> ดาวน์โหลดแอป</span>
